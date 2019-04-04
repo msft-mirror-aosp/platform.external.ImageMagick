@@ -2845,7 +2845,7 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
 
      if (png_get_gAMA(ping,ping_info,&file_gamma))
        {
-         image->gamma=(float) file_gamma;
+         image->gamma=file_gamma;
          if (logging != MagickFalse)
            (void) LogMagickEvent(CoderEvent,GetMagickModule(),
              "    Reading PNG gAMA chunk: gamma: %f",file_gamma);
@@ -3790,7 +3790,8 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
     {
       png_destroy_read_struct(&ping,&ping_info,&end_info);
       pixel_info=RelinquishVirtualMemory(pixel_info);
-      image->colors=2;
+      if (AcquireImageColormap(image,2,exception) == MagickFalse)
+        ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
       (void) SetImageBackgroundColor(image,exception);
 #ifdef IMPNG_SETJMP_NOT_THREAD_SAFE
       UnlockSemaphoreInfo(ping_semaphore);
@@ -4334,7 +4335,7 @@ static Image *ReadPNGImage(const ImageInfo *image_info,
     }
 
   if ((IssRGBColorspace(image->colorspace) != MagickFalse) &&
-      ((image->gamma < .45) || (image->gamma > .46)) &&
+      (image->gamma > .75) &&
            !(image->chromaticity.red_primary.x>0.6399f &&
            image->chromaticity.red_primary.x<0.6401f &&
            image->chromaticity.red_primary.y>0.3299f &&
