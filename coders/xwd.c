@@ -237,7 +237,8 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
     ThrowReaderException(CorruptImageError,"FileFormatVersionMismatch");
   if (header.header_size < sz_XWDheader)
     ThrowReaderException(CorruptImageError,"CorruptImage");
-  switch (header.visual_class) {
+  switch (header.visual_class)
+  {
     case StaticGray:
     case GrayScale:
     case StaticColor:
@@ -247,8 +248,9 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
       break;
     default:
       ThrowReaderException(CorruptImageError,"CorruptImage");
-    }
-  switch (header.pixmap_format) {
+  }
+  switch (header.pixmap_format)
+  {
     case XYBitmap:
     case XYPixmap:
     case ZPixmap:
@@ -287,9 +289,9 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   ximage->red_mask=header.red_mask;
   ximage->green_mask=header.green_mask;
   ximage->blue_mask=header.blue_mask;
-  if ((ximage->width < 0) || (ximage->height < 0) || (ximage->depth < 0) ||    
-      (ximage->format < 0) || (ximage->byte_order < 0) || 
-      (ximage->bitmap_bit_order < 0) || (ximage->bitmap_pad < 0) || 
+  if ((ximage->width < 0) || (ximage->height < 0) || (ximage->depth < 0) ||
+      (ximage->format < 0) || (ximage->byte_order < 0) ||
+      (ximage->bitmap_bit_order < 0) || (ximage->bitmap_pad < 0) ||
       (ximage->bytes_per_line < 0))
     {
       ximage=(XImage *) RelinquishMagickMemory(ximage);
@@ -477,18 +479,18 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
             for (x=0; x < (ssize_t) image->columns; x++)
             {
               pixel=XGetPixel(ximage,(int) x,(int) y);
-              index=(Quantum) ((pixel >> red_shift) & red_mask);
-              if (index < header.ncolors)
-                SetPixelRed(image,ScaleShortToQuantum(
-                  colors[(ssize_t) index].red),q);
-              index=(Quantum) ((pixel >> green_shift) & green_mask);
-              if (index < header.ncolors)
-                SetPixelGreen(image,ScaleShortToQuantum(
-                  colors[(ssize_t) index].green),q);
-              index=(Quantum) ((pixel >> blue_shift) & blue_mask);
-              if (index < header.ncolors)
-                SetPixelBlue(image,ScaleShortToQuantum(
-                  colors[(ssize_t) index].blue),q);
+              index=ConstrainColormapIndex(image,(pixel >> red_shift) &
+                red_mask,exception);
+              SetPixelRed(image,ScaleShortToQuantum(
+                colors[(ssize_t) index].red),q);
+              index=ConstrainColormapIndex(image,(pixel >> green_shift) &
+                green_mask,exception);
+              SetPixelGreen(image,ScaleShortToQuantum(
+                colors[(ssize_t) index].green),q);
+              index=ConstrainColormapIndex(image,(pixel >> blue_shift) &
+                blue_mask,exception);
+              SetPixelBlue(image,ScaleShortToQuantum(
+                colors[(ssize_t) index].blue),q);
               q+=GetPixelChannels(image);
             }
             if (SyncAuthenticPixels(image,exception) == MagickFalse)
