@@ -1,3 +1,50 @@
+2019-04-03  7.0.8-37 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-37, GIT revision 15470:477216fd7:20190403
+
+2019-04-03  7.0.8-37 Cristy  <quetzlzacatenango@image...>
+  * Fixed -virtual-pixel option (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=35789).
+
+2019-03-31  7.0.8-36 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-36, GIT revision 15464:3a928224d:20190331
+
+2019-03-27  7.0.8-36 Cristy  <quetzlzacatenango@image...>
+  * Fixed a number of issues (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-03-24  7.0.8-35 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-35, GIT revision 15440:4a0a88e41:20190324
+
+2019-03-23  7.0.8-35 Cristy  <quetzlzacatenango@image...>
+  * -draw image DstOver is now responsive to the composite operator (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=1&t=35650).
+  * Fixed a number of issues (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-03-15  7.0.8-34 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-34, GIT revision 15413:860af935d:20190315
+
+2019-03-11  7.0.8-34 Cristy  <quetzlzacatenango@image...>
+  * Associate one lock with each resource.
+  * Report exception if opening TIFF did not work out.
+  * Fixed numerous use of uninitialized values, integer overflow, memory
+    exceeded, and timeouts (credit to OSS Fuzz).
+
+2019-03-10  7.0.8-33 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-33, GIT revision 15401:c805e3205:20190310
+
+2019-03-06  7.0.8-33 Cristy  <quetzlzacatenango@image...>
+  * Fix SVG conversion infinite loop (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=35591).
+  * Initialize primitive drawing structure after resizing.
+
+2019-03-05  7.0.8-32 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-32, GIT revision 15386:58d9c4692:20190305
+
+2019-03-05  7.0.8-32 Cristy  <quetzlzacatenango@image...>
+  * Fix out-of-boundary LocaleLowerCase() @
+    https://github.com/ImageMagick/ImageMagick/issues/1495
+
 2019-03-04  7.0.8-31 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.8-31, GIT revision 15381:3122a669d:20190304
 

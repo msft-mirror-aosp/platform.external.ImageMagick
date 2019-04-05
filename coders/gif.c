@@ -1028,6 +1028,7 @@ static Image *ReadGIFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   meta_image=AcquireImage(image_info,exception);  /* metadata container */
   meta_image->page.width=ReadBlobLSBShort(image);
   meta_image->page.height=ReadBlobLSBShort(image);
+  meta_image->iterations=1;
   flag=(unsigned char) ReadBlobByte(image);
   profiles=(LinkedListInfo *) NULL;
   background=(unsigned char) ReadBlobByte(image);
@@ -1096,7 +1097,7 @@ static Image *ReadGIFImage(const ImageInfo *image_info,ExceptionInfo *exception)
               if (count == 0)
                 break;
               buffer[count]='\0';
-              if (((ssize_t) count+offset+MagickPathExtent) >= (ssize_t) extent)
+              if ((ssize_t) (count+offset+MagickPathExtent) >= (ssize_t) extent)
                 {
                   extent<<=1;
                   comments=(char *) ResizeQuantumMemory(comments,extent+
