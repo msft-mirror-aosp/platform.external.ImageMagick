@@ -346,17 +346,21 @@ static Image *ReadJP2Image(const ImageInfo *image_info,ExceptionInfo *exception)
       opj_destroy_codec(jp2_codec);
       ThrowReaderException(DelegateError,"UnableToDecodeImageFile");
     }
-  jp2_status=1;
-  if ((image->columns != 0) && (image->rows != 0))
+  jp2_status=OPJ_TRUE;
+  if (image->ping == MagickFalse)
     {
-      /*
-        Extract an area from the image.
-      */
-      jp2_status=opj_set_decode_area(jp2_codec,jp2_image,
-        (OPJ_INT32) image->extract_info.x,(OPJ_INT32) image->extract_info.y,
-        (OPJ_INT32) (image->extract_info.x+(ssize_t) image->columns),
-        (OPJ_INT32) (image->extract_info.y+(ssize_t) image->rows));
-      if (jp2_status == 0)
+      if ((image->columns != 0) && (image->rows != 0))
+        /*
+          Extract an area from the image.
+        */
+        jp2_status=opj_set_decode_area(jp2_codec,jp2_image,
+          (OPJ_INT32) image->extract_info.x,(OPJ_INT32) image->extract_info.y,
+          (OPJ_INT32) (image->extract_info.x+(ssize_t) image->columns),
+          (OPJ_INT32) (image->extract_info.y+(ssize_t) image->rows));
+      else
+        jp2_status=opj_set_decode_area(jp2_codec,jp2_image,0,0,
+          jp2_image->comps[0].w,jp2_image->comps[0].h);
+      if (jp2_status == OPJ_FALSE)
         {
           opj_stream_destroy(jp2_stream);
           opj_destroy_codec(jp2_codec);
@@ -378,14 +382,11 @@ static Image *ReadJP2Image(const ImageInfo *image_info,ExceptionInfo *exception)
   else
     if (image->ping == MagickFalse)
       {
-        jp2_status=opj_set_decode_area(jp2_codec,jp2_image,0,0,
-          jp2_image->comps[0].w-1,jp2_image->comps[0].h-1);
-        if (jp2_status != 0)
-          jp2_status=opj_decode(jp2_codec,jp2_stream,jp2_image);
-        if (jp2_status != 0)
+        jp2_status=opj_decode(jp2_codec,jp2_stream,jp2_image);
+        if (jp2_status != OPJ_FALSE)
           jp2_status=opj_end_decompress(jp2_codec,jp2_stream);
       }
-  if (jp2_status == 0)
+  if (jp2_status == OPJ_FALSE)
     {
       opj_stream_destroy(jp2_stream);
       opj_destroy_codec(jp2_codec);
@@ -861,6 +862,7 @@ static MagickBooleanType WriteJP2Image(const ImageInfo *image_info,Image *image,
       /*
         Set tile size.
       */
+      (void) memset(&geometry,0,sizeof(geometry));
       flags=ParseAbsoluteGeometry(image_info->extract,&geometry);
       parameters.cp_tdx=(int) geometry.width;
       parameters.cp_tdy=(int) geometry.width;

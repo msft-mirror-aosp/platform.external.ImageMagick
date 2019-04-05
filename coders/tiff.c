@@ -712,7 +712,6 @@ static void TIFFGetProperties(TIFF *tiff,Image *image,ExceptionInfo *exception)
 
   uint32
     count,
-    length,
     type;
 
   if ((TIFFGetField(tiff,TIFFTAG_ARTIST,&text) == 1) &&
@@ -1327,6 +1326,12 @@ static Image *ReadTIFFImage(const ImageInfo *image_info,
     TIFFUnmapBlob);
   if (tiff == (TIFF *) NULL)
     {
+      image=DestroyImageList(image);
+      return((Image *) NULL);
+    }
+  if (exception->severity > ErrorException)
+    {
+      TIFFClose(tiff);
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
@@ -3501,6 +3506,11 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
     TIFFUnmapBlob);
   if (tiff == (TIFF *) NULL)
     return(MagickFalse);
+  if (exception->severity > ErrorException)
+    {
+      TIFFClose(tiff);
+      return(MagickFalse);
+    }
   (void) DeleteImageProfile(image,"tiff:37724");
   scene=0;
   debug=IsEventLogging();

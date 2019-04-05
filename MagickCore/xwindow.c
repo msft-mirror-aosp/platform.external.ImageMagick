@@ -309,6 +309,11 @@ MagickExport void DestroyXResources(void)
         (void) XFreePixmap(windows->display,magick_windows[i]->shadow_stipple);
         magick_windows[i]->shadow_stipple=(Pixmap) NULL;
       }
+    if (magick_windows[i]->matte_image != (XImage *) NULL)
+      {
+        XDestroyImage(magick_windows[i]->matte_image);
+        magick_windows[i]->matte_image=(XImage *) NULL;
+      }
     if (magick_windows[i]->ximage != (XImage *) NULL)
       {
         XDestroyImage(magick_windows[i]->ximage);
@@ -5049,21 +5054,16 @@ MagickExport Image *XImportImage(const ImageInfo *image_info,
       if ((crop_info.width != 0) && (crop_info.height != 0))
         {
           Image
-            *clone_image,
             *crop_image;
 
           /*
             Crop image as defined by the cropping rectangle.
           */
-          clone_image=CloneImage(image,0,0,MagickTrue,exception);
-          if (clone_image != (Image *) NULL)
+          crop_image=CropImage(image,&crop_info,exception);
+          if (crop_image != (Image *) NULL)
             {
-              crop_image=CropImage(clone_image,&crop_info,exception);
-              if (crop_image != (Image *) NULL)
-                {
-                  image=DestroyImage(image);
-                  image=crop_image;
-                }
+              image=DestroyImage(image);
+              image=crop_image;
             }
         }
       status=XGetWMName(display,target,&window_name);
