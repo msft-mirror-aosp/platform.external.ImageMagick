@@ -1461,9 +1461,6 @@ static inline const char *GetDPXProperty(const Image *image,
 static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
   ExceptionInfo *exception)
 {
-  char
-    *url;
-
   const char
     *value;
 
@@ -1595,9 +1592,8 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
     dpx.file.timestamp);
   offset+=WriteBlob(image,sizeof(dpx.file.timestamp),(unsigned char *)
     dpx.file.timestamp);
-  url=GetMagickHomeURL();
-  (void) strncpy(dpx.file.creator,url,sizeof(dpx.file.creator)-1);
-  url=DestroyString(url);
+  (void) strncpy(dpx.file.creator,MagickAuthoritativeURL,
+    sizeof(dpx.file.creator)-1);
   value=GetDPXProperty(image,"dpx:file.creator",exception);
   if (value != (const char *) NULL)
     (void) strncpy(dpx.file.creator,value,sizeof(dpx.file.creator)-1);
@@ -2018,11 +2014,16 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
   pixels=(unsigned char *) GetQuantumPixels(quantum_info);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
+    size_t
+      length;
+
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
     if (p == (const Quantum *) NULL)
       break;
-    (void) ExportQuantumPixels(image,(CacheView *) NULL,quantum_info,
+    length=ExportQuantumPixels(image,(CacheView *) NULL,quantum_info,
       quantum_type,pixels,exception);
+    if (length == 0)
+      break;
     count=WriteBlob(image,extent,pixels);
     if (count != (ssize_t) extent)
       break;
@@ -2032,6 +2033,8 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
       break;
   }
   quantum_info=DestroyQuantumInfo(quantum_info);
+  if (y < (ssize_t) image->rows)
+    ThrowWriterException(CorruptImageError,"UnableToWriteImageData");
   (void) CloseBlob(image);
   return(status);
 }
