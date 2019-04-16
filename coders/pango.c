@@ -185,6 +185,8 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   assert(exception->signature == MagickCoreSignature);
   image=AcquireImage(image_info,exception);
   (void) ResetImagePage(image,"0x0+0+0");
+  if ((image->columns != 0) && (image->rows != 0))
+    (void) SetImageBackgroundColor(image,exception);
   /*
     Format caption.
   */
@@ -199,8 +201,11 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
     else
       property=InterpretImageProperties((ImageInfo *) image_info,image,option,
         exception);
-  (void) SetImageProperty(image,"caption",property,exception);
-  property=DestroyString(property);
+  if (property != (char *) NULL)
+    {
+      (void) SetImageProperty(image,"caption",property,exception);
+      property=DestroyString(property);
+    }
   caption=ConstantString(GetImageProperty(image,"caption",exception));
   /*
     Get context.
@@ -328,6 +333,16 @@ static Image *ReadPANGOImage(const ImageInfo *image_info,
   if ((align != PANGO_ALIGN_CENTER) &&
       (draw_info->direction == RightToLeftDirection))
     align=(PangoAlignment) (PANGO_ALIGN_LEFT+PANGO_ALIGN_RIGHT-align);
+  option=GetImageOption(image_info,"pango:align");
+  if (option != (const char *) NULL)
+    {
+      if (LocaleCompare(option,"center") == 0)
+        align=PANGO_ALIGN_CENTER;
+      if (LocaleCompare(option,"left") == 0)
+        align=PANGO_ALIGN_LEFT;
+      if (LocaleCompare(option,"right") == 0)
+        align=PANGO_ALIGN_RIGHT;
+    }
   pango_layout_set_alignment(layout,align);
   if (draw_info->font == (char *) NULL)
     description=pango_font_description_new();

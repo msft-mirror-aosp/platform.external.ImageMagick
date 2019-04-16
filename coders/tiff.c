@@ -712,11 +712,7 @@ static void TIFFGetProperties(TIFF *tiff,Image *image,ExceptionInfo *exception)
 
   uint32
     count,
-    length,
     type;
-
-  unsigned long
-    *tietz;
 
   if ((TIFFGetField(tiff,TIFFTAG_ARTIST,&text) == 1) &&
       (text != (char *) NULL))
@@ -791,12 +787,6 @@ static void TIFFGetProperties(TIFF *tiff,Image *image,ExceptionInfo *exception)
       }
       default:
         break;
-    }
-  if ((TIFFGetField(tiff,37706,&length,&tietz) == 1) &&
-      (tietz != (unsigned long *) NULL))
-    {
-      (void) FormatLocaleString(message,MagickPathExtent,"%lu",tietz[0]);
-      (void) SetImageProperty(image,"tiff:tietz_offset",message,exception);
     }
 }
 
@@ -1336,6 +1326,12 @@ static Image *ReadTIFFImage(const ImageInfo *image_info,
     TIFFUnmapBlob);
   if (tiff == (TIFF *) NULL)
     {
+      image=DestroyImageList(image);
+      return((Image *) NULL);
+    }
+  if (exception->severity > ErrorException)
+    {
+      TIFFClose(tiff);
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
@@ -2017,6 +2013,7 @@ RestoreMSCWarning
         /*
           Convert stripped TIFF image to DirectClass MIFF image.
         */
+        (void) SetImageStorageClass(image,DirectClass,exception);
         i=0;
         p=(uint32 *) NULL;
         for (y=0; y < (ssize_t) image->rows; y++)
@@ -2186,6 +2183,7 @@ RestoreMSCWarning
         /*
           Convert TIFF image to DirectClass MIFF image.
         */
+        (void) SetImageStorageClass(image,DirectClass,exception);
         number_pixels=(MagickSizeType) image->columns*image->rows;
         if (HeapOverflowSanityCheck(image->rows,sizeof(*pixels)) != MagickFalse)
           ThrowTIFFException(ResourceLimitError,"MemoryAllocationFailed");
@@ -3508,6 +3506,11 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
     TIFFUnmapBlob);
   if (tiff == (TIFF *) NULL)
     return(MagickFalse);
+  if (exception->severity > ErrorException)
+    {
+      TIFFClose(tiff);
+      return(MagickFalse);
+    }
   (void) DeleteImageProfile(image,"tiff:37724");
   scene=0;
   debug=IsEventLogging();

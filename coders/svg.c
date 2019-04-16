@@ -678,12 +678,12 @@ static void SVGStripString(const MagickBooleanType trim,char *message)
     *q++=(*p);
   }
   *q='\0';
-  if (trim != MagickFalse)
+  length=strlen(message);
+  if ((trim != MagickFalse) && (length != 0))
     {
       /*
         Remove whitespace.
       */
-      length=strlen(message);
       p=message;
       while (isspace((int) ((unsigned char) *p)) != 0)
         p++;
@@ -1622,7 +1622,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
               char
                 *text;
 
-              text=EscapeString(svg_info->text,'\'');
+              text=EscapeString(svg_info->text,'\"');
               (void) FormatLocaleFile(svg_info->file,"text %g,%g \"%s\"\n",
                 svg_info->bounds.x-svg_info->center.x,svg_info->bounds.y-
                 svg_info->center.y,text);
@@ -2821,6 +2821,9 @@ static void SVGEndElement(void *context,const xmlChar *name)
             SVGProcessStyleElement(context,name,value);
             (void) FormatLocaleFile(svg_info->file,"pop class\n");
           }
+          for (j=0; tokens[j] != (char *) NULL; j++)
+            tokens[j]=DestroyString(tokens[j]);
+          tokens=(char **) RelinquishMagickMemory(tokens);
           break;
         }
       if (LocaleCompare((const char *) name,"svg") == 0)
@@ -2847,7 +2850,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
                 *text;
 
               SVGStripString(MagickTrue,svg_info->text);
-              text=EscapeString(svg_info->text,'\'');
+              text=EscapeString(svg_info->text,'\"');
               (void) FormatLocaleFile(svg_info->file,"text 0,0 \"%s\"\n",text);
               text=DestroyString(text);
               *svg_info->text='\0';
@@ -2865,7 +2868,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
                 *text;
 
               (void) FormatLocaleFile(svg_info->file,"class \"tspan\"\n");
-              text=EscapeString(svg_info->text,'\'');
+              text=EscapeString(svg_info->text,'\"');
               (void) FormatLocaleFile(svg_info->file,"text %g,%g \"%s\"\n",
                 svg_info->bounds.x-svg_info->center.x,svg_info->bounds.y-
                 svg_info->center.y,text);
@@ -3548,6 +3551,7 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     (void) CloneString(&svg_info->size,image_info->size);
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(CoderEvent,GetMagickModule(),"begin SAX");
+  xmlInitParser();
   (void) xmlSubstituteEntitiesDefault(1);
   (void) memset(&sax_modules,0,sizeof(sax_modules));
   sax_modules.internalSubset=SVGInternalSubset;
@@ -3734,9 +3738,6 @@ ModuleExport size_t RegisterSVGImage(void)
 #if defined(MAGICKCORE_RSVG_DELEGATE)
 #if !GLIB_CHECK_VERSION(2,35,0)
   g_type_init();
-#endif
-#if defined(MAGICKCORE_XML_DELEGATE)
-  xmlInitParser();
 #endif
   (void) FormatLocaleString(version,MagickPathExtent,"RSVG %d.%d.%d",
     LIBRSVG_MAJOR_VERSION,LIBRSVG_MINOR_VERSION,LIBRSVG_MICRO_VERSION);
@@ -4136,7 +4137,7 @@ static MagickBooleanType WriteSVGImage(const ImageInfo *image_info,Image *image,
       (void) CloseBlob(image);
       return(MagickTrue);
     }
-  value=GetImageArtifact(image,"MVG");
+  value=GetImageArtifact(image,"mvg:vector-graphics");
   if (value == (char *) NULL)
     return(TraceSVGImage(image,exception));
   /*

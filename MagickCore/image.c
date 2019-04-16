@@ -258,10 +258,11 @@ MagickExport Image *AcquireImage(const ImageInfo *image_info,
         geometry_info;
 
       flags=ParseGeometry(image_info->density,&geometry_info);
-      image->resolution.x=geometry_info.rho;
-      image->resolution.y=geometry_info.sigma;
-      if ((flags & SigmaValue) == 0)
-        image->resolution.y=image->resolution.x;
+      if ((flags & RhoValue) != 0)
+        image->resolution.x=geometry_info.rho;
+      image->resolution.y=image->resolution.x;
+      if ((flags & SigmaValue) != 0)
+        image->resolution.y=geometry_info.sigma;
     }
   if (image_info->page != (char *) NULL)
     {
@@ -1750,7 +1751,7 @@ MagickExport size_t InterpretImageFilename(const ImageInfo *image_info,
         *q='\0';
         (void) CopyMagickString(filename+(p-format-offset),option,(size_t)
           (MagickPathExtent-(p-format-offset)));
-        offset+=strlen(pattern)-4;
+        offset+=strlen(pattern)-strlen(option)+3;
         *q=c;
         (void) ConcatenateMagickString(filename,r+1,MagickPathExtent);
         canonical=MagickTrue;

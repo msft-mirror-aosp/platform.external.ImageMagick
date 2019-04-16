@@ -2845,7 +2845,7 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
 
      if (png_get_gAMA(ping,ping_info,&file_gamma))
        {
-         image->gamma=(float) file_gamma;
+         image->gamma=file_gamma;
          if (logging != MagickFalse)
            (void) LogMagickEvent(CoderEvent,GetMagickModule(),
              "    Reading PNG gAMA chunk: gamma: %f",file_gamma);
@@ -3790,7 +3790,8 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
     {
       png_destroy_read_struct(&ping,&ping_info,&end_info);
       pixel_info=RelinquishVirtualMemory(pixel_info);
-      image->colors=2;
+      if (AcquireImageColormap(image,2,exception) == MagickFalse)
+        ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
       (void) SetImageBackgroundColor(image,exception);
 #ifdef IMPNG_SETJMP_NOT_THREAD_SAFE
       UnlockSemaphoreInfo(ping_semaphore);
@@ -3955,8 +3956,11 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
                 char
                   key[MagickPathExtent];
 
-                (void) FormatLocaleString(key,MagickPathExtent,"png:%s",
+                (void) FormatLocaleString(key,MagickPathExtent,"%s",
                   text[i].key);
+                if (LocaleCompare(key,"version") == 0)
+                  (void) FormatLocaleString(key,MagickPathExtent,"png:%s",
+                    text[i].key);
                 (void) SetImageProperty(image,key,value,exception);
               }
 
@@ -4331,7 +4335,7 @@ static Image *ReadPNGImage(const ImageInfo *image_info,
     }
 
   if ((IssRGBColorspace(image->colorspace) != MagickFalse) &&
-      ((image->gamma < .45) || (image->gamma > .46)) &&
+      (image->gamma > .75) &&
            !(image->chromaticity.red_primary.x>0.6399f &&
            image->chromaticity.red_primary.x<0.6401f &&
            image->chromaticity.red_primary.y>0.3299f &&
@@ -6090,8 +6094,11 @@ static Image *ReadOneMNGImage(MngInfo* mng_info, const ImageInfo *image_info,
                 image->background_color=mng_background_color;
                 image->alpha_trait=UndefinedPixelTrait;
                 image->delay=0;
-                (void) SetImageBackgroundColor(image,exception);
-
+                if (SetImageBackgroundColor(image,exception) == MagickFalse)
+                  {
+                    chunk=(unsigned char *) RelinquishMagickMemory(chunk);
+                    return(DestroyImageList(image));
+                  }
                 if (logging != MagickFalse)
                   (void) LogMagickEvent(CoderEvent,GetMagickModule(),
                     "  Insert backgd layer, L=%.20g, R=%.20g T=%.20g, B=%.20g",
