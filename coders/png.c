@@ -87,6 +87,7 @@
 #include "MagickCore/statistic.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
+#include "MagickCore/timer-private.h"
 #include "MagickCore/transform.h"
 #include "MagickCore/utility.h"
 #if defined(MAGICKCORE_PNG_DELEGATE)
@@ -954,7 +955,7 @@ LosslessReduceDepthOK(Image *image,ExceptionInfo *exception)
 }
 #endif /* MAGICKCORE_QUANTUM_DEPTH >= 16 */
 
-static const char* PngColorTypeToString(const unsigned int color_type)
+static const char *PngColorTypeToString(const unsigned int color_type)
 {
   const char
     *result = "Unknown";
@@ -7853,18 +7854,18 @@ ModuleExport size_t RegisterPNGImage(void)
     *entry;
 
   static const char
-    *PNGNote=
+    PNGNote[] =
     {
       "See http://www.libpng.org/ for details about the PNG format."
     },
 
-    *JNGNote=
+    JNGNote[] =
     {
       "See http://www.libpng.org/pub/mng/ for details about the JNG\n"
       "format."
     },
 
-    *MNGNote=
+    MNGNote[] =
     {
       "See http://www.libpng.org/pub/mng/ for details about the MNG\n"
       "format."
@@ -8179,8 +8180,11 @@ Magick_png_write_raw_profile(const ImageInfo *image_info,png_struct *ping,
    unsigned char
      hex[16]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
-   if (LocaleNCompare((char *) profile_type+1, "ng-chunk-",9) == 0)
-      return;
+   if (length > 1)
+     {
+       if (LocaleNCompare((char *) profile_type+1, "ng-chunk-",9) == 0)
+          return;
+     }
 
    if (image_info->verbose)
      {
@@ -8366,7 +8370,7 @@ static void write_tIME_chunk(Image *image,png_struct *ping,png_info *info,
   ptime.hour = hour;
   ptime.minute = minute;
   ptime.second = second;
-
+  png_convert_from_time_t(&ptime,GetMagickTime());
   LogMagickEvent(CoderEvent,GetMagickModule(),
       "      png_set_tIME: y=%d, m=%d, d=%d, h=%d, m=%d, s=%d, ah=%d, am=%d",
       ptime.year, ptime.month, ptime.day, ptime.hour, ptime.minute,
