@@ -298,12 +298,14 @@ static const char *GetOpenCLCacheDirectory()
           if (home == (char *) NULL)
             {
               home=GetEnvironmentValue("XDG_CACHE_HOME");
+#if defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__MINGW32__)
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("LOCALAPPDATA");
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("APPDATA");
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("USERPROFILE");
+#endif
             }
 
           if (home != (char *) NULL)
@@ -1552,8 +1554,9 @@ MagickPrivate void DumpOpenCLProfileData()
   (void) FormatLocaleString(filename,MagickPathExtent,"%s%s%s",
     GetOpenCLCacheDirectory(),DirectorySeparator,"ImageMagickOpenCL.log");
 
-  log=fopen_utf8(filename,"wb");
-
+  log = fopen_utf8(filename,"wb");
+  if (log == (FILE *) NULL)
+    return;
   for (i = 0; i < clEnv->number_devices; i++)
   {
     MagickCLDevice
