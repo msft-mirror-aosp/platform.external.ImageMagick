@@ -65,6 +65,7 @@
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
+#include "MagickCore/timer-private.h"
 
 /*
   Define declaration.
@@ -851,8 +852,6 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     dpx.image.image_element[i].bit_size=(unsigned char) ReadBlobByte(image);
     offset++;
     dpx.image.image_element[i].packing=ReadBlobShort(image);
-    if (dpx.image.image_element[i].packing > 2)
-      ThrowReaderException(CorruptImageError,"ImproperImageHeader");
     offset+=2;
     dpx.image.image_element[i].encoding=ReadBlobShort(image);
     offset+=2;
@@ -1587,7 +1586,7 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
     (void) strncpy(dpx.file.filename,value,sizeof(dpx.file.filename)-1);
   offset+=WriteBlob(image,sizeof(dpx.file.filename),(unsigned char *)
     dpx.file.filename);
-  seconds=time((time_t *) NULL);
+  seconds=GetMagickTime();
   (void) FormatMagickTime(seconds,sizeof(dpx.file.timestamp),
     dpx.file.timestamp);
   offset+=WriteBlob(image,sizeof(dpx.file.timestamp),(unsigned char *)
