@@ -5896,7 +5896,8 @@ static void XMakeImageLSBFirst(const XResourceInfo *resource_info,
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   canvas=image;
   if ((window->immutable == MagickFalse) &&
-      (image->storage_class == DirectClass) && (image->alpha_trait != UndefinedPixelTrait))
+      (image->storage_class == DirectClass) &&
+      (image->alpha_trait != UndefinedPixelTrait))
     {
       char
         size[MagickPathExtent];
@@ -6706,8 +6707,8 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
           /*
             Convert to 8 bit color-mapped X canvas.
           */
-          if (resource_info->color_recovery &&
-              resource_info->quantize_info->dither_method != NoDitherMethod)
+          if ((resource_info->color_recovery != MagickFalse) &&
+              (resource_info->quantize_info->dither_method != NoDitherMethod))
             {
               XDitherImage(canvas,ximage,exception);
               break;
@@ -6870,8 +6871,8 @@ static void XMakeImageMSBFirst(const XResourceInfo *resource_info,
           /*
             Convert to 8 bit continuous-tone X canvas.
           */
-          if (resource_info->color_recovery &&
-              resource_info->quantize_info->dither_method != NoDitherMethod)
+          if ((resource_info->color_recovery != MagickFalse) &&
+              (resource_info->quantize_info->dither_method != NoDitherMethod))
             {
               XDitherImage(canvas,ximage,exception);
               break;
@@ -8528,7 +8529,8 @@ MagickPrivate void XMakeWindow(Display *display,Window parent,char **argv,
       window_info->shape=MagickFalse;
 #endif
     }
-  if (window_info->shared_memory)
+  window_info->shape=MagickFalse;  /* Fedora 30 has a broken shape extention */
+  if (window_info->shared_memory != MagickFalse)
     {
 #if defined(MAGICKCORE_HAVE_SHARED_MEMORY)
       /*
@@ -9315,6 +9317,7 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
   target_window=(Window) NULL;
   x_offset=0;
   y_offset=0;
+  (void) XGrabServer(display);
   do
   {
     if ((crop_info->width*crop_info->height) >= MinimumCropArea)
@@ -9383,6 +9386,7 @@ static Window XSelectWindow(Display *display,RectangleInfo *crop_info)
         break;
     }
   } while ((target_window == (Window) NULL) || (presses > 0));
+  (void) XUngrabServer(display);
   (void) XUngrabPointer(display,CurrentTime);
   (void) XFreeCursor(display,target_cursor);
   (void) XFreeGC(display,annotate_context);
