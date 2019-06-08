@@ -2192,25 +2192,13 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
         {
           *beta=FxEvaluateSubexpression(fx_info,channel,x,y,++p,depth+1,beta,
             exception);
-          if (*beta == 0.0)
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"DivideByZero","`%s'",expression);
-              FxReturn(0.0);
-            }
-          FxReturn(alpha/(*beta));
+          FxReturn(PerceptibleReciprocal(*beta)*alpha);
         }
         case '%':
         {
           *beta=FxEvaluateSubexpression(fx_info,channel,x,y,++p,depth+1,beta,
             exception);
           *beta=fabs(floor((*beta)+0.5));
-          if (*beta == 0.0)
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"DivideByZero","`%s'",expression);
-              FxReturn(0.0);
-            }
           FxReturn(fmod(alpha,*beta));
         }
         case '+':
@@ -2371,8 +2359,9 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
         }
         case ',':
         {
-          *beta=FxEvaluateSubexpression(fx_info,channel,x,y,++p,depth+1,beta,
-            exception);
+          if (fabs(alpha) > MagickEpsilon)
+            *beta=FxEvaluateSubexpression(fx_info,channel,x,y,++p,depth+1,beta,
+              exception);
           FxReturn(alpha);
         }
         case ';':
@@ -5646,6 +5635,9 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
     *canvas_image_view,
     *wave_view;
 
+  float
+    *sine_map;
+
   Image
     *canvas_image,
     *wave_image;
@@ -5655,9 +5647,6 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
 
   MagickOffsetType
     progress;
-
-  double
-    *sine_map;
 
   register ssize_t
     i;
@@ -5696,17 +5685,17 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
   /*
     Allocate sine map.
   */
-  sine_map=(double *) AcquireQuantumMemory((size_t) wave_image->columns,
+  sine_map=(float *) AcquireQuantumMemory((size_t) wave_image->columns,
     sizeof(*sine_map));
-  if (sine_map == (double *) NULL)
+  if (sine_map == (float *) NULL)
     {
       canvas_image=DestroyImage(canvas_image);
       wave_image=DestroyImage(wave_image);
       ThrowImageException(ResourceLimitError,"MemoryAllocationFailed");
     }
   for (i=0; i < (ssize_t) wave_image->columns; i++)
-    sine_map[i]=fabs(amplitude)+amplitude*sin((double) ((2.0*MagickPI*i)/
-      wave_length));
+    sine_map[i]=(float) fabs(amplitude)+amplitude*sin((double)
+      ((2.0*MagickPI*i)/wave_length));
   /*
     Wave image.
   */
@@ -5771,7 +5760,7 @@ MagickExport Image *WaveImage(const Image *image,const double amplitude,
   wave_view=DestroyCacheView(wave_view);
   canvas_image_view=DestroyCacheView(canvas_image_view);
   canvas_image=DestroyImage(canvas_image);
-  sine_map=(double *) RelinquishMagickMemory(sine_map);
+  sine_map=(float *) RelinquishMagickMemory(sine_map);
   if (status == MagickFalse)
     wave_image=DestroyImage(wave_image);
   return(wave_image);
