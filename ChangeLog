@@ -1,11 +1,55 @@
-2019-07-01  7.0.8-49 Cristy  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.8-49, GIT revision 15...
+2019-07-08  7.0.8-54 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-54, GIT revision 15...
+
+2019-07-08  7.0.8-54 Cristy  <quetzlzacatenango@image...>
+   * resolve division by zero  (reference
+     https://github.com/ImageMagick/ImageMagick/issues/1629).
+
+     https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=36314).
+2019-07-05  7.0.8-53 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-53, GIT revision 15828:f5d59c0:20190705.
+
+2019-07-05  7.0.8-53 Cristy  <quetzlzacatenango@image...>
+   * Fix -fx parsing issue (reference
+     https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=36314).
+
+2019-07-05  7.0.8-52 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-52, GIT revision 15825:ea47310:20190705.
+
+2019-07-01  7.0.8-52 Cristy  <quetzlzacatenango@image...>
+  * Eliminate buffer overflow in TranslateEvent() (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1621).
+
+2019-06-30  7.0.8-51 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-51, GIT revision 15812:51f11c4:20190630.
+
+2019-06-24  7.0.8-51 Cristy  <quetzlzacatenango@image...>
+  * Clone rather than copy X window name/icon.
+  * Optimize PDF reader.
+
+2019-06-23  7.0.8-50 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-50, GIT revision 15778:4a60519:20190623
+
+2019-06-14  7.0.8-50 Dirk Lemstra <dirk@lem.....org>
+  * Added support for reading all images from a HEIC image (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1391).
+  * Heap-buffer-overflow in MagickCore/fourier.c (reference
+   https://github.com/ImageMagick/ImageMagick/issues/1588).
+  * Fixed a number of issues (reference
+    https://imagemagick.org/discourse-server/viewforum.php?f=3).
+  * Fixed a number of issues (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-06-08  7.0.8-49 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-49, GIT revision 15708:6d7e1db:20190608
 
 2019-06-03  7.0.8-49 Cristy  <quetzlzacatenango@image...>
   * Add support for RGB565 image format (reference
     https://imagemagick.org/discourse-server/viewtopic.php?f=2&t=36078).
   * Use user defined allocator instead of `malloc` (reference
     https://github.com/ImageMagick/ImageMagick6/pull/49/).
+  * Add static decorator to accelerator kernels (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1366).
 
 2019-06-01  7.0.8-48 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.8-48, GIT revision 15689:061a3bb82:20190601

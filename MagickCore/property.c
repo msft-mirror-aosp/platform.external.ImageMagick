@@ -1444,6 +1444,8 @@ static MagickBooleanType GetEXIFProperty(const Image *image,
       format=(size_t) ReadPropertyUnsignedShort(endian,q+2);
       if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))
         break;
+      if (format == 0)
+        break;  /* corrupt EXIF */
       components=(ssize_t) ReadPropertySignedLong(endian,q+4);
       if (components < 0)
         break;  /* corrupt EXIF */
@@ -1475,6 +1477,8 @@ static MagickBooleanType GetEXIFProperty(const Image *image,
             buffer[MagickPathExtent],
             *value;
 
+          if ((p < exif) || (p > (exif+length-tag_bytes[format])))
+            break;
           value=(char *) NULL;
           *buffer='\0';
           switch (format)
@@ -1536,9 +1540,11 @@ static MagickBooleanType GetEXIFProperty(const Image *image,
               EXIFMultipleValues(8,"%f",*(double *) p1);
               break;
             }
-            default:
             case EXIF_FMT_STRING:
+            default:
             {
+              if ((p < exif) || (p > (exif+length-number_bytes)))
+                break;
               value=(char *) NULL;
               if (~((size_t) number_bytes) >= 1)
                 value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,
@@ -1638,7 +1644,7 @@ static MagickBooleanType GetEXIFProperty(const Image *image,
                 directory_stack[level].offset=tag_offset2;
                 directory_stack[level].entry=0;
                 level++;
-                if ((directory+2+(12*number_entries)) > (exif+length))
+                if ((directory+2+(12*number_entries)+4) > (exif+length))
                   break;
                 tag_offset1=(ssize_t) ReadPropertySignedLong(endian,directory+
                   2+(12*number_entries));
