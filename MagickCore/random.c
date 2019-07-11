@@ -160,7 +160,6 @@ static StringInfo
 %      RandomInfo *AcquireRandomInfo(void)
 %
 */
-
 MagickExport RandomInfo *AcquireRandomInfo(void)
 {
   const StringInfo
@@ -381,10 +380,10 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
   SetStringInfoDatum(chaos,(unsigned char *) &tid);
   ConcatenateStringInfo(entropy,chaos);
 #if defined(MAGICKCORE_HAVE_SYSCONF) && defined(_SC_PHYS_PAGES)
-  { 
+  {
     ssize_t
       pages;
-    
+
     pages=(ssize_t) sysconf(_SC_PHYS_PAGES);
     SetStringInfoLength(chaos,sizeof(pages));
     SetStringInfoDatum(chaos,(unsigned char *) &pages);
@@ -480,22 +479,22 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
   {
     double
-      datum;
+      seconds;
 
     LARGE_INTEGER
-      datum1;
+      nanoseconds;
 
     /*
       Not crytographically strong but better than nothing.
     */
-    datum=NTElapsedTime()+NTUserTime();
-    SetStringInfoLength(chaos,sizeof(datum));
-    SetStringInfoDatum(chaos,(unsigned char *) &datum);
+    seconds=NTElapsedTime()+NTUserTime();
+    SetStringInfoLength(chaos,sizeof(seconds));
+    SetStringInfoDatum(chaos,(unsigned char *) &seconds);
     ConcatenateStringInfo(entropy,chaos);
-    if (QueryPerformanceCounter(&datum1) != 0)
+    if (QueryPerformanceCounter(&nanoseconds) != 0)
       {
-        SetStringInfoLength(chaos,sizeof(datum1));
-        SetStringInfoDatum(chaos,(unsigned char *) &datum1);
+        SetStringInfoLength(chaos,sizeof(nanoseconds));
+        SetStringInfoDatum(chaos,(unsigned char *) &nanoseconds);
         ConcatenateStringInfo(entropy,chaos);
       }
     /*
@@ -949,7 +948,7 @@ MagickExport void SetRandomKey(RandomInfo *random_info,const size_t length,
 %
 %  A description of each parameter follows:
 %
-%    o key: the secret seed.
+%    o key: the secret key.
 %
 */
 MagickExport void SetRandomSecretKey(const unsigned long key)
