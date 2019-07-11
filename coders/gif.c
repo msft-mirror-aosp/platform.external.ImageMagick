@@ -673,13 +673,15 @@ static MagickBooleanType EncodeImage(const ImageInfo *image_info,Image *image,
       /*
         Probe hash table.
       */
+      next_pixel=MagickFalse;
+      displacement=1;
       index=(Quantum) ((size_t) GetPixelIndex(image,p) & 0xff);
       p+=GetPixelChannels(image);
       k=(ssize_t) (((size_t) index << (MaxGIFBits-8))+waiting_code);
       if (k >= MaxHashTable)
         k-=MaxHashTable;
-      next_pixel=MagickFalse;
-      displacement=1;
+      if (k < 0)
+        continue;
       if (hash_code[k] > 0)
         {
           if ((hash_prefix[k] == waiting_code) &&
@@ -1167,16 +1169,15 @@ static Image *ReadGIFImage(const ImageInfo *image_info,ExceptionInfo *exception)
                   MagickTrue : MagickFalse;
                 (void) LogMagickEvent(CoderEvent,GetMagickModule(),
                   "    Reading GIF application extension");
-                info=(unsigned char *) AcquireQuantumMemory(255UL,
-                  sizeof(*info));
+                reserved_length=255;
+                info=(unsigned char *) AcquireQuantumMemory((size_t)
+                  reserved_length,sizeof(*info));
                 if (info == (unsigned char *) NULL)
                   ThrowGIFException(ResourceLimitError,
                     "MemoryAllocationFailed");
-                (void) memset(info,0,255UL*sizeof(*info));
-                reserved_length=255;
                 for (info_length=0; ; )
                 {
-                  block_length=(int) ReadBlobBlock(image,&info[info_length]);
+                  block_length=(int) ReadBlobBlock(image,info+info_length);
                   if (block_length == 0)
                     break;
                   info_length+=block_length;
