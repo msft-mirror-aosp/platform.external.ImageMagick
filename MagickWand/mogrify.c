@@ -7824,6 +7824,9 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             clut_image=RemoveFirstImageFromList(images);
             if (clut_image == (Image *) NULL)
               {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  OptionError,"ImageSequenceRequired","`%s'",option);
+                image=DestroyImage(image);
                 status=MagickFalse;
                 break;
               }
@@ -7896,6 +7899,9 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             reconstruct_image=RemoveFirstImageFromList(images);
             if (reconstruct_image == (Image *) NULL)
               {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  OptionError,"ImageSequenceRequired","`%s'",option);
+                image=DestroyImage(image);
                 status=MagickFalse;
                 break;
               }
@@ -7908,8 +7914,10 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
               &distortion,exception);
             if (difference_image == (Image *) NULL)
               break;
+            reconstruct_image=DestroyImage(reconstruct_image);
+            image=DestroyImage(image);
             if (*images != (Image *) NULL)
-              *images=DestroyImage(*images);
+              *images=DestroyImageList(*images);
             *images=difference_image;
             break;
           }
@@ -7974,7 +7982,13 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             new_images=RemoveFirstImageFromList(images);
             source_image=RemoveFirstImageFromList(images);
             if (source_image == (Image *) NULL)
-              break; /* FUTURE - produce Exception, rather than silent fail */
+              {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  OptionError,"ImageSequenceRequired","`%s'",option);
+                new_images=DestroyImage(new_images);
+                status=MagickFalse;
+                break;
+              }
 
             /* FUTURE: this should not be here! - should be part of -geometry */
             if (source_image->geometry != (char *) NULL)
@@ -8031,7 +8045,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
                       CopyAlphaCompositeOp,MagickTrue,0,0,exception);
                     status&=CompositeImage(clone_image,new_images,
                       OverCompositeOp,clip_to_self,0,0,exception);
-                    new_images=DestroyImage(new_images);
+                    new_images=DestroyImageList(new_images);
                     new_images=clone_image;
                   }
                 mask_image=DestroyImage(mask_image);
@@ -8039,7 +8053,6 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             source_image=DestroyImage(source_image);
             *images=DestroyImageList(*images);
             *images=new_images;
-
             break;
           }
         if (LocaleCompare("copy",option+1) == 0)
@@ -8179,7 +8192,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
               MagickTrue : MagickFalse,exception);
             if (fourier_image == (Image *) NULL)
               break;
-            *images=DestroyImage(*images);
+            *images=DestroyImageList(*images);
             *images=fourier_image;
             break;
           }
@@ -8227,6 +8240,9 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             hald_image=RemoveFirstImageFromList(images);
             if (hald_image == (Image *) NULL)
               {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  OptionError,"ImageSequenceRequired","`%s'",option);
+                image=DestroyImage(image);
                 status=MagickFalse;
                 break;
               }
@@ -8256,15 +8272,20 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             phase_image=RemoveFirstImageFromList(images);
             if (phase_image == (Image *) NULL)
               {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  OptionError,"ImageSequenceRequired","`%s'",option);
+                magnitude_image=DestroyImage(magnitude_image);
                 status=MagickFalse;
                 break;
               }
             fourier_image=InverseFourierTransformImage(magnitude_image,
               phase_image,*option == '-' ? MagickTrue : MagickFalse,exception);
+            magnitude_image=DestroyImage(magnitude_image);
+            phase_image=DestroyImage(phase_image);
             if (fourier_image == (Image *) NULL)
               break;
             if (*images != (Image *) NULL)
-              *images=DestroyImage(*images);
+              *images=DestroyImageList(*images);
             *images=fourier_image;
             break;
           }
@@ -8296,6 +8317,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
                    q=GetImageFromList(*images,index-1);
                    if (q == (Image *) NULL)
                      {
+                       p=DestroyImage(p);
                        (void) ThrowMagickException(exception,GetMagickModule(),
                          OptionError,"NoSuchImage","`%s'",argv[i+1]);
                        status=MagickFalse;

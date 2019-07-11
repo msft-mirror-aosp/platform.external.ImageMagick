@@ -2917,7 +2917,8 @@ static size_t WritePSDChannels(const PSDInfo *psd_info,
   channels=1;
   if (separate == MagickFalse)
     {
-      if (next_image->storage_class != PseudoClass)
+      if ((next_image->storage_class != PseudoClass) ||
+          (IsImageGray(next_image) != MagickFalse))
         {
           if (IsImageGray(next_image) == MagickFalse)
             channels=(size_t) (next_image->colorspace == CMYKColorspace ? 4 :
@@ -2931,7 +2932,8 @@ static size_t WritePSDChannels(const PSDInfo *psd_info,
       offset_length=(next_image->rows*(psd_info->version == 1 ? 2 : 4));
     }
   size_offset+=2;
-  if (next_image->storage_class == PseudoClass)
+  if ((next_image->storage_class == PseudoClass) &&
+      (IsImageGray(next_image) == MagickFalse))
     {
       length=WritePSDChannel(psd_info,image_info,image,next_image,
         IndexQuantum,compact_pixels,rows_offset,separate,compression,
@@ -3741,10 +3743,10 @@ static MagickBooleanType WritePSDImage(const ImageInfo *image_info,
         compression;
 
       compression=image->compression;
-      if (image->compression == ZipCompression)
-        image->compression=RLECompression;
       if (image_info->compression != UndefinedCompression)
         image->compression=image_info->compression;
+      if (image->compression == ZipCompression)
+        image->compression=RLECompression;
       if (WritePSDChannels(&psd_info,image_info,image,image,0,MagickFalse,
           exception) == 0)
         status=MagickFalse;
