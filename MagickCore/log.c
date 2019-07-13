@@ -1064,6 +1064,8 @@ static char *TranslateEvent(const char *module,const char *function,
         continue;
       }
     p++;
+    if (*p == '\0')
+      break;
     switch (*p)
     {
       case 'c':
@@ -1100,7 +1102,8 @@ static char *TranslateEvent(const char *module,const char *function,
       }
       case 'i':
       {
-        q += FormatLocaleString(q, extent, "%.20g", (double) GetMagickThreadSignature());
+        q+=FormatLocaleString(q,extent,"%.20g",(double)
+          GetMagickThreadSignature());
         break;
       }
       case 'l':
@@ -1221,8 +1224,15 @@ static char *TranslateFilename(const LogInfo *log_info)
         continue;
       }
     p++;
+    if (*p == '\0')
+      break;
     switch (*p)
     {
+      case '\0':
+      {
+        p--;
+        break;
+      }
       case 'c':
       {
         q+=CopyMagickString(q,GetClientName(),extent);
