@@ -144,12 +144,12 @@ static MagickBooleanType IsEXR(const unsigned char *magick,const size_t length)
 */
 static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
+  const ImfHeader
+    *hdr_info;
+
   ExrWindow
     data_window,
     display_window;
-
-  const ImfHeader
-    *hdr_info;
 
   Image
     *image;
@@ -266,6 +266,8 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
           SetPixelViaPixelInfo(image,&image->background_color,q);
           q+=GetPixelChannels(image);
         }
+        if (SyncAuthenticPixels(image,exception) == MagickFalse)
+          break;
         continue;
       }
     memset(scanline,0,columns*sizeof(*scanline));

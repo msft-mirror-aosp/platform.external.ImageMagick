@@ -61,6 +61,7 @@
 #include "MagickCore/pixel-private.h"
 #include "MagickCore/string-private.h"
 #include "MagickCore/thread-private.h"
+#include "MagickCore/timer-private.h"
 
 /*
   Constant declaration.
@@ -1334,7 +1335,7 @@ WandPrivate void CLISettingOptionInfo(MagickCLI *cli_wand,
             CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,arg1);
           SetRandomSecretKey(
                IfSetOption ? (unsigned long) StringToUnsignedLong(arg1)
-                           : (unsigned long) time((time_t *) NULL) );
+                           : (unsigned long) time((time_t *) NULL));
           break;
         }
       if (LocaleCompare("size",option+1) == 0)
@@ -3820,10 +3821,16 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
              _images.
           */
           new_images=RemoveFirstImageFromList(&_images);
-          clut_image=RemoveLastImageFromList(&_images);
+          clut_image=RemoveFirstImageFromList(&_images);
           /* FUTURE - produce Exception, rather than silent fail */
           if (clut_image == (Image *) NULL)
-            break;
+            {
+              (void) ThrowMagickException(_exception,GetMagickModule(),
+                OptionError,"ImageSequenceRequired","`%s'",option);
+              new_images=DestroyImage(new_images);
+              status=MagickFalse;
+              break;
+            }
           (void) ClutImage(new_images,clut_image,new_images->interpolate,
             _exception);
           clut_image=DestroyImage(clut_image);
@@ -3867,7 +3874,13 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
           reconstruct_image=RemoveFirstImageFromList(&_images);
           /* FUTURE - produce Exception, rather than silent fail */
           if (reconstruct_image == (Image *) NULL)
-            break;
+            {
+              (void) ThrowMagickException(_exception,GetMagickModule(),
+                OptionError,"ImageSequenceRequired","`%s'",option);
+              image=DestroyImage(image);
+              status=MagickFalse;
+              break;
+            }
           metric=UndefinedErrorMetric;
           option=GetImageOption(_image_info,"metric");
           if (option != (const char *) NULL)
@@ -3927,7 +3940,13 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
           new_images=RemoveFirstImageFromList(&_images);
           source_image=RemoveFirstImageFromList(&_images);
           if (source_image == (Image *) NULL)
-            break; /* FUTURE - produce Exception, rather than silent fail */
+            {
+              (void) ThrowMagickException(_exception,GetMagickModule(),
+                OptionError,"ImageSequenceRequired","`%s'",option);
+              new_images=DestroyImage(new_images);
+              status=MagickFalse;
+              break;
+            }
 
           /* FUTURE - this should not be here! - should be part of -geometry */
           if (source_image->geometry != (char *) NULL)
@@ -3984,7 +4003,7 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
                     CopyAlphaCompositeOp,MagickTrue,0,0,_exception);
                   status&=CompositeImage(clone_image,new_images,OverCompositeOp,
                     clip_to_self,0,0,_exception);
-                  new_images=DestroyImage(new_images);
+                  new_images=DestroyImageList(new_images);
                   new_images=clone_image;
                 }
               mask_image=DestroyImage(mask_image);
@@ -4117,7 +4136,13 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
           new_images=RemoveFirstImageFromList(&_images);
           hald_image=RemoveLastImageFromList(&_images);
           if (hald_image == (Image *) NULL)
-            break;
+            {
+              (void) ThrowMagickException(_exception,GetMagickModule(),
+                OptionError,"ImageSequenceRequired","`%s'",option);
+              new_images=DestroyImage(new_images);
+              status=MagickFalse;
+              break;
+            }
           (void) HaldClutImage(new_images,hald_image,_exception);
           hald_image=DestroyImage(hald_image);
           break;
@@ -4132,15 +4157,20 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
             *magnitude_image,
             *phase_image;
 
-           magnitude_image=RemoveFirstImageFromList(&_images);
-           phase_image=RemoveFirstImageFromList(&_images);
-          /* FUTURE - produce Exception, rather than silent fail */
-           if (phase_image == (Image *) NULL)
-             break;
-           new_images=InverseFourierTransformImage(magnitude_image,phase_image,
-             IsNormalOp,_exception);
-           magnitude_image=DestroyImage(magnitude_image);
-           phase_image=DestroyImage(phase_image);
+          magnitude_image=RemoveFirstImageFromList(&_images);
+          phase_image=RemoveFirstImageFromList(&_images);
+          if (phase_image == (Image *) NULL)
+            {
+              (void) ThrowMagickException(_exception,GetMagickModule(),
+                OptionError,"ImageSequenceRequired","`%s'",option);
+              magnitude_image=DestroyImage(magnitude_image);
+              status=MagickFalse;
+              break;
+            }
+          new_images=InverseFourierTransformImage(magnitude_image,phase_image,
+            IsNormalOp,_exception);
+          magnitude_image=DestroyImage(magnitude_image);
+          phase_image=DestroyImage(phase_image);
           break;
         }
       if (LocaleCompare("insert",option+1) == 0)
@@ -4167,7 +4197,10 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
             {
                index_image=GetImageFromList(_images,index-1);
                if (index_image == (Image *) NULL)
-                 CLIWandExceptArgBreak(OptionError,"NoSuchImage",option,arg1);
+                 {
+                   insert_image=DestroyImage(insert_image);
+                   CLIWandExceptArgBreak(OptionError,"NoSuchImage",option,arg1);
+                 }
               InsertImageInList(&index_image,insert_image);
             }
           _images=GetFirstImageInList(index_image);

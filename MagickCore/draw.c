@@ -2508,13 +2508,11 @@ static MagickBooleanType RenderMVGContent(Image *image,
       if (status == MagickFalse)
         return(MagickFalse);
     }
-  primitive=(char *) NULL;
-  if (*draw_info->primitive != '@')
-    primitive=AcquireString(draw_info->primitive);
+  if ((*draw_info->primitive == '@') && (strlen(draw_info->primitive) > 1) &&
+      (*(draw_info->primitive+1) != '-') && (depth == 0))
+    primitive=FileToString(draw_info->primitive+1,~0UL,exception);
   else
-    if ((strlen(draw_info->primitive) > 1) &&
-        (*(draw_info->primitive+1) != '-'))
-      primitive=FileToString(draw_info->primitive+1,~0UL,exception);
+    primitive=AcquireString(draw_info->primitive);
   if (primitive == (char *) NULL)
     return(MagickFalse);
   primitive_extent=(double) strlen(primitive);
@@ -2585,6 +2583,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
     primitive_type=UndefinedPrimitive;
     current=graphic_context[n]->affine;
     GetAffineMatrix(&affine);
+    *token='\0';
     switch (*keyword)
     {
       case ';':
@@ -3142,11 +3141,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             graphic_context[n]->fill_alpha*=opacity;
-            if (graphic_context[n]->fill_alpha != OpaqueAlpha)
-              graphic_context[n]->fill.alpha=graphic_context[n]->fill_alpha;
             graphic_context[n]->stroke_alpha*=opacity;
-            if (graphic_context[n]->stroke_alpha != OpaqueAlpha)
-              graphic_context[n]->stroke.alpha=graphic_context[n]->stroke_alpha;
             break;
           }
         status=MagickFalse;
@@ -3717,7 +3712,6 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("text",keyword) == 0)
           {
             primitive_type=TextPrimitive;
-            cursor=0.0;
             break;
           }
         if (LocaleCompare("text-align",keyword) == 0)
@@ -4057,12 +4051,6 @@ static MagickBooleanType RenderMVGContent(Image *image,
         beta=bounds.y2-bounds.y1;
         radius=hypot(alpha,beta);
         coordinates=2.0*(ceil(MagickPI*radius))+6.0*BezierQuantum+360.0;
-        if (coordinates > (MaxBezierCoordinates/4))
-          {
-            (void) ThrowMagickException(exception,GetMagickModule(),DrawError,
-              "TooManyBezierCoordinates","`%s'",token);
-            status=MagickFalse;
-          }
         break;
       }
       default:
@@ -4071,7 +4059,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
     if (coordinates > MaxBezierCoordinates)
       {
         (void) ThrowMagickException(exception,GetMagickModule(),
-          ResourceLimitError,"MemoryAllocationFailed","`%s'",token);
+          ResourceLimitError,"TooManyBezierCoordinates","`%s'",token);
         status=MagickFalse;
       }
     if (status == MagickFalse)
@@ -4302,6 +4290,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
           primitive_info->point.x,primitive_info->point.y);
         clone_info->render=MagickFalse;
         clone_info->text=AcquireString(token);
+        (void) ConcatenateString(&clone_info->text," ");
         status&=GetTypeMetrics(image,clone_info,&metrics,exception);
         clone_info=DestroyDrawInfo(clone_info);
         cursor+=metrics.width;
@@ -6863,12 +6852,6 @@ static MagickBooleanType TraceRectangle(PrimitiveInfo *primitive_info,
   register ssize_t
     i;
 
-  if ((fabs(start.x-end.x) < MagickEpsilon) ||
-      (fabs(start.y-end.y) < MagickEpsilon))
-    {
-      primitive_info->coordinates=0;
-      return(MagickTrue);
-    }
   p=primitive_info;
   if (TracePoint(p,start) == MagickFalse)
     return(MagickFalse);

@@ -1973,7 +1973,7 @@ MagickExport Image *EnhanceImage(const Image *image,ExceptionInfo *exception)
           pixel.black=((aggregate.black+total_weight/2.0)/total_weight);
           pixel.alpha=((aggregate.alpha+total_weight/2.0)/total_weight);
         }
-      SetPixelViaPixelInfo(image,&pixel,q);
+      SetPixelViaPixelInfo(enhance_image,&pixel,q);
       p+=GetPixelChannels(image);
       q+=GetPixelChannels(enhance_image);
     }
@@ -2309,7 +2309,7 @@ static inline double gamma_pow(const double value,const double gamma)
 MagickExport MagickBooleanType GammaImage(Image *image,const double gamma,
   ExceptionInfo *exception)
 {
-#define GammaCorrectImageTag  "GammaCorrect/Image"
+#define GammaImageTag  "Gamma/Image"
 
   CacheView
     *image_view;
@@ -2419,7 +2419,7 @@ MagickExport MagickBooleanType GammaImage(Image *image,const double gamma,
         #pragma omp atomic
 #endif
         progress++;
-        proceed=SetImageProgress(image,GammaCorrectImageTag,progress, image->rows);
+        proceed=SetImageProgress(image,GammaImageTag,progress,image->rows);
         if (proceed == MagickFalse)
           status=MagickFalse;
       }

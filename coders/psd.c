@@ -1093,6 +1093,7 @@ static MagickBooleanType ReadPSDChannelRaw(Image *image,const size_t channels,
   if (pixels == (unsigned char *) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
       image->filename);
+  (void) memset(pixels,0,row_size*sizeof(*pixels));
 
   status=MagickTrue;
   for (y=0; y < (ssize_t) image->rows; y++)
@@ -1663,6 +1664,7 @@ static MagickBooleanType ReadPSDLayersInternal(Image *image,
 
   ssize_t
     count,
+    index,
     j,
     number_layers;
 
@@ -1980,10 +1982,11 @@ static MagickBooleanType ReadPSDLayersInternal(Image *image,
       return(MagickTrue);
     }
   status=MagickTrue;
+  index=0;
   for (i=0; i < number_layers; i++)
   {
     if ((layer_info[i].image == (Image *) NULL) ||
-        (PSDSkipImage(image_info,i) != MagickFalse))
+        (PSDSkipImage(image_info,++index) != MagickFalse))
       {
         for (j=0; j < (ssize_t) layer_info[i].channels; j++)
         {
@@ -2215,22 +2218,26 @@ static Image *ReadPSDImage(const ImageInfo *image_info,ExceptionInfo *exception)
       psd_info.min_channels=4;
       (void) SetImageColorspace(image,CMYKColorspace,exception);
     }
-  else if ((psd_info.mode == BitmapMode) || (psd_info.mode == GrayscaleMode) ||
-           (psd_info.mode == DuotoneMode))
-    {
-      if (psd_info.depth != 32)
-        {
-          status=AcquireImageColormap(image,(size_t) (psd_info.depth < 16 ?
-            256 : 65536),exception);
-          if (status == MagickFalse)
-            ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
-          if (image->debug != MagickFalse)
-            (void) LogMagickEvent(CoderEvent,GetMagickModule(),
-              "  Image colormap allocated");
-        }
-      psd_info.min_channels=1;
-      (void) SetImageColorspace(image,GRAYColorspace,exception);
-    }
+  else
+    if ((psd_info.mode == BitmapMode) || (psd_info.mode == GrayscaleMode) ||
+        (psd_info.mode == DuotoneMode))
+      {
+        if (psd_info.depth != 32)
+          {
+            status=AcquireImageColormap(image,(size_t) (psd_info.depth < 16 ?
+              256 : 65536),exception);
+            if (status == MagickFalse)
+              ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
+            if (image->debug != MagickFalse)
+              (void) LogMagickEvent(CoderEvent,GetMagickModule(),
+                "  Image colormap allocated");
+          }
+        psd_info.min_channels=1;
+        (void) SetImageColorspace(image,GRAYColorspace,exception);
+      }
+    else
+      if (psd_info.mode == IndexedMode)
+        psd_info.min_channels=1;
   if (psd_info.channels < psd_info.min_channels)
     ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   /*
@@ -2910,7 +2917,8 @@ static size_t WritePSDChannels(const PSDInfo *psd_info,
   channels=1;
   if (separate == MagickFalse)
     {
-      if (next_image->storage_class != PseudoClass)
+      if ((next_image->storage_class != PseudoClass) ||
+          (IsImageGray(next_image) != MagickFalse))
         {
           if (IsImageGray(next_image) == MagickFalse)
             channels=(size_t) (next_image->colorspace == CMYKColorspace ? 4 :
@@ -2924,7 +2932,8 @@ static size_t WritePSDChannels(const PSDInfo *psd_info,
       offset_length=(next_image->rows*(psd_info->version == 1 ? 2 : 4));
     }
   size_offset+=2;
-  if (next_image->storage_class == PseudoClass)
+  if ((next_image->storage_class == PseudoClass) &&
+      (IsImageGray(next_image) == MagickFalse))
     {
       length=WritePSDChannel(psd_info,image_info,image,next_image,
         IndexQuantum,compact_pixels,rows_offset,separate,compression,
@@ -3734,10 +3743,10 @@ static MagickBooleanType WritePSDImage(const ImageInfo *image_info,
         compression;
 
       compression=image->compression;
-      if (image->compression == ZipCompression)
-        image->compression=RLECompression;
       if (image_info->compression != UndefinedCompression)
         image->compression=image_info->compression;
+      if (image->compression == ZipCompression)
+        image->compression=RLECompression;
       if (WritePSDChannels(&psd_info,image_info,image,image,0,MagickFalse,
           exception) == 0)
         status=MagickFalse;

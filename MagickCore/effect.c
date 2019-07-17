@@ -895,7 +895,7 @@ static void Hull(const Image *image,const ssize_t x_offset,
   assert(g != (Quantum *) NULL);
   p=f+(columns+2);
   q=g+(columns+2);
-  r=p+(y_offset*(columns+2)+x_offset);
+  r=p+(y_offset*((ssize_t) columns+2)+x_offset);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) \
     magick_number_threads(image,image,rows,1)
@@ -931,8 +931,8 @@ static void Hull(const Image *image,const ssize_t x_offset,
   }
   p=f+(columns+2);
   q=g+(columns+2);
-  r=q+(y_offset*(columns+2)+x_offset);
-  s=q-(y_offset*(columns+2)+x_offset);
+  r=q+(y_offset*((ssize_t) columns+2)+x_offset);
+  s=q-(y_offset*((ssize_t) columns+2)+x_offset);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) \
     magick_number_threads(image,image,rows,1)
@@ -2592,17 +2592,20 @@ MagickExport Image *PreviewImage(const Image *image,const PreviewType preview,
       }
       case RaisePreview:
       {
+        RectangleInfo
+          raise;
+
         preview_image=CloneImage(thumbnail,0,0,MagickTrue,exception);
         if (preview_image == (Image *) NULL)
           break;
-        geometry.width=(size_t) (2*i+2);
-        geometry.height=(size_t) (2*i+2);
-        geometry.x=(i-1)/2;
-        geometry.y=(i-1)/2;
-        (void) RaiseImage(preview_image,&geometry,MagickTrue,exception);
+        raise.width=(size_t) (2*i+2);
+        raise.height=(size_t) (2*i+2);
+        raise.x=(i-1)/2;
+        raise.y=(i-1)/2;
+        (void) RaiseImage(preview_image,&raise,MagickTrue,exception);
         (void) FormatLocaleString(label,MagickPathExtent,
-          "raise %.20gx%.20g%+.20g%+.20g",(double) geometry.width,(double)
-          geometry.height,(double) geometry.x,(double) geometry.y);
+          "raise %.20gx%.20g%+.20g%+.20g",(double) raise.width,(double)
+          raise.height,(double) raise.x,(double) raise.y);
         break;
       }
       case SegmentPreview:
