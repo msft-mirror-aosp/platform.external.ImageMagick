@@ -366,7 +366,7 @@ MagickExport char *GetPageGeometry(const char *page_geometry)
   typedef struct _PageInfo
   {
     const char
-      name[11];
+      name[12];
 
     size_t
       extent;
@@ -764,9 +764,9 @@ MagickExport MagickStatusType ParseAffineGeometry(const char *geometry,
   p=(char *) geometry;
   for (i=0; (*p != '\0') && (i < 6); i++)
   {
-    GetNextToken(p,&p,MagickPathExtent,token);
+    (void) GetNextToken(p,&p,MagickPathExtent,token);
     if (*token == ',')
-      GetNextToken(p,&p,MagickPathExtent,token);
+      (void) GetNextToken(p,&p,MagickPathExtent,token);
     switch (i)
     {
       case 0:
@@ -1423,9 +1423,6 @@ MagickExport MagickStatusType ParseMetaGeometry(const char *geometry,ssize_t *x,
       double
         geometry_ratio,
         image_ratio;
-
-      GeometryInfo
-        geometry_info;
 
       /*
         Geometry is a relative to image size and aspect ratio.

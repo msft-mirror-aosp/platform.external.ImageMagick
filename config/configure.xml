@@ -27,19 +27,19 @@
   <configure name="EXECUTABLE_PATH" value="/usr/local/bin"/>
   <configure name="FEATURES" value="DPC HDRI Cipher OpenMP"/>
   <configure name="FILTER_PATH" value="/usr/local/lib/ImageMagick-7.0.8/modules-Q16HDRI/filters"/>
-  <configure name="GIT_REVISION" value="15827:d51fc305b:20190706" />
+  <configure name="GIT_REVISION" value="15992:baab586bc:20190804" />
   <configure name="HOST" value="x86_64-pc-linux-android"/>
   <configure name="INCLUDE_PATH" value="/usr/local/include/ImageMagick-7"/>
   <configure name="LDFLAGS" value="-L/usr/local/lib -pie"/>
   <configure name="LIBRARY_PATH" value="/usr/local/lib/ImageMagick-7.0.8"/>
   <configure name="LIBS" value="                                       -lm     "/>
-  <configure name="LIB_VERSION_NUMBER" value="7,0,8,54"/>
+  <configure name="LIB_VERSION_NUMBER" value="7,0,8,60"/>
   <configure name="LIB_VERSION" value="0x708"/>
   <configure name="NAME" value="ImageMagick"/>
   <configure name="PCFLAGS" value="-fopenmp -DMAGICKCORE_HDRI_ENABLE=1 -DMAGICKCORE_QUANTUM_DEPTH=16"/>
   <configure name="PREFIX" value="/usr/local"/>
   <configure name="QuantumDepth" value="16"/>
-  <configure name="RELEASE_DATE" value="2019-07-10"/>
+  <configure name="RELEASE_DATE" value="2019-08-07"/>
   <configure name="SHAREARCH_PATH" value="/usr/local/lib/ImageMagick-7.0.8/config-Q16HDRI"/>
   <configure name="SHARE_PATH" value="/usr/local/share/ImageMagick-7"/>
   <configure name="TARGET_CPU" value="x86_64"/>

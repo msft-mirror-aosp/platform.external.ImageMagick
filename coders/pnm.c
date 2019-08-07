@@ -160,6 +160,7 @@ static int PNMComment(Image *image,CommentInfo *comment_info,
   /*
     Read comment.
   */
+  (void) exception;
   p=comment_info->comment+strlen(comment_info->comment);
   for (c='#'; (c != EOF) && (c != (int) '\n') && (c != (int) '\r'); p++)
   {
@@ -300,7 +301,7 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
     if ((count != 1) || (format != 'P'))
       ThrowPNMException(CorruptImageError,"ImproperImageHeader");
     max_value=1;
-    quantum_type=RGBQuantum;
+    quantum_type=UndefinedQuantum;
     quantum_scale=1.0;
     format=(char) ReadBlobByte(image);
     if (format != '7')
@@ -344,7 +345,7 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
         */
         for (c=ReadBlobByte(image); c != EOF; c=ReadBlobByte(image))
         {
-          while (isspace((int) ((unsigned char) c)) != 0)
+          while (isspace(c) != 0)
             c=ReadBlobByte(image);
           if (c == '#')
             {
@@ -353,7 +354,7 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
               */
               c=PNMComment(image,&comment_info,exception);
               c=ReadBlobByte(image);
-              while (isspace((int) ((unsigned char) c)) != 0)
+              while (isspace(c) != 0)
                 c=ReadBlobByte(image);
             }
           p=keyword;
@@ -366,7 +367,7 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
           *p='\0';
           if (LocaleCompare(keyword,"endhdr") == 0)
             break;
-          while (isspace((int) ((unsigned char) c)) != 0)
+          while (isspace(c) != 0)
             c=ReadBlobByte(image);
           p=value;
           while (isalnum(c) || (c == '_'))
@@ -386,7 +387,8 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
             image->rows=StringToUnsignedLong(value);
           if (LocaleCompare(keyword,"maxval") == 0)
             max_value=StringToUnsignedLong(value);
-          if (LocaleCompare(keyword,"TUPLTYPE") == 0)
+          if ((quantum_type == UndefinedQuantum) &&
+              (LocaleCompare(keyword,"TUPLTYPE") == 0))
             {
               if (LocaleCompare(value,"BLACKANDWHITE") == 0)
                 {
@@ -431,6 +433,8 @@ static Image *ReadPNMImage(const ImageInfo *image_info,ExceptionInfo *exception)
             image->columns=StringToUnsignedLong(value);
         }
       }
+    if (quantum_type == UndefinedQuantum)
+      quantum_type=RGBQuantum;
     if ((image->columns == 0) || (image->rows == 0))
       ThrowPNMException(CorruptImageError,"NegativeOrZeroImageSize");
     if ((max_value == 0) || (max_value > 4294967295UL))
@@ -1941,7 +1945,7 @@ static MagickBooleanType WritePNMImage(const ImageInfo *image_info,Image *image,
         if (quantum_info == (QuantumInfo *) NULL)
           ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
         (void) SetQuantumEndian(image,quantum_info,MSBEndian);
-        quantum_info->min_is_white=MagickTrue;
+        SetQuantumMinIsWhite(quantum_info,MagickTrue);
         pixels=GetQuantumPixels(quantum_info);
         for (y=0; y < (ssize_t) image->rows; y++)
         {
@@ -1984,7 +1988,6 @@ static MagickBooleanType WritePNMImage(const ImageInfo *image_info,Image *image,
         if (quantum_info == (QuantumInfo *) NULL)
           ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
         (void) SetQuantumEndian(image,quantum_info,MSBEndian);
-        quantum_info->min_is_white=MagickTrue;
         pixels=GetQuantumPixels(quantum_info);
         extent=GetQuantumExtent(image,quantum_info,GrayQuantum);
         for (y=0; y < (ssize_t) image->rows; y++)

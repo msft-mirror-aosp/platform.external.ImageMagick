@@ -1,11 +1,66 @@
-2019-07-08  7.0.8-54 Cristy  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.8-54, GIT revision 15...
+2019-08-07  7.0.8-60 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-60, GIT revision 15986:c3de0e7:20190804.
+
+2019-08-07  7.0.8-60 Cristy  <quetzlzacatenango@image...>
+  * Enable reading EXR image file from stdin.
+
+2019-08-04  7.0.8-59 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-59, GIT revision 15986:c3de0e7:20190804.
+
+2019-08-01  7.0.8-59 Cristy  <quetzlzacatenango@image...>
+  * Module is a reserved keyword for C++ 20 (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1650).
+
+2019-07-29  7.0.8-58 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-58, GIT revision 15962:cf00632:20190729.
+
+2019-07-27  7.0.8-58 Cristy  <quetzlzacatenango@image...>
+  * Improve GetNextToken() performance.
+
+2019-07-26  7.0.8-57 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-57, GIT revision 15948:8fba4a3:20190726.
+
+2019-07-22  7.0.8-57 Cristy  <quetzlzacatenango@image...>
+  * Heap-buffer-overflow in Postscript coder (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1644).
+  * The -alpha shape option nondeteministic under OpenMP (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=36396).
+  * Correction to the ModulusAdd and ModulusSubtract composite op (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=2&t=36413).
+
+2019-07-20  7.0.8-56 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-56, GIT revision 15936:2ac4147:20190720.
+
+2019-07-20  7.0.8-56 Cristy  <quetzlzacatenango@image...>
+  * Unexpected -alpha shape results (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=36396).
+  * Converting from PDF to PBM inverts the image (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1643).
+
+2019-07-18  7.0.8-55 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-55, GIT revision 15930:ac09240:20190718.
+
+2019-07-18  7.0.8-55 Cristy  <quetzlzacatenango@image...>
+  * Heap-buffer overflow (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1641
+  * PerlMagick test suite passes again (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1640) 
+
+2019-07-16  7.0.8-54 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-54, GIT revision 15916:e868e22:20190716.
 
 2019-07-08  7.0.8-54 Cristy  <quetzlzacatenango@image...>
-   * resolve division by zero  (reference
+  * resolve division by zero  (reference
      https://github.com/ImageMagick/ImageMagick/issues/1629).
+  * introducing MagickLevelImageColors() MagickWand method.
+  * Transient problem with text placement with gravity (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1633).
+  * Support TIM2 image format (reference
+    https://github.com/ImageMagick/ImageMagick/pull/1571).
+  * For -magnify option, specify an alternative scaling method with -define
+    magnify:method=method, choose from these methods: eagle2X, eagle3X,
+    eagle3XB, epb2X, fish2X, hq2X,  scale2X (default), scale3X, xbr2X.
 
-     https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=36314).
 2019-07-05  7.0.8-53 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.8-53, GIT revision 15828:f5d59c0:20190705.
 
@@ -1481,7 +1536,7 @@
 2016-04-30  7.0.1-0 Cristy  <quetzlzacatenango@image...>
   * New version 7.0.1-0, GIT revision 10716:b527bce:20160430.
 
-2016-01-30  7.0.0-0 	Fahad-Alsaidi & ShamsaHamed
+2016-01-30  7.0.0-0 Fahad-Alsaidi & ShamsaHamed
   * Add support for languages that require complex text layout (reference
     https://github.com/ImageMagick/ImageMagick/pull/88).
 
