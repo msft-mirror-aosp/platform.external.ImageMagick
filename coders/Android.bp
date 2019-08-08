@@ -30,6 +30,7 @@ cc_library_static {
         "-Werror",
         "-Wno-for-loop-analysis",
         "-Wno-sign-compare",
+        "-Wno-shift-negative-value",
         "-Wno-tautological-constant-out-of-range-compare",
         "-Wno-unused-function",
         "-Wno-unused-parameter",
