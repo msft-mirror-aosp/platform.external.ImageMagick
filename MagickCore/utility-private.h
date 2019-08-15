@@ -68,7 +68,7 @@ static inline wchar_t *create_wchar_path(const char *utf8)
     *wideChar;
 
   count=MultiByteToWideChar(CP_UTF8,0,utf8,-1,NULL,0);
-  if (count > MAX_PATH)
+  if ((count > MAX_PATH) && (NTLongPathsEnabled() == MagickFalse))
     {
       char
         buffer[MagickPathExtent];
@@ -86,7 +86,7 @@ static inline wchar_t *create_wchar_path(const char *utf8)
       if (count != 0)
         count=GetShortPathNameW(longPath,shortPath,MAX_PATH);
       longPath=(wchar_t *) RelinquishMagickMemory(longPath);
-      if (count < 5)
+      if ((count < 5) || (count >= MAX_PATH))
         return((wchar_t *) NULL);
       wideChar=(wchar_t *) AcquireQuantumMemory(count-3,sizeof(*wideChar));
       wcscpy(wideChar,shortPath+4);

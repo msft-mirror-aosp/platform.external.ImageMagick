@@ -1479,7 +1479,6 @@ static const OptionInfo
     { "Nearest", NearestInterpolatePixel, UndefinedOptionFlag, MagickFalse },
     { "NearestNeighbor", NearestInterpolatePixel, UndefinedOptionFlag, MagickTrue },
     { "Spline", SplineInterpolatePixel, UndefinedOptionFlag, MagickFalse },
-/*  { "Filter", FilterInterpolatePixel, UndefinedOptionFlag, MagickFalse }, */
     { (char *) NULL, UndefinedInterpolatePixel, UndefinedOptionFlag, MagickFalse }
   },
   KernelOptions[] =
@@ -3079,7 +3078,7 @@ MagickExport ssize_t ParsePixelChannelOption(const char *channels)
   ssize_t
     channel;
 
-  GetNextToken(channels,(const char **) NULL,MagickPathExtent,token);
+  (void) GetNextToken(channels,(const char **) NULL,MagickPathExtent,token);
   if ((*token == ';') || (*token == '|'))
     return(RedPixelChannel);
   channel=ParseCommandOption(MagickPixelChannelOptions,MagickTrue,token);

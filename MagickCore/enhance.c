@@ -1108,9 +1108,9 @@ MagickExport MagickBooleanType ColorDecisionListImage(Image *image,
           p=(const char *) content;
           for (i=0; (*p != '\0') && (i < 3); i++)
           {
-            GetNextToken(p,&p,MagickPathExtent,token);
+            (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
-              GetNextToken(p,&p,MagickPathExtent,token);
+              (void) GetNextToken(p,&p,MagickPathExtent,token);
             switch (i)
             {
               case 0:
@@ -1140,9 +1140,9 @@ MagickExport MagickBooleanType ColorDecisionListImage(Image *image,
           p=(const char *) content;
           for (i=0; (*p != '\0') && (i < 3); i++)
           {
-            GetNextToken(p,&p,MagickPathExtent,token);
+            (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
-              GetNextToken(p,&p,MagickPathExtent,token);
+              (void) GetNextToken(p,&p,MagickPathExtent,token);
             switch (i)
             {
               case 0:
@@ -1173,9 +1173,9 @@ MagickExport MagickBooleanType ColorDecisionListImage(Image *image,
           p=(const char *) content;
           for (i=0; (*p != '\0') && (i < 3); i++)
           {
-            GetNextToken(p,&p,MagickPathExtent,token);
+            (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
-              GetNextToken(p,&p,MagickPathExtent,token);
+              (void) GetNextToken(p,&p,MagickPathExtent,token);
             switch (i)
             {
               case 0:
@@ -1210,7 +1210,7 @@ MagickExport MagickBooleanType ColorDecisionListImage(Image *image,
         {
           content=GetXMLTreeContent(saturation);
           p=(const char *) content;
-          GetNextToken(p,&p,MagickPathExtent,token);
+          (void) GetNextToken(p,&p,MagickPathExtent,token);
           color_correction.saturation=StringToDouble(token,(char **) NULL);
         }
     }
@@ -1973,7 +1973,7 @@ MagickExport Image *EnhanceImage(const Image *image,ExceptionInfo *exception)
           pixel.black=((aggregate.black+total_weight/2.0)/total_weight);
           pixel.alpha=((aggregate.alpha+total_weight/2.0)/total_weight);
         }
-      SetPixelViaPixelInfo(image,&pixel,q);
+      SetPixelViaPixelInfo(enhance_image,&pixel,q);
       p+=GetPixelChannels(image);
       q+=GetPixelChannels(enhance_image);
     }
@@ -2309,7 +2309,7 @@ static inline double gamma_pow(const double value,const double gamma)
 MagickExport MagickBooleanType GammaImage(Image *image,const double gamma,
   ExceptionInfo *exception)
 {
-#define GammaCorrectImageTag  "GammaCorrect/Image"
+#define GammaImageTag  "Gamma/Image"
 
   CacheView
     *image_view;
@@ -2419,7 +2419,7 @@ MagickExport MagickBooleanType GammaImage(Image *image,const double gamma,
         #pragma omp atomic
 #endif
         progress++;
-        proceed=SetImageProgress(image,GammaCorrectImageTag,progress, image->rows);
+        proceed=SetImageProgress(image,GammaImageTag,progress,image->rows);
         if (proceed == MagickFalse)
           status=MagickFalse;
       }

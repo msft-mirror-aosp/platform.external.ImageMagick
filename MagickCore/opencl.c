@@ -298,12 +298,14 @@ static const char *GetOpenCLCacheDirectory()
           if (home == (char *) NULL)
             {
               home=GetEnvironmentValue("XDG_CACHE_HOME");
+#if defined(MAGICKCORE_WINDOWS_SUPPORT) || defined(__MINGW32__)
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("LOCALAPPDATA");
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("APPDATA");
               if (home == (char *) NULL)
                 home=GetEnvironmentValue("USERPROFILE");
+#endif
             }
 
           if (home != (char *) NULL)
@@ -764,7 +766,7 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
     /*
       Interpret XML.
     */
-    GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
     if (*token == '\0')
       break;
     (void) CopyMagickString(keyword,token,MagickPathExtent);
@@ -774,7 +776,7 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
           Doctype element.
         */
         while ((LocaleNCompare(q,"]>",2) != 0) && (*q != '\0'))
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleNCompare(keyword,"<!--",4) == 0)
@@ -783,7 +785,7 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
           Comment element.
         */
         while ((LocaleNCompare(q,"->",2) != 0) && (*q != '\0'))
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleCompare(keyword,"<device") == 0)
@@ -835,11 +837,11 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
           device_benchmark);
         continue;
       }
-    GetNextToken(q,(const char **) NULL,extent,token);
+    (void) GetNextToken(q,(const char **) NULL,extent,token);
     if (*token != '=')
       continue;
-    GetNextToken(q,&q,extent,token);
-    GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
     switch (*keyword)
     {
       case 'M':
@@ -1552,8 +1554,9 @@ MagickPrivate void DumpOpenCLProfileData()
   (void) FormatLocaleString(filename,MagickPathExtent,"%s%s%s",
     GetOpenCLCacheDirectory(),DirectorySeparator,"ImageMagickOpenCL.log");
 
-  log=fopen_utf8(filename,"wb");
-
+  log = fopen_utf8(filename,"wb");
+  if (log == (FILE *) NULL)
+    return;
   for (i = 0; i < clEnv->number_devices; i++)
   {
     MagickCLDevice

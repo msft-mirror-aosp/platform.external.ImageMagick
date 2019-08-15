@@ -59,6 +59,7 @@
 #include "MagickCore/list.h"
 #include "MagickCore/magick.h"
 #include "MagickCore/memory_.h"
+#include "MagickCore/module.h"
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/option.h"
@@ -69,7 +70,7 @@
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
-#include "MagickCore/module.h"
+#include "MagickCore/timer-private.h"
 
 /*
   Typedef declaration.
@@ -932,7 +933,7 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
     y;
 
   struct tm
-    local_time;
+    utc_time;
 
   time_t
     seconds;
@@ -990,14 +991,10 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
       sizeof(cin.file.filename));
   offset+=WriteBlob(image,sizeof(cin.file.filename),(unsigned char *)
     cin.file.filename);
-  seconds=time((time_t *) NULL);
-#if defined(MAGICKCORE_HAVE_LOCALTIME_R)
-  (void) localtime_r(&seconds,&local_time);
-#else
-  (void) memcpy(&local_time,localtime(&seconds),sizeof(local_time));
-#endif
+  seconds=GetMagickTime();
+  GetMagickUTCtime(&seconds,&utc_time);
   (void) memset(timestamp,0,sizeof(timestamp));
-  (void) strftime(timestamp,MagickPathExtent,"%Y:%m:%d:%H:%M:%S%Z",&local_time);
+  (void) strftime(timestamp,MaxTextExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
   (void) memset(cin.file.create_date,0,sizeof(cin.file.create_date));
   (void) CopyMagickString(cin.file.create_date,timestamp,11);
   offset+=WriteBlob(image,sizeof(cin.file.create_date),(unsigned char *)
@@ -1093,9 +1090,8 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
       sizeof(cin.origination.filename));
   offset+=WriteBlob(image,sizeof(cin.origination.filename),(unsigned char *)
     cin.origination.filename);
-  seconds=time((time_t *) NULL);
   (void) memset(timestamp,0,sizeof(timestamp));
-  (void) strftime(timestamp,MagickPathExtent,"%Y:%m:%d:%H:%M:%S%Z",&local_time);
+  (void) strftime(timestamp,MaxTextExtent,"%Y:%m:%d:%H:%M:%SUTC",&utc_time);
   (void) memset(cin.origination.create_date,0,
     sizeof(cin.origination.create_date));
   (void) CopyMagickString(cin.origination.create_date,timestamp,11);

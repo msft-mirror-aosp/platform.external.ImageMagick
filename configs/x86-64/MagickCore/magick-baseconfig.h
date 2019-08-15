@@ -154,7 +154,7 @@
 #define MAGICKCORE_HAVE_CLOCK_GETRES 1
 #endif
 
-/* Define to 1 if you have clock_gettime. */
+/* Define to 1 if you have the `clock_gettime' function. */
 #ifndef MAGICKCORE_HAVE_CLOCK_GETTIME
 #define MAGICKCORE_HAVE_CLOCK_GETTIME 1
 #endif
@@ -1185,7 +1185,7 @@
 
 /* Define to the full name and version of this package. */
 #ifndef MAGICKCORE_PACKAGE_STRING
-#define MAGICKCORE_PACKAGE_STRING "ImageMagick 7.0.8-38"
+#define MAGICKCORE_PACKAGE_STRING "ImageMagick 7.0.8-60"
 #endif
 
 /* Define to the one symbol short name of this package. */
@@ -1200,7 +1200,7 @@
 
 /* Define to the version of this package. */
 #ifndef MAGICKCORE_PACKAGE_VERSION
-#define MAGICKCORE_PACKAGE_VERSION "7.0.8-38"
+#define MAGICKCORE_PACKAGE_VERSION "7.0.8-60"
 #endif
 
 /* Define if you have PANGOCAIRO library */
@@ -1413,7 +1413,7 @@
 
 /* Version number of package */
 #ifndef MAGICKCORE_VERSION
-#define MAGICKCORE_VERSION "7.0.8-38"
+#define MAGICKCORE_VERSION "7.0.8-60"
 #endif
 
 /* Define if you have WEBPMUX library */
@@ -1518,7 +1518,7 @@
 /* # undef __CHAR_UNSIGNED__ */
 #endif
 
-/* Define to appropriate substitue if compiler does not have __func__ */
+/* Define to appropriate substitute if compiler does not have __func__ */
 /* #undef __func__ */
 
 /* Define to empty if `const' does not conform to ANSI C. */

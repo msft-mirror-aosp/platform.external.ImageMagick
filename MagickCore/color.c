@@ -80,10 +80,10 @@
 /*
   Typedef declarations.
 */
-typedef struct _ColorMapInfo
+typedef struct _ColormapInfo
 {
   const char
-    *name;
+    name[21];
 
   const unsigned char
     red,
@@ -95,13 +95,13 @@ typedef struct _ColorMapInfo
 
   const ssize_t
     compliance;
-} ColorMapInfo;
+} ColormapInfo;
 
 /*
   Static declarations.
 */
-static const ColorMapInfo
-  ColorMap[] =
+static const ColormapInfo
+  Colormap[] =
   {
     { "none", 0, 0, 0, 0, SVGCompliance | XPMCompliance },
     { "black", 0, 0, 0, 1, SVGCompliance | X11Compliance | XPMCompliance },
@@ -865,15 +865,15 @@ static LinkedListInfo *AcquireColorCache(const char *filename,
   /*
     Load built-in color map.
   */
-  for (i=0; i < (ssize_t) (sizeof(ColorMap)/sizeof(*ColorMap)); i++)
+  for (i=0; i < (ssize_t) (sizeof(Colormap)/sizeof(*Colormap)); i++)
   {
     ColorInfo
       *color_info;
 
-    register const ColorMapInfo
+    register const ColormapInfo
       *p;
 
-    p=ColorMap+i;
+    p=Colormap+i;
     color_info=(ColorInfo *) AcquireMagickMemory(sizeof(*color_info));
     if (color_info == (ColorInfo *) NULL)
       {
@@ -2030,7 +2030,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
     /*
       Interpret XML.
     */
-    GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
     if (*token == '\0')
       break;
     (void) CopyMagickString(keyword,token,MagickPathExtent);
@@ -2040,7 +2040,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
           Doctype element.
         */
         while ((LocaleNCompare(q,"]>",2) != 0) && (*q != '\0'))
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleNCompare(keyword,"<!--",4) == 0)
@@ -2049,7 +2049,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
           Comment element.
         */
         while ((LocaleNCompare(q,"->",2) != 0) && (*q != '\0'))
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleCompare(keyword,"<include") == 0)
@@ -2060,10 +2060,10 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
         while (((*token != '/') && (*(token+1) != '>')) && (*q != '\0'))
         {
           (void) CopyMagickString(keyword,token,MagickPathExtent);
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
           if (*token != '=')
             continue;
-          GetNextToken(q,&q,extent,token);
+          (void) GetNextToken(q,&q,extent,token);
           if (LocaleCompare(keyword,"file") == 0)
             {
               if (depth > MagickMaxRecursionDepth)
@@ -2120,11 +2120,11 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
         color_info=(ColorInfo *) NULL;
         continue;
       }
-    GetNextToken(q,(const char **) NULL,extent,token);
+    (void) GetNextToken(q,(const char **) NULL,extent,token);
     if (*token != '=')
       continue;
-    GetNextToken(q,&q,extent,token);
-    GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
+    (void) GetNextToken(q,&q,extent,token);
     switch (*keyword)
     {
       case 'C':

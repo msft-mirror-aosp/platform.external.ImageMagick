@@ -68,6 +68,7 @@
 #include "MagickCore/semaphore.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
+#include "MagickCore/timer-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
@@ -666,7 +667,8 @@ MagickExport MagickBooleanType CloseBlob(Image *image)
       break;
     case FileStream:
     {
-      status=fclose(blob_info->file_info.file);
+      if (fileno(blob_info->file_info.file) != -1)
+        status=fclose(blob_info->file_info.file);
       break;
     }
     case PipeStream:
@@ -994,6 +996,7 @@ MagickExport void *DetachBlob(BlobInfo *blob_info)
   if (blob_info->mapped != MagickFalse)
     {
       (void) UnmapBlob(blob_info->data,blob_info->length);
+      blob_info->data=NULL;
       RelinquishMagickResource(MapResource,blob_info->length);
     }
   blob_info->mapped=MagickFalse;
@@ -1102,7 +1105,7 @@ MagickExport MagickBooleanType DiscardBlobBytes(Image *image,
     count;
 
   unsigned char
-    buffer[16384];
+    buffer[MagickMinBufferExtent >> 1];
 
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
@@ -1735,7 +1738,7 @@ MagickExport void GetBlobInfo(BlobInfo *blob_info)
   (void) memset(blob_info,0,sizeof(*blob_info));
   blob_info->type=UndefinedStream;
   blob_info->quantum=(size_t) MagickMaxBlobExtent;
-  blob_info->properties.st_mtime=time((time_t *) NULL);
+  blob_info->properties.st_mtime=GetMagickTime();
   blob_info->properties.st_ctime=blob_info->properties.st_mtime;
   blob_info->debug=IsEventLogging();
   blob_info->reference_count=1;
@@ -1822,7 +1825,16 @@ MagickExport MagickSizeType GetBlobSize(const Image *image)
     }
     case FileStream:
     {
-      if (fstat(fileno(blob_info->file_info.file),&blob_info->properties) == 0)
+      int
+        file_descriptor;
+
+      extent=(MagickSizeType) blob_info->properties.st_size;
+      if (extent == 0)
+        extent=blob_info->size;
+      file_descriptor=fileno(blob_info->file_info.file);
+      if (file_descriptor == -1)
+        break;
+      if (fstat(file_descriptor,&blob_info->properties) == 0)
         extent=(MagickSizeType) blob_info->properties.st_size;
       break;
     }
@@ -3151,7 +3163,7 @@ static inline MagickBooleanType SetStreamBuffering(const ImageInfo *image_info,
   size_t
     size;
 
-  size=16384;
+  size=MagickMinBufferExtent;
   option=GetImageOption(image_info,"stream:buffer-size");
   if (option != (const char *) NULL)
     size=StringToUnsignedLong(option);
