@@ -1950,8 +1950,7 @@ static MagickBooleanType DitherImage(Image *image,CubeInfo *cube_info,
   /*
     Distribute quantization error along a Hilbert curve.
   */
-  (void) memset(cube_info->error,0,ErrorQueueLength*
-    sizeof(*cube_info->error));
+  (void) memset(cube_info->error,0,ErrorQueueLength*sizeof(*cube_info->error));
   cube_info->x=0;
   cube_info->y=0;
   i=MagickMax((ssize_t) image->columns,(ssize_t) image->rows);
@@ -2053,8 +2052,7 @@ static CubeInfo *GetCubeInfo(const QuantizeInfo *quantize_info,
   /*
     Initialize color cache.
   */
-  (void) memset(cube_info->cache,(-1),sizeof(*cube_info->cache)*
-    length);
+  (void) memset(cube_info->cache,(-1),sizeof(*cube_info->cache)*length);
   /*
     Distribute weights along a curve of exponential decay.
   */

@@ -27,7 +27,7 @@ AC_PREREQ(2.69)
 m4_define([magick_major_version], [7])
 m4_define([magick_minor_version], [0])
 m4_define([magick_micro_version], [8])
-m4_define([magick_patchlevel_version], [60])
+m4_define([magick_patchlevel_version], [64])
 m4_define([magick_version],
           [magick_major_version.magick_minor_version.magick_micro_version-magick_patchlevel_version])
 m4_define([magick_git_revision], esyscmd([sh -c "(gitversion.sh .) | awk '{ print \$1 }' | tr -d '\n'"]))
@@ -298,7 +298,9 @@ AC_PROG_AWK
 AC_PROG_MKDIR_P
 AM_WITH_DMALLOC
 AX_C___ATTRIBUTE__
-AX_GCC_ARCHFLAG([yes])
+AX_GCC_ARCHFLAG([yes], [
+  CFLAGS="$CFLAGS $ax_cv_gcc_archflag"
+  CXXFLAGS="$CXXFLAGS $ax_cv_gcc_archflag"])
 PKG_PROG_PKG_CONFIG([0.20])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -3197,6 +3199,7 @@ fi
 RMDelegateDefault='rm'
 RSVGDecodeDelegateDefault='rsvg-convert'
 SVGDecodeDelegateDefault='inkscape'
+TraceEncodeDelegateDefault='potrace'
 UniconvertorDelegateDefault='uniconvertor'
 WebPDecodeDelegateDefault='dwebp'
 WebPEncodeDelegateDefault='cwebp'
@@ -3243,6 +3246,7 @@ AC_PATH_PROGS(PSDelegate, gsx gsc "$PSDelegateDefault", "$PSDelegateDefault")
 AC_PATH_PROG(RMDelegate, "$RMDelegateDefault", "$RMDelegateDefault")
 AC_PATH_PROG(RSVGDecodeDelegate, "$RSVGDecodeDelegateDefault", "$RSVGDecodeDelegateDefault")
 AC_PATH_PROG(SVGDecodeDelegate, "$SVGDecodeDelegateDefault", "$SVGDecodeDelegateDefault")
+AC_PATH_PROG(TraceEncodeDelegate, "$TraceEncodeDelegateDefault", "$TraceEncodeDelegateDefault")
 AC_PATH_PROG(UniconvertorDelegate, "$UniconvertorDelegateDefault", "$UniconvertorDelegateDefault")
 AC_PATH_PROG(WebPDecodeDelegate, "$WebPDecodeDelegateDefault", "$WebPDecodeDelegateDefault")
 AC_PATH_PROG(WebPEncodeDelegate, "$WebPEncodeDelegateDefault", "$WebPEncodeDelegateDefault")
@@ -3442,6 +3446,7 @@ if test "$with_frozenpaths" != 'yes'; then
   RSVGDecodeDelegate="$RSVGDecodeDelegateDefault"
   SVGDecodeDelegate="$SVGDecodeDelegateDefault"
   ShowImageDelegate="$ShowImageDelegateDefault"
+  TraceEncodeDelegate="$TraceEncodeDelegateDefault"
   UniconvertorDelegate="$UniconvertorDelegateDefault"
   WebPDecodeDelegate="$WebPDecodeDelegateDefault"
   WebPEncodeDelegate="$WebPEncodeDelegateDefault"
@@ -3474,6 +3479,7 @@ AC_SUBST(MrSIDDecodeDelegate)
 AC_SUBST(PCLDelegate)
 AC_SUBST(PSDelegate)
 AC_SUBST(ShowImageDelegate)
+AC_SUBST(TraceEncodeDelegate)
 AC_SUBST(UniconvertorDelegate)
 AC_SUBST(WebPDecodeDelegate)
 AC_SUBST(WebPEncodeDelegate)
