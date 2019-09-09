@@ -1225,6 +1225,8 @@ static const OptionInfo
     { "B44A", B44ACompression, UndefinedOptionFlag, MagickFalse },
     { "B44", B44Compression, UndefinedOptionFlag, MagickFalse },
     { "BZip", BZipCompression, UndefinedOptionFlag, MagickFalse },
+    { "DWAA", DWAACompression, UndefinedOptionFlag, MagickFalse },
+    { "DWAB", DWABCompression, UndefinedOptionFlag, MagickFalse },
     { "DXT1", DXT1Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT3", DXT3Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT5", DXT5Compression, UndefinedOptionFlag, MagickFalse },
@@ -2848,6 +2850,9 @@ MagickExport ssize_t ParseChannelOption(const char *channels)
   register ssize_t
     i;
 
+  size_t
+    length;
+
   ssize_t
     channel;
 
@@ -2855,7 +2860,8 @@ MagickExport ssize_t ParseChannelOption(const char *channels)
   if (channel >= 0)
     return(channel);
   channel=0;
-  for (i=0; i < (ssize_t) strlen(channels); i++)
+  length=strlen(channels);
+  for (i=0; i < (ssize_t) length; i++)
   {
     switch (channels[i])
     {
