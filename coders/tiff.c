@@ -298,6 +298,7 @@ static void InitPSDInfo(const Image *image,PSDInfo *info)
   info->mode=10; /* Set the mode to a value that won't change the colorspace */
   info->channels=1U;
   info->min_channels=1U;
+  info->has_merged_image=MagickFalse;
   if (image->storage_class == PseudoClass)
     info->mode=2; /* indexed mode */
   else
@@ -700,7 +701,11 @@ static void TIFFGetProfiles(TIFF *tiff,Image *image,ExceptionInfo *exception)
 #if defined(TIFFTAG_XMLPACKET)
   if ((TIFFGetField(tiff,TIFFTAG_XMLPACKET,&length,&profile) == 1) &&
       (profile != (unsigned char *) NULL))
-    (void) ReadProfile(image,"xmp",profile,(ssize_t) length,exception);
+    {
+      (void) ReadProfile(image,"xmp",profile,(ssize_t) length,exception);
+      if (strstr((char *) profile,"dc:format=\"image/dng\"") != (char *) NULL)
+        (void) CopyMagickString(image->magick,"DNG",MagickPathExtent);
+    }
 #endif
   if ((TIFFGetField(tiff,34118,&length,&profile) == 1) &&
       (profile != (unsigned char *) NULL))

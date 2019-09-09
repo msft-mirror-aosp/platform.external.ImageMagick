@@ -1750,7 +1750,8 @@ static Cache GetImagePixelCache(Image *image,const MagickBooleanType clone,
       /*
         Ensure the image matches the pixel cache morphology.
       */
-      image->type=UndefinedType;
+      if (image->type != UndefinedType)
+        image->type=UndefinedType;
       if (ValidatePixelCacheMorphology(image) == MagickFalse)
         {
           status=OpenPixelCache(image,IOMode,exception);
@@ -5342,7 +5343,8 @@ MagickPrivate MagickBooleanType SyncAuthenticPixelCacheNexus(Image *image,
     }
   if (nexus_info->authentic_pixel_cache != MagickFalse)
     {
-      image->taint=MagickTrue;
+      if (image->taint == MagickFalse)
+        image->taint=MagickTrue;
       return(MagickTrue);
     }
   assert(cache_info->signature == MagickCoreSignature);
@@ -5350,7 +5352,7 @@ MagickPrivate MagickBooleanType SyncAuthenticPixelCacheNexus(Image *image,
   if ((cache_info->metacontent_extent != 0) &&
       (WritePixelCacheMetacontent(cache_info,nexus_info,exception) == MagickFalse))
     return(MagickFalse);
-  if (status != MagickFalse)
+  if ((status != MagickFalse) && (image->taint == MagickFalse))
     image->taint=MagickTrue;
   return(status);
 }
