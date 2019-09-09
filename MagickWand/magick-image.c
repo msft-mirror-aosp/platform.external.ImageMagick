@@ -7463,7 +7463,8 @@ WandExport MagickWand *MagickMorphImages(MagickWand *wand,
 %  The format of the MagickMorphologyImage method is:
 %
 %      MagickBooleanType MagickMorphologyImage(MagickWand *wand,
-%        MorphologyMethod method,const ssize_t iterations,KernelInfo *kernel)
+%        const MorphologyMethod method,const ssize_t iterations,
+%        const KernelInfo *kernel)
 %
 %  A description of each parameter follows:
 %
@@ -7479,7 +7480,8 @@ WandExport MagickWand *MagickMorphImages(MagickWand *wand,
 %
 */
 WandExport MagickBooleanType MagickMorphologyImage(MagickWand *wand,
-  MorphologyMethod method,const ssize_t iterations,KernelInfo *kernel)
+  const MorphologyMethod method,const ssize_t iterations,
+  const KernelInfo *kernel)
 {
   Image
     *morphology_image;
@@ -10297,8 +10299,9 @@ WandExport MagickBooleanType MagickSetImageFilename(MagickWand *wand,
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
   if (wand->images == (Image *) NULL)
     ThrowWandException(WandError,"ContainsNoImages",wand->name);
-  if (filename != (const char *) NULL)
-    (void) CopyMagickString(wand->images->filename,filename,MagickPathExtent);
+  if (filename == (const char *) NULL)
+    return(MagickFalse);
+  (void) CopyMagickString(wand->images->filename,filename,MagickPathExtent);
   return(MagickTrue);
 }
 

@@ -160,6 +160,9 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
   ImfRgba
     *scanline;
 
+  int
+    compression;
+
   MagickBooleanType
     status;
 
@@ -200,11 +203,39 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
   hdr_info=ImfInputHeader(file);
   ImfHeaderDisplayWindow(hdr_info,&display_window.min_x,&display_window.min_y,
     &display_window.max_x,&display_window.max_y);
-  image->columns=(size_t) (display_window.max_x-display_window.min_x+1UL);
-  image->rows=(size_t) (display_window.max_y-display_window.min_y+1UL);
+  image->columns=((size_t) display_window.max_x-display_window.min_x+1UL);
+  image->rows=((size_t) display_window.max_y-display_window.min_y+1UL);
   image->alpha_trait=BlendPixelTrait;
   (void) SetImageColorspace(image,RGBColorspace,exception);
   image->gamma=1.0;
+  image->compression=NoCompression;
+  compression=ImfHeaderCompression(hdr_info);
+  if (compression == IMF_RLE_COMPRESSION)
+    image->compression=RLECompression;
+  if (compression == IMF_ZIPS_COMPRESSION)
+    image->compression=ZipSCompression;
+  if (compression == IMF_ZIP_COMPRESSION)
+    image->compression=ZipCompression;
+  if (compression == IMF_PIZ_COMPRESSION)
+    image->compression=PizCompression;
+  if (compression == IMF_PXR24_COMPRESSION)
+    image->compression=Pxr24Compression;
+#if defined(IMF_B44_COMPRESSION)
+  if (compression == IMF_B44_COMPRESSION)
+    image->compression=B44Compression;
+#endif
+#if defined(IMF_B44A_COMPRESSION)
+  if (compression == IMF_B44A_COMPRESSION)
+    image->compression=B44ACompression;
+#endif
+#if defined(IMF_DWAA_COMPRESSION)
+  if (compression == IMF_DWAA_COMPRESSION)
+    image->compression=DWAACompression;
+#endif
+#if defined(IMF_DWAB_COMPRESSION)
+  if (compression == IMF_DWAB_COMPRESSION)
+    image->compression=DWABCompression;
+#endif
   if (image_info->ping != MagickFalse)
     {
       (void) ImfCloseInputFile(file);
@@ -216,7 +247,7 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
     return(DestroyImageList(image));
   ImfHeaderDataWindow(hdr_info,&data_window.min_x,&data_window.min_y,
     &data_window.max_x,&data_window.max_y);
-  columns=(size_t) (data_window.max_x-data_window.min_x+1UL);
+  columns=((size_t) data_window.max_x-data_window.min_x+1UL);
   if ((display_window.min_x > data_window.max_x) ||
       (display_window.min_x+(int) image->columns <= data_window.min_x))
     scanline=(ImfRgba *) NULL;
@@ -445,6 +476,8 @@ static MagickBooleanType WriteEXRImage(const ImageInfo *image_info,Image *image,
   ImfHeaderSetDisplayWindow(hdr_info,0,0,(int) image->columns-1,(int)
     image->rows-1);
   compression=IMF_NO_COMPRESSION;
+  if (write_info->compression == RLECompression)
+    compression=IMF_RLE_COMPRESSION;
   if (write_info->compression == ZipSCompression)
     compression=IMF_ZIPS_COMPRESSION;
   if (write_info->compression == ZipCompression)
@@ -453,13 +486,21 @@ static MagickBooleanType WriteEXRImage(const ImageInfo *image_info,Image *image,
     compression=IMF_PIZ_COMPRESSION;
   if (write_info->compression == Pxr24Compression)
     compression=IMF_PXR24_COMPRESSION;
-#if defined(B44Compression)
+#if defined(IMF_B44_COMPRESSION)
   if (write_info->compression == B44Compression)
     compression=IMF_B44_COMPRESSION;
 #endif
-#if defined(B44ACompression)
+#if defined(IMF_B44A_COMPRESSION)
   if (write_info->compression == B44ACompression)
     compression=IMF_B44A_COMPRESSION;
+#endif
+#if defined(IMF_DWAA_COMPRESSION)
+  if (write_info->compression == DWAACompression)
+    compression=IMF_DWAA_COMPRESSION;
+#endif
+#if defined(IMF_DWAB_COMPRESSION)
+  if (write_info->compression == DWABCompression)
+    compression=IMF_DWAB_COMPRESSION;
 #endif
   channels=0;
   value=GetImageOption(image_info,"exr:color-type");
