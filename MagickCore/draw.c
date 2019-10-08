@@ -1841,6 +1841,8 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
           dash_polygon[0].coordinates=(size_t) j;
           dash_polygon[j].primitive=UndefinedPrimitive;
           status&=DrawStrokePolygon(image,clone_info,dash_polygon,exception);
+          if (status == MagickFalse)
+            break;
         }
       if (fabs(draw_info->dash_pattern[n]) >= MagickEpsilon)
         n++;
@@ -1855,7 +1857,8 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
     dash_polygon[j].coordinates=1;
     j++;
   }
-  if ((total_length < maximum_length) && ((n & 0x01) == 0) && (j > 1))
+  if ((status != MagickFalse) && (total_length < maximum_length) &&
+      ((n & 0x01) == 0) && (j > 1))
     {
       dash_polygon[j]=primitive_info[i-1];
       dash_polygon[j].point.x+=MagickEpsilon;
@@ -2353,7 +2356,8 @@ static SplayTreeInfo *GetMVGMacros(const char *primitive)
             n=1;
             for (p=q; *p != '\0'; )
             {
-              (void) GetNextToken(p,&p,extent,token);
+              if (GetNextToken(p,&p,extent,token) < 1)
+                break;
               if (*token == '\0')
                 break;
               if (LocaleCompare(token,"pop") == 0)
@@ -3171,7 +3175,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
           }
         if (LocaleCompare("pop",keyword) == 0)
           {
-            (void) GetNextToken(q,&q,extent,token);
+            if (GetNextToken(q,&q,extent,token) < 1)
+              break;
             if (LocaleCompare("class",token) == 0)
               break;
             if (LocaleCompare("clip-path",token) == 0)
@@ -3221,7 +3226,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
           }
         if (LocaleCompare("push",keyword) == 0)
           {
-            (void) GetNextToken(q,&q,extent,token);
+            if (GetNextToken(q,&q,extent,token) < 1)
+              break;
             if (LocaleCompare("class",token) == 0)
               {
                 /*
@@ -3229,7 +3235,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
                 */
                 for (p=q; *q != '\0'; )
                 {
-                  (void) GetNextToken(q,&q,extent,token);
+                  if (GetNextToken(q,&q,extent,token) < 1)
+                    break;
                   if (LocaleCompare(token,"pop") != 0)
                     continue;
                   (void) GetNextToken(q,(const char **) NULL,extent,token);
@@ -3245,10 +3252,11 @@ static MagickBooleanType RenderMVGContent(Image *image,
                 (void) GetNextToken(q,&q,extent,token);
                 for (p=q; *q != '\0'; )
                 {
-                	GetNextToken(q,&q,extent,token);
+                	if (GetNextToken(q,&q,extent,token) < 1)
+                    break;
                 	if (LocaleCompare(token,"pop") != 0)
                 		continue;
-                	GetNextToken(q,(const char **) NULL,extent,token);
+                	(void) GetNextToken(q,(const char **) NULL,extent,token);
                 	if (LocaleCompare(token,"clip-path") != 0)
                 		continue;
                 	break;
@@ -3312,7 +3320,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
                   }
                 for (p=q; *q != '\0'; )
                 {
-                  (void) GetNextToken(q,&q,extent,token);
+                  if (GetNextToken(q,&q,extent,token) < 1)
+                    break;
                   if (LocaleCompare(token,"pop") != 0)
                     continue;
                   (void) GetNextToken(q,(const char **) NULL,extent,token);
@@ -3413,7 +3422,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
                   ThrowPointExpectedException(token,exception);
                 for (p=q; *q != '\0'; )
                 {
-                  (void) GetNextToken(q,&q,extent,token);
+                  if (GetNextToken(q,&q,extent,token) < 1)
+                    break;
                   if (LocaleCompare(token,"pop") != 0)
                     continue;
                   (void) GetNextToken(q,(const char **) NULL,extent,token);
@@ -5696,7 +5706,6 @@ static MagickBooleanType DrawStrokePolygon(Image *image,
     if (stroke_polygon == (PrimitiveInfo *) NULL)
       {
         status=0;
-        stroke_polygon=(PrimitiveInfo *) RelinquishMagickMemory(stroke_polygon);
         break;
       }
     status&=DrawPolygonPrimitive(image,clone_info,stroke_polygon,exception);
@@ -6138,25 +6147,49 @@ static MagickBooleanType TraceBezier(MVGInfo *mvg_info,
     for (j=i+1; j < (ssize_t) number_coordinates; j++)
     {
       alpha=fabs(primitive_info[j].point.x-primitive_info[i].point.x);
+      if (alpha > (double) SSIZE_MAX)
+        {
+          (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
+            ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+          return(MagickFalse);
+        }
       if (alpha > (double) quantum)
         quantum=(size_t) alpha;
       alpha=fabs(primitive_info[j].point.y-primitive_info[i].point.y);
+      if (alpha > (double) SSIZE_MAX)
+        {
+          (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
+            ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+          return(MagickFalse);
+        }
       if (alpha > (double) quantum)
         quantum=(size_t) alpha;
     }
   }
-  quantum=(size_t) MagickMin((double) quantum/number_coordinates,
-    (double) BezierQuantum);
-  control_points=quantum*number_coordinates;
-  if (CheckPrimitiveExtent(mvg_info,control_points+1) == MagickFalse)
-    return(MagickFalse);
   primitive_info=(*mvg_info->primitive_info)+mvg_info->offset;
-  coefficients=(double *) AcquireQuantumMemory((size_t)
-    number_coordinates,sizeof(*coefficients));
-  points=(PointInfo *) AcquireQuantumMemory((size_t) control_points,
+  quantum=MagickMin(quantum/number_coordinates,BezierQuantum);
+  coefficients=(double *) AcquireQuantumMemory(number_coordinates,
+    sizeof(*coefficients));
+  points=(PointInfo *) AcquireQuantumMemory(quantum,number_coordinates*
     sizeof(*points));
   if ((coefficients == (double *) NULL) || (points == (PointInfo *) NULL))
-    ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
+    {
+      if (points != (PointInfo *) NULL)
+        points=(PointInfo *) RelinquishMagickMemory(points);
+      if (coefficients != (double *) NULL)
+        coefficients=(double *) RelinquishMagickMemory(coefficients);
+      (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(MagickFalse);
+    }
+  control_points=quantum*number_coordinates;
+  if (CheckPrimitiveExtent(mvg_info,control_points+1) == MagickFalse)
+    {
+      points=(PointInfo *) RelinquishMagickMemory(points);
+      coefficients=(double *) RelinquishMagickMemory(coefficients);
+      return(MagickFalse);
+    }
+  primitive_info=(*mvg_info->primitive_info)+mvg_info->offset;
   /*
     Compute bezier points.
   */
@@ -6187,11 +6220,19 @@ static MagickBooleanType TraceBezier(MVGInfo *mvg_info,
   for (i=0; i < (ssize_t) control_points; i++)
   {
     if (TracePoint(p,points[i]) == MagickFalse)
-      return(MagickFalse);
+      {
+        points=(PointInfo *) RelinquishMagickMemory(points);
+        coefficients=(double *) RelinquishMagickMemory(coefficients);
+        return(MagickFalse);
+      }
     p+=p->coordinates;
   }
   if (TracePoint(p,end) == MagickFalse)
-    return(MagickFalse);
+    {
+      points=(PointInfo *) RelinquishMagickMemory(points);
+      coefficients=(double *) RelinquishMagickMemory(coefficients);
+      return(MagickFalse);
+    }
   p+=p->coordinates;
   primitive_info->coordinates=(size_t) (p-primitive_info);
   primitive_info->closed_subpath=MagickFalse;
@@ -6267,8 +6308,7 @@ static MagickBooleanType TraceEllipse(MVGInfo *mvg_info,const PointInfo center,
     y+=360.0;
   angle.y=DegreesToRadians(y);
   coordinates=ceil((angle.y-angle.x)/step+1.0);
-  if ((coordinates > (double) SSIZE_MAX) ||
-      (coordinates > (double) GetMaxMemoryRequest()))
+  if (coordinates > (double) SSIZE_MAX)
     {
       (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
         ResourceLimitError,"MemoryAllocationFailed","`%s'","");
