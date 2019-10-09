@@ -38,4 +38,5 @@ cc_library_static {
 
     header_libs: ["Magick_headers"],
     static_libs: ["libjpeg_static_ndk"],
+    visibility: ["//vendor:__subpackages__"],
 }
