@@ -62,6 +62,7 @@
 #include "MagickCore/list.h"
 #include "MagickCore/magick.h"
 #include "MagickCore/memory_.h"
+#include "MagickCore/module.h"
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/nt-base-private.h"
@@ -75,7 +76,6 @@
 #include "MagickCore/signature.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
-#include "MagickCore/module.h"
 #include "MagickCore/timer-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/transform.h"
@@ -667,7 +667,15 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
         }
     }
   if (pdf_info.profile != (StringInfo *) NULL)
-    (void) SetImageProfile(image,"xmp",pdf_info.profile,exception);
+    {
+      char
+        *profile;
+
+      (void) SetImageProfile(image,"xmp",pdf_info.profile,exception);
+      profile=(char *) GetStringInfoDatum(pdf_info.profile);
+      if (strstr(profile,"Adobe Illustrator") != (char *) NULL)
+        (void) CopyMagickString(image->magick,"AI",MagickPathExtent);
+    }
   CleanupPDFInfo(&pdf_info);
   if (image_info->number_scenes != 0)
     {
