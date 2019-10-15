@@ -17,24 +17,9 @@ cc_library_static {
 
     sdk_version: "24",
 
-    srcs: ["*.c"],
+    srcs: ["jpeg.c"],
 
-    exclude_srcs: [
-        // Removed because requires LIBTIFF
-        "tiff.c",
-    ],
-
-    cflags: [
-        "-DHAVE_CONFIG_H",
-        "-Wall",
-        "-Werror",
-        "-Wno-for-loop-analysis",
-        "-Wno-sign-compare",
-        "-Wno-shift-negative-value",
-        "-Wno-tautological-constant-out-of-range-compare",
-        "-Wno-unused-function",
-        "-Wno-unused-parameter",
-    ],
+    cflags: ["-DHAVE_CONFIG_H"],
 
     header_libs: ["Magick_headers"],
     static_libs: ["libjpeg_static_ndk"],
