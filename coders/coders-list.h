@@ -14,6 +14,7 @@
   limitations under the License.
 */
 
+#if 0
 AddMagickCoder(AAI)
 AddMagickCoder(ART)
 AddMagickCoder(AVS)
@@ -85,9 +86,11 @@ AddMagickCoder(JNX)
 #if defined(MAGICKCORE_JP2_DELEGATE) || defined(MAGICKCORE_LIBOPENJP2_DELEGATE)
   AddMagickCoder(JP2)
 #endif
+#endif
 #if defined(MAGICKCORE_JPEG_DELEGATE)
   AddMagickCoder(JPEG)
 #endif
+#if 0
 AddMagickCoder(JSON)
 AddMagickCoder(LABEL)
 AddMagickCoder(MAC)
@@ -184,3 +187,4 @@ AddMagickCoder(XTRN)
 #endif
 AddMagickCoder(YCBCR)
 AddMagickCoder(YUV)
+#endif
