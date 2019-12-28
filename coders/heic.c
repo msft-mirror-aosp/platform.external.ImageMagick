@@ -22,7 +22,7 @@
 %                                                                             %
 %                      Copyright 2017-2018 YANDEX LLC.                        %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -284,7 +284,7 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   struct heif_image_handle
     *image_handle;
 
-  uint8_t
+  const uint8_t
     *p_y,
     *p_cb,
     *p_cr;
@@ -361,9 +361,9 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
           return(MagickFalse);
         }
     }
-  p_y=heif_image_get_plane(heif_image,heif_channel_Y,&stride_y);
-  p_cb=heif_image_get_plane(heif_image,heif_channel_Cb,&stride_cb);
-  p_cr=heif_image_get_plane(heif_image,heif_channel_Cr,&stride_cr);
+  p_y=heif_image_get_plane_readonly(heif_image,heif_channel_Y,&stride_y);
+  p_cb=heif_image_get_plane_readonly(heif_image,heif_channel_Cb,&stride_cb);
+  p_cr=heif_image_get_plane_readonly(heif_image,heif_channel_Cr,&stride_cr);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     Quantum
@@ -483,7 +483,7 @@ static Image *ReadHEICImage(const ImageInfo *image_info,
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       (void) heif_context_get_list_of_top_level_image_IDs(heif_context,
-        image_ids,count);
+        image_ids,(int) count);
       for (i=0; i < count; i++)
       {
         if (image_ids[i] == primary_image_id)
@@ -693,9 +693,6 @@ static void WriteProfile(struct heif_context *context,Image *image,
   size_t
     length;
 
-  StringInfo
-    *custom_profile;
-
   struct heif_error
     error;
 
@@ -712,7 +709,6 @@ static void WriteProfile(struct heif_context *context,Image *image,
   /*
     Save image profile as a APP marker.
   */
-  custom_profile=AcquireStringInfo(65535L);
   ResetImageProfileIterator(image);
   for (name=GetNextImageProfile(image); name != (const char *) NULL; )
   {
@@ -758,7 +754,6 @@ static void WriteProfile(struct heif_context *context,Image *image,
         "%s profile: %.20g bytes",name,(double) GetStringInfoLength(profile));
     name=GetNextImageProfile(image);
   }
-  custom_profile=DestroyStringInfo(custom_profile);
   heif_image_handle_release(image_handle);
 }
 #endif
