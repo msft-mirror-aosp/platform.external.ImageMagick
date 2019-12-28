@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -45,6 +45,7 @@
 #include "MagickCore/blob.h"
 #include "MagickCore/blob-private.h"
 #include "MagickCore/cache.h"
+#include "MagickCore/channel.h"
 #include "MagickCore/color.h"
 #include "MagickCore/color-private.h"
 #include "MagickCore/colorspace.h"
@@ -53,6 +54,7 @@
 #include "MagickCore/constitute.h"
 #include "MagickCore/delegate.h"
 #include "MagickCore/delegate-private.h"
+#include "MagickCore/distort.h"
 #include "MagickCore/draw.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
@@ -64,6 +66,7 @@
 #include "MagickCore/memory_.h"
 #include "MagickCore/module.h"
 #include "MagickCore/monitor.h"
+#include "MagickCore/montage.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/nt-base-private.h"
 #include "MagickCore/option.h"
@@ -117,7 +120,8 @@ typedef struct _PDFInfo
   Forward declarations.
 */
 static MagickBooleanType
-  WritePDFImage(const ImageInfo *,Image *,ExceptionInfo *);
+  WritePDFImage(const ImageInfo *,Image *,ExceptionInfo *),
+  WritePOCKETMODImage(const ImageInfo *,Image *,ExceptionInfo *);
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -468,10 +472,10 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) ParseAbsoluteGeometry(PSPageGeometry,&page);
   if (image_info->page != (char *) NULL)
     (void) ParseAbsoluteGeometry(image_info->page,&page);
-  page.width=(size_t) ceil((double) (page.width*image->resolution.x/delta.x)-
-    0.5);
-  page.height=(size_t) ceil((double) (page.height*image->resolution.y/delta.y)-
-    0.5);
+  page.width=(size_t) ((ssize_t) ceil((double) (page.width*
+    image->resolution.x/delta.x)-0.5));
+  page.height=(size_t) ((ssize_t) ceil((double) (page.height*
+    image->resolution.y/delta.y)-0.5));
   /*
     Determine page geometry from the PDF media box.
   */
@@ -487,10 +491,10 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
         pdf_info.bounds.x2-pdf_info.bounds.x1,pdf_info.bounds.y2-
         pdf_info.bounds.y1,pdf_info.bounds.x1,pdf_info.bounds.y1);
       (void) SetImageProperty(image,"pdf:HiResBoundingBox",geometry,exception);
-      page.width=(size_t) ceil((double) ((pdf_info.bounds.x2-
-        pdf_info.bounds.x1)*image->resolution.x/delta.x)-0.5);
-      page.height=(size_t) ceil((double) ((pdf_info.bounds.y2-
-        pdf_info.bounds.y1)*image->resolution.y/delta.y)-0.5);
+      page.width=(size_t) ((ssize_t) ceil((double) ((pdf_info.bounds.x2-
+        pdf_info.bounds.x1)*image->resolution.x/delta.x)-0.5));
+      page.height=(size_t) ((ssize_t) ceil((double) ((pdf_info.bounds.y2-
+        pdf_info.bounds.y1)*image->resolution.y/delta.y)-0.5));
     }
   fitPage=MagickFalse;
   option=GetImageOption(image_info,"pdf:fit-page");
@@ -511,10 +515,10 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
           image=DestroyImage(image);
           return((Image *) NULL);
         }
-      page.width=(size_t) ceil((double) (page.width*image->resolution.x/
-        delta.x)-0.5);
-      page.height=(size_t) ceil((double) (page.height*image->resolution.y/
-        delta.y)-0.5);
+      page.width=(size_t) ((ssize_t) ceil((double) (page.width*
+        image->resolution.x/delta.x)-0.5));
+      page.height=(size_t) ((ssize_t) ceil((double) (page.height*
+        image->resolution.y/delta.y)-0.5));
       fitPage=MagickTrue;
     }
   if ((fabs(pdf_info.angle) == 90.0) || (fabs(pdf_info.angle) == 270.0))
@@ -541,7 +545,14 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       image=DestroyImage(image);
       return((Image *) NULL);
     }
-  (void) write(file," ",1);
+  if (write(file," ",1) != 1)
+    {
+      file=close(file)-1;
+      (void) RelinquishUniqueFileResource(postscript_filename);
+      CleanupPDFInfo(&pdf_info);
+      image=DestroyImage(image);
+      return((Image *) NULL);
+    }
   file=close(file)-1;
   /*
     Render Postscript with the Ghostscript delegate.
@@ -770,6 +781,14 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->decoder=(DecodeImageHandler *) ReadPDFImage;
   entry->encoder=(EncodeImageHandler *) WritePDFImage;
   entry->magick=(IsImageFormatHandler *) IsPDF;
+  entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags^=CoderBlobSupportFlag;
+  entry->mime_type=ConstantString("application/pdf");
+  (void) RegisterMagickInfo(entry);
+  entry=AcquireMagickInfo("PDF","POCKETMOD","Pocketmod Personal Organizer");
+  entry->decoder=(DecodeImageHandler *) ReadPDFImage;
+  entry->encoder=(EncodeImageHandler *) WritePOCKETMODImage;
+  entry->format_type=ImplicitFormatType;
   entry->flags|=CoderDecoderSeekableStreamFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
@@ -1023,6 +1042,96 @@ static MagickBooleanType Huffman2DEncodeImage(const ImageInfo *image_info,
   if (WriteBlob(image,length,group4) != (ssize_t) length)
     status=MagickFalse;
   group4=(unsigned char *) RelinquishMagickMemory(group4);
+  return(status);
+}
+
+static MagickBooleanType WritePOCKETMODImage(const ImageInfo *image_info,
+  Image *image,ExceptionInfo *exception)
+{
+#define PocketPageOrder  "1,2,3,4,0,7,6,5"
+
+  const Image
+    *next;
+
+  Image
+    *pages,
+    *pocket_mod;
+
+  MagickBooleanType
+    status;
+
+  register ssize_t
+    i;
+
+  assert(image_info != (const ImageInfo *) NULL);
+  assert(image_info->signature == MagickCoreSignature);
+  assert(image != (Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
+  if (image->debug != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  assert(exception != (ExceptionInfo *) NULL);
+  assert(exception->signature == MagickCoreSignature);
+  pocket_mod=NewImageList();
+  pages=NewImageList();
+  i=0;
+  for (next=image; next != (Image *) NULL; next=GetNextImageInList(next))
+  {
+    Image
+      *page;
+
+    if ((i == 0) || (i == 5) || (i == 6) || (i == 7))
+      page=RotateImage(next,180.0,exception);
+    else
+      page=CloneImage(next,0,0,MagickTrue,exception);
+    if (page == (Image *) NULL)
+      break;
+    (void) SetImageAlphaChannel(page,RemoveAlphaChannel,exception);
+    page->scene=i++;
+    AppendImageToList(&pages,page);
+    if ((i == 8) || (GetNextImageInList(next) == (Image *) NULL))
+      {
+        Image
+          *images,
+          *page_layout;
+
+        MontageInfo
+          *montage_info;
+
+        /*
+          Create PocketMod page.
+        */
+        for (i=(ssize_t) GetImageListLength(pages); i < 8; i++)
+        {
+          page=CloneImage(pages,0,0,MagickTrue,exception);
+          (void) QueryColorCompliance("#FFF",AllCompliance,
+            &page->background_color,exception);
+          SetImageBackgroundColor(page,exception);
+          page->scene=i;
+          AppendImageToList(&pages,page);
+        }
+        images=CloneImages(pages,PocketPageOrder,exception);
+        pages=DestroyImageList(pages);
+        if (images == (Image *) NULL)
+          break;
+        montage_info=CloneMontageInfo(image_info,(MontageInfo *) NULL);
+        (void) CloneString(&montage_info->geometry,"877x1240+0+0");
+        (void) CloneString(&montage_info->tile,"4x2");
+        (void) QueryColorCompliance("#000",AllCompliance,
+          &montage_info->border_color,exception);
+        montage_info->border_width=2;
+        page_layout=MontageImages(images,montage_info,exception);
+        montage_info=DestroyMontageInfo(montage_info);
+        images=DestroyImageList(images);
+        if (page_layout == (Image *) NULL)
+          break;
+        AppendImageToList(&pocket_mod,page_layout);
+        i=0;
+      }
+  }
+  if (pocket_mod == (Image *) NULL)
+    return(MagickFalse);
+  status=WritePDFImage(image_info,GetFirstImageInList(pocket_mod),exception);
+  pocket_mod=DestroyImageList(pocket_mod);
   return(status);
 }
 
@@ -1982,7 +2091,7 @@ RestoreMSCWarning
                   break;
                 for (x=0; x < (ssize_t) image->columns; x++)
                 {
-                  *q++=(unsigned char) GetPixelIndex(image,p);
+                  *q++=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
                   p+=GetPixelChannels(image);
                 }
                 if (image->previous == (Image *) NULL)
@@ -2024,7 +2133,8 @@ RestoreMSCWarning
                   break;
                 for (x=0; x < (ssize_t) image->columns; x++)
                 {
-                  Ascii85Encode(image,(unsigned char) GetPixelIndex(image,p));
+                  Ascii85Encode(image,(unsigned char) ((ssize_t)
+                    GetPixelIndex(image,p)));
                   p+=GetPixelChannels(image);
                 }
                 if (image->previous == (Image *) NULL)
@@ -2102,7 +2212,7 @@ RestoreMSCWarning
           *p;
 
         /*
-          Write ICC profile. 
+          Write ICC profile.
         */
         (void) FormatLocaleString(buffer,MagickPathExtent,
           "[/ICCBased %.20g 0 R]\n",(double) object+1);
@@ -2499,7 +2609,7 @@ RestoreMSCWarning
                   break;
                 for (x=0; x < (ssize_t) tile_image->columns; x++)
                 {
-                  *q++=(unsigned char) GetPixelIndex(tile_image,p);
+                  *q++=(unsigned char) ((ssize_t) GetPixelIndex(tile_image,p));
                   p+=GetPixelChannels(tile_image);
                 }
               }
@@ -2536,7 +2646,7 @@ RestoreMSCWarning
                 for (x=0; x < (ssize_t) tile_image->columns; x++)
                 {
                   Ascii85Encode(image,(unsigned char)
-                    GetPixelIndex(tile_image,p));
+                    ((ssize_t) GetPixelIndex(tile_image,p)));
                   p+=GetPixelChannels(image);
                 }
               }

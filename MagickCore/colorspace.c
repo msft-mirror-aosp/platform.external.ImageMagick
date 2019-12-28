@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -380,6 +380,62 @@ static MagickBooleanType sRGBTransformImage(Image *image,
       return(status);
     }
     case LinearGRAYColorspace:
+    {
+      /*
+        Transform image from sRGB to GRAY.
+      */
+      if (image->storage_class == PseudoClass)
+        {
+          if (SyncImage(image,exception) == MagickFalse)
+            return(MagickFalse);
+          if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
+            return(MagickFalse);
+        }
+      image_view=AcquireAuthenticCacheView(image,exception);
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+      #pragma omp parallel for schedule(static) shared(status) \
+        magick_number_threads(image,image,image->rows,1)
+#endif
+      for (y=0; y < (ssize_t) image->rows; y++)
+      {
+        MagickBooleanType
+          sync;
+
+        register ssize_t
+          x;
+
+        register Quantum
+          *magick_restrict q;
+
+        if (status == MagickFalse)
+          continue;
+        q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
+          exception);
+        if (q == (Quantum *) NULL)
+          {
+            status=MagickFalse;
+            continue;
+          }
+        for (x=0; x < (ssize_t) image->columns; x++)
+        {
+          MagickRealType
+            gray;
+
+          gray=0.212656*GetPixelRed(image,q)+0.715158*GetPixelGreen(image,q)+
+            0.072186*GetPixelBlue(image,q);
+          SetPixelGray(image,ClampToQuantum(DecodePixelGamma(gray)),q);
+          q+=GetPixelChannels(image);
+        }
+        sync=SyncCacheViewAuthenticPixels(image_view,exception);
+        if (sync == MagickFalse)
+          status=MagickFalse;
+      }
+      image_view=DestroyCacheView(image_view);
+      if (SetImageColorspace(image,colorspace,exception) == MagickFalse)
+        return(MagickFalse);
+      image->type=GrayscaleType;
+      return(status);
+    }
     case GRAYColorspace:
     {
       /*
@@ -419,7 +475,12 @@ static MagickBooleanType sRGBTransformImage(Image *image,
           }
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          SetPixelGray(image,ClampToQuantum(GetPixelIntensity(image,q)),q);
+          MagickRealType
+            gray;
+
+          gray=0.212656*GetPixelRed(image,q)+0.715158*GetPixelGreen(image,q)+
+            0.072186*GetPixelBlue(image,q);
+          SetPixelGray(image,ClampToQuantum(gray),q);
           q+=GetPixelChannels(image);
         }
         sync=SyncCacheViewAuthenticPixels(image_view,exception);
@@ -1157,10 +1218,7 @@ MagickExport MagickBooleanType SetImageColorspace(Image *image,
   if (IsGrayColorspace(colorspace) != MagickFalse)
     {
       if (colorspace == LinearGRAYColorspace)
-        {
-          image->gamma=1.000;
-          image->intensity=Rec709LuminancePixelIntensityMethod;
-        }
+        image->gamma=1.000;
       type=GrayscaleType;
     }
   else
@@ -1848,6 +1906,66 @@ static MagickBooleanType TransformsRGBImage(Image *image,
       return(status);
     }
     case LinearGRAYColorspace:
+    {
+      /*
+        Transform linear GRAY to sRGB colorspace.
+      */
+      if (image->storage_class == PseudoClass)
+        {
+          if (SyncImage(image,exception) == MagickFalse)
+            return(MagickFalse);
+          if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
+            return(MagickFalse);
+        }
+      if (SetImageColorspace(image,sRGBColorspace,exception) == MagickFalse)
+        return(MagickFalse);
+      image_view=AcquireAuthenticCacheView(image,exception);
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+      #pragma omp parallel for schedule(static) shared(status) \
+        magick_number_threads(image,image,image->rows,1)
+#endif
+      for (y=0; y < (ssize_t) image->rows; y++)
+      {
+        MagickBooleanType
+          sync;
+
+        register ssize_t
+          x;
+
+        register Quantum
+          *magick_restrict q;
+
+        if (status == MagickFalse)
+          continue;
+        q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
+          exception);
+        if (q == (Quantum *) NULL)
+          {
+            status=MagickFalse;
+            continue;
+          }
+        for (x=(ssize_t) image->columns; x != 0; x--)
+        {
+          MagickRealType
+            gray;
+
+          gray=0.212656*GetPixelRed(image,q)+0.715158*GetPixelGreen(image,q)+
+            0.072186*GetPixelBlue(image,q);
+          gray=EncodePixelGamma(gray);
+          SetPixelRed(image,ClampToQuantum(gray),q);
+          SetPixelGreen(image,ClampToQuantum(gray),q);
+          SetPixelBlue(image,ClampToQuantum(gray),q);
+          q+=GetPixelChannels(image);
+        }
+        sync=SyncCacheViewAuthenticPixels(image_view,exception);
+        if (sync == MagickFalse)
+          status=MagickFalse;
+      }
+      image_view=DestroyCacheView(image_view);
+      if (SetImageColorspace(image,sRGBColorspace,exception) == MagickFalse)
+        return(MagickFalse);
+      return(status);
+    }
     case GRAYColorspace:
     {
       /*
@@ -1892,10 +2010,8 @@ static MagickBooleanType TransformsRGBImage(Image *image,
           MagickRealType
             gray;
 
-          gray=(MagickRealType) GetPixelGray(image,q);
-          if ((image->intensity == Rec601LuminancePixelIntensityMethod) ||
-              (image->intensity == Rec709LuminancePixelIntensityMethod))
-            gray=EncodePixelGamma(gray);
+          gray=0.212656*GetPixelRed(image,q)+0.715158*GetPixelGreen(image,q)+
+            0.072186*GetPixelBlue(image,q);
           SetPixelRed(image,ClampToQuantum(gray),q);
           SetPixelGreen(image,ClampToQuantum(gray),q);
           SetPixelBlue(image,ClampToQuantum(gray),q);
