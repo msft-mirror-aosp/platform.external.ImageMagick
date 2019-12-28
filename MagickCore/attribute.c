@@ -17,7 +17,7 @@
 %                                October 2002                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -141,9 +141,6 @@ static double GetEdgeBackgroundFactor(const Image *image,
   CacheView
     *edge_view;
 
-  const char
-    *artifact;
-
   double
     factor;
 
@@ -198,9 +195,6 @@ static double GetEdgeBackgroundFactor(const Image *image,
     }
   }
   GetPixelInfoPixel(image,p,&background);
-  artifact=GetImageArtifact(image,"trim:background-color");
-  if (artifact != (const char *) NULL)
-    (void) QueryColorCompliance(artifact,AllCompliance,&background,exception);
   edge_geometry.width=width;
   edge_geometry.height=height;
   edge_geometry.x=x_offset;
@@ -1498,6 +1492,7 @@ MagickExport MagickBooleanType SetImageType(Image *image,const ImageType type,
       quantize_info=AcquireQuantizeInfo(image_info);
       quantize_info->number_colors=2;
       quantize_info->colorspace=GRAYColorspace;
+      quantize_info->dither_method=NoDitherMethod;
       status=QuantizeImage(quantize_info,image,exception);
       quantize_info=DestroyQuantizeInfo(quantize_info);
       image->alpha_trait=UndefinedPixelTrait;

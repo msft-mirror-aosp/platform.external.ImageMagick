@@ -17,7 +17,7 @@
 %                              January 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -942,10 +942,6 @@ MagickExport MagickStatusType ParseGeometry(const char *geometry,
         break;
       }
       case '(':
-      {
-        if (*(p+1) == ')')
-          return(flags);
-      }
       case ')':
       {
         (void) CopyMagickString(p,p+1,MagickPathExtent);
@@ -1135,7 +1131,7 @@ MagickExport MagickStatusType ParseGeometry(const char *geometry,
       if (((flags & XiValue) != 0) && (geometry_info->xi == 0.0))
         geometry_info->sigma=2.0;
     }
-  if (((flags & RhoValue) != 0) && ((flags & SigmaValue) == 0) &&
+  if (((flags & RhoValue) != 0) && ((flags & SigmaValue) == 0) && 
       ((flags & XiValue) != 0) && ((flags & XiNegative) != 0))
     {
       if ((flags & PsiValue) == 0)
@@ -1438,13 +1434,13 @@ MagickExport MagickStatusType ParseMetaGeometry(const char *geometry,ssize_t *x,
       if (geometry_ratio >= image_ratio)
         {
           *width=former_width;
-          *height=(size_t) floor((double) (PerceptibleReciprocal(
-            geometry_ratio)*former_height*image_ratio)+0.5);
+          *height=(size_t) floor((double) (former_height*image_ratio/
+            geometry_ratio)+0.5);
         }
       else
         {
-          *width=(size_t) floor((double) (PerceptibleReciprocal(
-            image_ratio)*former_width*geometry_ratio)+0.5);
+          *width=(size_t) floor((double) (former_width*geometry_ratio/
+            image_ratio)+0.5);
           *height=former_height;
         }
       former_width=(*width);

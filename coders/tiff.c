@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -292,7 +292,6 @@ static MagickOffsetType TIFFTellCustomStream(void *user_data)
 
 static void InitPSDInfo(const Image *image,PSDInfo *info)
 {
-  (void) memset(info,0,sizeof(*info));
   info->version=1;
   info->columns=image->columns;
   info->rows=image->rows;
@@ -703,20 +702,9 @@ static void TIFFGetProfiles(TIFF *tiff,Image *image,ExceptionInfo *exception)
   if ((TIFFGetField(tiff,TIFFTAG_XMLPACKET,&length,&profile) == 1) &&
       (profile != (unsigned char *) NULL))
     {
-      StringInfo
-        *dng;
-
       (void) ReadProfile(image,"xmp",profile,(ssize_t) length,exception);
-      dng=BlobToStringInfo(profile,length);
-      if (dng != (StringInfo *) NULL)
-        {
-          const char
-            *target = "dc:format=\"image/dng\"";
-
-          if (strstr((char *) GetStringInfoDatum(dng),target) != (char *) NULL)
-            (void) CopyMagickString(image->magick,"DNG",MagickPathExtent);
-          dng=DestroyStringInfo(dng);
-        }
+      if (strstr((char *) profile,"dc:format=\"image/dng\"") != (char *) NULL)
+        (void) CopyMagickString(image->magick,"DNG",MagickPathExtent);
     }
 #endif
   if ((TIFFGetField(tiff,34118,&length,&profile) == 1) &&
@@ -880,7 +868,7 @@ static void TIFFGetEXIFProperties(TIFF *tiff,Image *image,
         {
           uint16
             *shorty;
-
+ 
           shorty=0;
           if ((TIFFGetField(tiff,exif_info[i].tag,&shorty,sans) == 1) &&
               (shorty != (uint16 *) NULL))
@@ -1130,7 +1118,7 @@ static ssize_t TIFFReadCustomStream(unsigned char *data,const size_t count,
   size_t
     total;
 
-  MagickOffsetType
+  ssize_t
     remaining;
 
   if (count == 0)
@@ -1340,9 +1328,6 @@ static Image *ReadTIFFImage(const ImageInfo *image_info,
   unsigned char
     *pixels;
 
-  void
-    *sans[2] = { NULL, NULL };
-
   /*
     Open image.
   */
@@ -1414,15 +1399,15 @@ RestoreMSCWarning
     photometric=PHOTOMETRIC_RGB;
     if ((TIFFGetField(tiff,TIFFTAG_IMAGEWIDTH,&width) != 1) ||
         (TIFFGetField(tiff,TIFFTAG_IMAGELENGTH,&height) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_PHOTOMETRIC,&photometric,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_COMPRESSION,&compress_tag,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_FILLORDER,&endian,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_PLANARCONFIG,&interlace,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLESPERPIXEL,&samples_per_pixel,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,&bits_per_sample,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLEFORMAT,&sample_format,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_MINSAMPLEVALUE,&min_sample_value,sans) != 1) ||
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_MAXSAMPLEVALUE,&max_sample_value,sans) != 1))
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_PHOTOMETRIC,&photometric) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_COMPRESSION,&compress_tag) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_FILLORDER,&endian) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_PLANARCONFIG,&interlace) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLESPERPIXEL,&samples_per_pixel) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,&bits_per_sample) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLEFORMAT,&sample_format) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_MINSAMPLEVALUE,&min_sample_value) != 1) ||
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_MAXSAMPLEVALUE,&max_sample_value) != 1))
       {
         TIFFClose(tiff);
         ThrowReaderException(CorruptImageError,"ImproperImageHeader");
@@ -1548,26 +1533,28 @@ RestoreMSCWarning
     option=GetImageOption(image_info,"tiff:exif-properties");
     if (IsStringFalse(option) == MagickFalse) /* enabled by default */
       TIFFGetEXIFProperties(tiff,image,exception);
-    if ((TIFFGetFieldDefaulted(tiff,TIFFTAG_XRESOLUTION,&x_resolution,sans) == 1) &&
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_YRESOLUTION,&y_resolution,sans) == 1))
+    (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLESPERPIXEL,
+      &samples_per_pixel);
+    if ((TIFFGetFieldDefaulted(tiff,TIFFTAG_XRESOLUTION,&x_resolution) == 1) &&
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_YRESOLUTION,&y_resolution) == 1))
       {
         image->resolution.x=x_resolution;
         image->resolution.y=y_resolution;
       }
-    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_RESOLUTIONUNIT,&units,sans) == 1)
+    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_RESOLUTIONUNIT,&units) == 1)
       {
         if (units == RESUNIT_INCH)
           image->units=PixelsPerInchResolution;
         if (units == RESUNIT_CENTIMETER)
           image->units=PixelsPerCentimeterResolution;
       }
-    if ((TIFFGetFieldDefaulted(tiff,TIFFTAG_XPOSITION,&x_position,sans) == 1) &&
-        (TIFFGetFieldDefaulted(tiff,TIFFTAG_YPOSITION,&y_position,sans) == 1))
+    if ((TIFFGetFieldDefaulted(tiff,TIFFTAG_XPOSITION,&x_position) == 1) &&
+        (TIFFGetFieldDefaulted(tiff,TIFFTAG_YPOSITION,&y_position) == 1))
       {
         image->page.x=(ssize_t) ceil(x_position*image->resolution.x-0.5);
         image->page.y=(ssize_t) ceil(y_position*image->resolution.y-0.5);
       }
-    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_ORIENTATION,&orientation,sans) == 1)
+    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_ORIENTATION,&orientation) == 1)
       image->orientation=(OrientationType) orientation;
     if (TIFFGetField(tiff,TIFFTAG_WHITEPOINT,&chromaticity) == 1)
       {
@@ -1659,7 +1646,7 @@ RestoreMSCWarning
           }
       }
     value=(unsigned short) image->scene;
-    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_PAGENUMBER,&value,&pages,sans) == 1)
+    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_PAGENUMBER,&value,&pages) == 1)
       image->scene=value;
     if (image->storage_class == PseudoClass)
       {
@@ -1752,7 +1739,7 @@ RestoreMSCWarning
         break;
     }
     tiff_status=TIFFGetFieldDefaulted(tiff,TIFFTAG_EXTRASAMPLES,&extra_samples,
-      &sample_info,sans);
+      &sample_info);
     if (tiff_status == 1)
       {
         (void) SetImageProperty(image,"tiff:alpha","unspecified",exception);
@@ -1831,7 +1818,7 @@ RestoreMSCWarning
     quantum_type=RGBQuantum;
     if (TIFFScanlineSize(tiff) <= 0)
       ThrowTIFFException(ResourceLimitError,"MemoryAllocationFailed");
-    if ((1.0*TIFFScanlineSize(tiff)) > (2.1*GetBlobSize(image)))
+    if (((MagickSizeType) TIFFScanlineSize(tiff)) > (2*GetBlobSize(image)))
       ThrowTIFFException(CorruptImageError,"InsufficientImageDataInFile");
     number_pixels=MagickMax(TIFFScanlineSize(tiff),MagickMax((ssize_t)
       image->columns*samples_per_pixel*pow(2.0,ceil(log(bits_per_sample)/
@@ -3620,9 +3607,6 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
   unsigned char
     *pixels;
 
-  void
-    *sans[2] = { NULL, NULL };
-
   /*
     Open TIFF file.
   */
@@ -3649,7 +3633,8 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
     }
   mode=endian_type == LSBEndian ? "wl" : "wb";
 #if defined(TIFF_VERSION_BIG)
-  if (LocaleCompare(image_info->magick,"TIFF64") == 0)
+  if ((LocaleCompare(image_info->magick,"TIFF64") == 0) ||
+      (((MagickOffsetType) image->columns*image->rows) > SSIZE_MAX))
     mode=endian_type == LSBEndian ? "wl8" : "wb8";
 #endif
   tiff=TIFFClientOpen(image->filename,mode,(thandle_t) image,TIFFReadBlob,
@@ -3894,7 +3879,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
                 }
           }
       }
-    (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_FILLORDER,&endian,sans);
+    (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_FILLORDER,&endian);
     if ((compress_tag == COMPRESSION_CCITTFAX3) ||
         (compress_tag == COMPRESSION_CCITTFAX4))
       {
@@ -3938,7 +3923,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
                 sample_info[0]=EXTRASAMPLE_UNSPECIFIED;
           }
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_SAMPLESPERPIXEL,
-          &samples_per_pixel,sans);
+          &samples_per_pixel);
         (void) TIFFSetField(tiff,TIFFTAG_SAMPLESPERPIXEL,samples_per_pixel+1);
         (void) TIFFSetField(tiff,TIFFTAG_EXTRASAMPLES,extra_samples,
           &sample_info);
@@ -4021,7 +4006,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
                 }
           }
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,
-          &bits_per_sample,sans);
+          &bits_per_sample);
         if (bits_per_sample == 12)
           (void) TIFFSetField(tiff,TIFFTAG_JPEGTABLESMODE,JPEGTABLESMODE_QUANT);
 #endif
@@ -4030,7 +4015,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       case COMPRESSION_ADOBE_DEFLATE:
       {
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,
-          &bits_per_sample,sans);
+          &bits_per_sample);
         if (((photometric == PHOTOMETRIC_RGB) ||
              (photometric == PHOTOMETRIC_SEPARATED) ||
              (photometric == PHOTOMETRIC_MINISBLACK)) &&
@@ -4068,7 +4053,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       case COMPRESSION_LZW:
       {
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,
-          &bits_per_sample,sans);
+          &bits_per_sample);
         if (((photometric == PHOTOMETRIC_RGB) ||
              (photometric == PHOTOMETRIC_SEPARATED) ||
              (photometric == PHOTOMETRIC_MINISBLACK)) &&
@@ -4080,7 +4065,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       case COMPRESSION_WEBP:
       {
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,
-          &bits_per_sample,sans);
+          &bits_per_sample);
         if (((photometric == PHOTOMETRIC_RGB) ||
              (photometric == PHOTOMETRIC_SEPARATED) ||
              (photometric == PHOTOMETRIC_MINISBLACK)) &&
@@ -4096,7 +4081,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       case COMPRESSION_ZSTD:
       {
         (void) TIFFGetFieldDefaulted(tiff,TIFFTAG_BITSPERSAMPLE,
-          &bits_per_sample,sans);
+          &bits_per_sample);
         if (((photometric == PHOTOMETRIC_RGB) ||
              (photometric == PHOTOMETRIC_SEPARATED) ||
              (photometric == PHOTOMETRIC_MINISBLACK)) &&

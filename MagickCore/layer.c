@@ -16,7 +16,7 @@
 %                               January 2006                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -999,7 +999,6 @@ static Image *OptimizeLayerFrames(const Image *image,const LayerMethod method,
   prev_image->page.x=0;
   prev_image->page.y=0;
   prev_image->dispose=NoneDispose;
-  prev_image->alpha_trait=BlendPixelTrait;
   prev_image->background_color.alpha_trait=BlendPixelTrait;
   prev_image->background_color.alpha=(MagickRealType) TransparentAlpha;
   (void) SetImageBackgroundColor(prev_image,exception);
