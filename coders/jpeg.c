@@ -39,7 +39,8 @@
 %
 %
 */
-
+
+
 /*
   Include declarations.
 */
@@ -123,8 +124,8 @@ typedef struct _DestinationManager
 
 typedef struct _ErrorManager
 {
-  jmp_buf
-    error_recovery;
+  ExceptionInfo
+    *exception;
 
   Image
     *image;
@@ -135,8 +136,8 @@ typedef struct _ErrorManager
   StringInfo
     *profile;
 
-  ExceptionInfo
-    *exception;
+  jmp_buf
+    error_recovery;
 } ErrorManager;
 
 typedef struct _SourceManager
@@ -804,27 +805,26 @@ static boolean ReadProfile(j_decompress_ptr jpeg_info)
       p=GetStringInfoDatum(profile);
       if ((length > 4) && (LocaleNCompare((char *) p,"exif",4) == 0))
         (void) CopyMagickString(name,"exif",MagickPathExtent);
-      else
-        if ((length > XmpNamespaceExtent) &&
-            (LocaleNCompare((char *) p,xmp_namespace,XmpNamespaceExtent-1) == 0))
-          {
-            ssize_t
-              j;
+      else if ((length > XmpNamespaceExtent) &&
+          (LocaleNCompare((char *) p,xmp_namespace,XmpNamespaceExtent-1) == 0))
+        {
+          ssize_t
+            j;
 
-            /*
-              Extract namespace from XMP profile.
-            */
-            p=GetStringInfoDatum(profile)+XmpNamespaceExtent;
-            for (j=XmpNamespaceExtent; j < (ssize_t) GetStringInfoLength(profile); j++)
-            {
-              if (*p == '\0')
-                break;
-              p++;
-            }
-            if (j < (ssize_t) GetStringInfoLength(profile))
-              (void) DestroyStringInfo(SplitStringInfo(profile,(size_t) (j+1)));
-            (void) CopyMagickString(name,"xmp",MagickPathExtent);
+          /*
+            Extract namespace from XMP profile.
+          */
+          p=GetStringInfoDatum(profile)+XmpNamespaceExtent;
+          for (j=XmpNamespaceExtent; j < (ssize_t) GetStringInfoLength(profile); j++)
+          {
+            if (*p == '\0')
+              break;
+            p++;
           }
+          if (j < (ssize_t) GetStringInfoLength(profile))
+            (void) DestroyStringInfo(SplitStringInfo(profile,(size_t) (j+1)));
+          (void) CopyMagickString(name,"xmp",MagickPathExtent);
+        }
     }
   previous_profile=GetImageProfile(image,name);
   if ((previous_profile != (const StringInfo *) NULL) &&
@@ -842,7 +842,6 @@ static boolean ReadProfile(j_decompress_ptr jpeg_info)
       (void) memcpy(GetStringInfoDatum(profile),
         GetStringInfoDatum(previous_profile),
         GetStringInfoLength(previous_profile));
-      GetStringInfoDatum(profile)[GetStringInfoLength(profile)]='\0';
     }
   status=SetImageProfile(image,name,profile,exception);
   profile=DestroyStringInfo(profile);

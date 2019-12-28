@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1124,9 +1124,9 @@ MagickPrivate ResizeFilter *AcquireResizeFilter(const Image *image,
     Adjust window function scaling to match windowing support for weighting
     function.  This avoids a division on every filter call.
   */
-  resize_filter->scale*=PerceptibleReciprocal(resize_filter->window_support);
+  resize_filter->scale/=resize_filter->window_support;
   /*
-    Set Cubic Spline B,C values, calculate Cubic coefficients.
+   * Set Cubic Spline B,C values, calculate Cubic coefficients.
   */
   B=0.0;
   C=0.0;
@@ -2966,8 +2966,6 @@ MagickExport Image *MagnifyImage(const Image *image,ExceptionInfo *exception)
   */
   source_image=CloneImage(image,image->columns,image->rows,MagickTrue,
     exception);
-  if (source_image == (Image *) NULL)
-    return((Image *) NULL);
   offset.x=0;
   offset.y=0;
   rectangle.x=0;
@@ -2979,10 +2977,7 @@ MagickExport Image *MagnifyImage(const Image *image,ExceptionInfo *exception)
   magnify_image=CloneImage(source_image,magnification*source_image->columns,
     magnification*source_image->rows,MagickTrue,exception);
   if (magnify_image == (Image *) NULL)
-    {
-      source_image=DestroyImage(source_image);
-      return((Image *) NULL);
-    }
+    return((Image *) NULL);
   /*
     Magnify the image.
   */

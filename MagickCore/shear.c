@@ -17,7 +17,7 @@
 %                                  July 1992                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -733,7 +733,6 @@ MagickExport Image *IntegralRotateImage(const Image *image,size_t rotations,
   switch (rotations)
   {
     case 0:
-    default:
     {
       rotate_image=CloneImage(image,0,0,MagickTrue,exception);
       break;
@@ -754,15 +753,16 @@ MagickExport Image *IntegralRotateImage(const Image *image,size_t rotations,
   }
   if (rotate_image == (Image *) NULL)
     return((Image *) NULL);
-  if (rotations == 0)
-    return(rotate_image);
   /*
     Integral rotate the image.
   */
   status=MagickTrue;
   progress=0;
-  image_view=AcquireVirtualCacheView(image,exception);
-  rotate_view=AcquireAuthenticCacheView(rotate_image,exception);
+  if (rotations != 0)
+    {
+      image_view=AcquireVirtualCacheView(image,exception);
+      rotate_view=AcquireAuthenticCacheView(rotate_image,exception);
+    }
   switch (rotations)
   {
     case 1:
@@ -1086,8 +1086,11 @@ MagickExport Image *IntegralRotateImage(const Image *image,size_t rotations,
     default:
       break;
   }
-  rotate_view=DestroyCacheView(rotate_view);
-  image_view=DestroyCacheView(image_view);
+  if (rotations != 0)
+    {
+      rotate_view=DestroyCacheView(rotate_view);
+      image_view=DestroyCacheView(image_view);
+    }
   rotate_image->type=image->type;
   rotate_image->page=page;
   if (status == MagickFalse)

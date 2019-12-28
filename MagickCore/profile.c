@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -63,7 +63,6 @@
 #include "MagickCore/resource_.h"
 #include "MagickCore/splay-tree.h"
 #include "MagickCore/string_.h"
-#include "MagickCore/string-private.h"
 #include "MagickCore/thread-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
@@ -374,38 +373,12 @@ MagickExport char *GetNextImageProfile(const Image *image)
 */
 
 #if defined(MAGICKCORE_LCMS_DELEGATE)
-
-#if LCMS_VERSION < 2060
-static void* cmsGetContextUserData(cmsContext ContextID)
-{
-  return(ContextID);
-}
-
-static cmsContext cmsCreateContext(void *magick_unused(Plugin),void *UserData)
-{
-  magick_unreferenced(Plugin);
-  return((cmsContext) UserData);
-}
-
-static void cmsSetLogErrorHandlerTHR(cmsContext magick_unused(ContextID),
-  cmsLogErrorHandlerFunction Fn)
-{
-  magick_unreferenced(ContextID);
-  cmsSetLogErrorHandler(Fn);
-}
-
-static void cmsDeleteContext(cmsContext magick_unused(ContextID))
-{
-  magick_unreferenced(ContextID);
-}
-#endif
-
 static LCMSType **DestroyPixelThreadSet(LCMSType **pixels)
 {
   register ssize_t
     i;
 
-  if (pixels == (LCMSType **) NULL)
+  if (pixels != (LCMSType **) NULL)
     return((LCMSType **) NULL);
   for (i=0; i < (ssize_t) GetMagickResourceLimit(ThreadResource); i++)
     if (pixels[i] != (LCMSType *) NULL)
@@ -457,7 +430,8 @@ static cmsHTRANSFORM *DestroyTransformThreadSet(cmsHTRANSFORM *transform)
 static cmsHTRANSFORM *AcquireTransformThreadSet(
   const cmsHPROFILE source_profile,const cmsUInt32Number source_type,
   const cmsHPROFILE target_profile,const cmsUInt32Number target_type,
-  const int intent,const cmsUInt32Number flags,cmsContext cms_context)
+  const int intent,const cmsUInt32Number flags,
+  CMSExceptionInfo *cms_exception)
 {
   cmsHTRANSFORM
     *transform;
@@ -476,14 +450,16 @@ static cmsHTRANSFORM *AcquireTransformThreadSet(
   (void) memset(transform,0,number_threads*sizeof(*transform));
   for (i=0; i < (ssize_t) number_threads; i++)
   {
-    transform[i]=cmsCreateTransformTHR(cms_context,source_profile,source_type,
-      target_profile,target_type,intent,flags);
+    transform[i]=cmsCreateTransformTHR((cmsContext) cms_exception,
+      source_profile,source_type,target_profile,target_type,intent,flags);
     if (transform[i] == (cmsHTRANSFORM) NULL)
       return(DestroyTransformThreadSet(transform));
   }
   return(transform);
 }
+#endif
 
+#if defined(MAGICKCORE_LCMS_DELEGATE)
 static void CMSExceptionHandler(cmsContext context,cmsUInt32Number severity,
   const char *message)
 {
@@ -496,7 +472,7 @@ static void CMSExceptionHandler(cmsContext context,cmsUInt32Number severity,
   Image
     *image;
 
-  cms_exception=(CMSExceptionInfo *) cmsGetContextUserData(context);
+  cms_exception=(CMSExceptionInfo *) context;
   if (cms_exception == (CMSExceptionInfo *) NULL)
     return;
   exception=cms_exception->exception;
@@ -513,8 +489,7 @@ static void CMSExceptionHandler(cmsContext context,cmsUInt32Number severity,
     (void) LogMagickEvent(TransformEvent,GetMagickModule(),"lcms: #%u, %s",
       severity,message != (char *) NULL ? message : "no message");
   (void) ThrowMagickException(exception,GetMagickModule(),ImageWarning,
-    "UnableToTransformColorspace","`%s', %s (#%u)",image->filename,
-    message != (char *) NULL ? message : "no message",severity);
+    "UnableToTransformColorspace","`%s'",image->filename);
 }
 #endif
 
@@ -817,8 +792,6 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
 #define ProfileImageTag  "Profile/Image"
 #define ThrowProfileException(severity,tag,context) \
 { \
-  if (cms_context != (cmsContext) NULL) \
-    cmsDeleteContext(cms_context); \
   if (source_profile != (cmsHPROFILE) NULL) \
     (void) cmsCloseProfile(source_profile); \
   if (target_profile != (cmsHPROFILE) NULL) \
@@ -906,31 +879,22 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
         cmsHPROFILE
           source_profile;
 
-        cmsContext
-          cms_context;
-
         CMSExceptionInfo
           cms_exception;
 
         /*
           Transform pixel colors as defined by the color profiles.
         */
+        cmsSetLogErrorHandler(CMSExceptionHandler);
         cms_exception.image=image;
         cms_exception.exception=exception;
-        cms_context=cmsCreateContext(NULL,&cms_exception);
-        if (cms_context == (cmsContext) NULL)
-          ThrowBinaryException(ResourceLimitError,
-            "ColorspaceColorProfileMismatch",name);
-        cmsSetLogErrorHandlerTHR(cms_context,CMSExceptionHandler);
-        source_profile=cmsOpenProfileFromMemTHR(cms_context,
+        (void) cms_exception;
+        source_profile=cmsOpenProfileFromMemTHR((cmsContext) &cms_exception,
           GetStringInfoDatum(profile),(cmsUInt32Number)
           GetStringInfoLength(profile));
         if (source_profile == (cmsHPROFILE) NULL)
-          {
-            cmsDeleteContext(cms_context);
-            ThrowBinaryException(ResourceLimitError,
-              "ColorspaceColorProfileMismatch",name);
-          }
+          ThrowBinaryException(ResourceLimitError,
+            "ColorspaceColorProfileMismatch",name);
         if ((cmsGetDeviceClass(source_profile) != cmsSigLinkClass) &&
             (icc_profile == (StringInfo *) NULL))
           status=SetImageProfile(image,name,profile,exception);
@@ -984,8 +948,8 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
             if (icc_profile != (StringInfo *) NULL)
               {
                 target_profile=source_profile;
-                source_profile=cmsOpenProfileFromMemTHR(cms_context,
-                  GetStringInfoDatum(icc_profile),
+                source_profile=cmsOpenProfileFromMemTHR((cmsContext)
+                  &cms_exception,GetStringInfoDatum(icc_profile),
                   (cmsUInt32Number) GetStringInfoLength(icc_profile));
                 if (source_profile == (cmsHPROFILE) NULL)
                   ThrowProfileException(ResourceLimitError,
@@ -1170,7 +1134,7 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
               flags|=cmsFLAGS_BLACKPOINTCOMPENSATION;
 #endif
             transform=AcquireTransformThreadSet(source_profile,source_type,
-              target_profile,target_type,intent,flags,cms_context);
+              target_profile,target_type,intent,flags,&cms_exception);
             if (transform == (cmsHTRANSFORM *) NULL)
               ThrowProfileException(ImageError,"UnableToCreateColorTransform",
                 name);
@@ -1324,7 +1288,6 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
               (void) cmsCloseProfile(target_profile);
           }
         (void) cmsCloseProfile(source_profile);
-        cmsDeleteContext(cms_context);
       }
 #endif
     }
@@ -1759,9 +1722,31 @@ static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
   return(MagickTrue);
 }
 #else
+static unsigned char *FindNeedleInHaystack(unsigned char *haystack,
+  const char *needle)
+{
+  size_t
+    length;
+
+  unsigned char
+    *c;
+
+  length=strlen(needle);
+  for (c=haystack; *c != '\0'; c++)
+    if (LocaleNCompare((const char *) c,needle,length) == 0)
+      return(c);
+  return((unsigned char *) NULL);
+}
+
 static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
 {
-  return(MagickFalse);
+  unsigned char
+    *p;
+
+  p=FindNeedleInHaystack(GetStringInfoDatum(profile),"x:xmpmeta");
+  if (p == (unsigned char *) NULL)
+    p=FindNeedleInHaystack(GetStringInfoDatum(profile),"rdf:RDF");
+  return(p == (unsigned char *) NULL ? MagickFalse : MagickTrue);
 }
 #endif
 
@@ -1770,7 +1755,8 @@ static MagickBooleanType SetImageProfileInternal(Image *image,const char *name,
   ExceptionInfo *exception)
 {
   char
-    key[MagickPathExtent];
+    key[MagickPathExtent],
+    property[MagickPathExtent];
 
   MagickBooleanType
     status;
@@ -1801,6 +1787,11 @@ static MagickBooleanType SetImageProfileInternal(Image *image,const char *name,
         if (recursive == MagickFalse)
           WriteTo8BimProfile(image,name,profile);
     }
+  /*
+    Inject profile into image properties.
+  */
+  (void) FormatLocaleString(property,MagickPathExtent,"%s:*",name);
+  (void) GetImageProperty(image,property,exception);
   return(status);
 }
 

@@ -18,7 +18,7 @@
 %                                March 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -65,10 +65,9 @@
 #include "MagickCore/module.h"
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
-#include "MagickCore/option.h"
+#include "MagickCore/quantum-private.h"
 #include "MagickCore/pixel-accessor.h"
 #include "MagickCore/property.h"
-#include "MagickCore/quantum-private.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
@@ -1669,14 +1668,18 @@ static void SVGStartElement(void *context,const xmlChar *name,
               const char
                 *p;
 
-              p=value;
-              (void) GetNextToken(p,&p,MagickPathExtent,token);
-              if (*token == ',')
+              for (p=value; ; )
+              {
                 (void) GetNextToken(p,&p,MagickPathExtent,token);
-              if (*token != '\0')
-                (void) FormatLocaleFile(svg_info->file,"class \"%s\"\n",value);
-              else
-                (void) FormatLocaleFile(svg_info->file,"class \"none\"\n");
+                if (*token == ',')
+                  (void) GetNextToken(p,&p,MagickPathExtent,token);
+                if (*token != '\0')
+                  {
+                    (void) FormatLocaleFile(svg_info->file,"class \"%s\"\n",
+                      value);
+                    break;
+                  }
+              }
               break;
             }
           if (LocaleCompare(keyword,"clip-path") == 0)
@@ -2524,8 +2527,8 @@ static void SVGStartElement(void *context,const xmlChar *name,
             svg_info->height=(size_t) floor(svg_info->bounds.height+0.5);
           (void) FormatLocaleFile(svg_info->file,"viewbox 0 0 %.20g %.20g\n",
             (double) svg_info->width,(double) svg_info->height);
-          sx=PerceptibleReciprocal(svg_info->view_box.width)*svg_info->width;
-          sy=PerceptibleReciprocal(svg_info->view_box.height)*svg_info->height;
+          sx=(double) svg_info->width/svg_info->view_box.width;
+          sy=(double) svg_info->height/svg_info->view_box.height;
           tx=svg_info->view_box.x != 0.0 ? (double) -sx*svg_info->view_box.x :
             0.0;
           ty=svg_info->view_box.y != 0.0 ? (double) -sy*svg_info->view_box.y :
@@ -3084,8 +3087,8 @@ static void SVGCDataBlock(void *context,const xmlChar *value,int length)
   SVGInfo
     *svg_info;
 
-  xmlNodePtr
-    child;
+   xmlNodePtr
+     child;
 
   xmlParserCtxtPtr
     parser;
@@ -3103,9 +3106,7 @@ static void SVGCDataBlock(void *context,const xmlChar *value,int length)
       xmlTextConcat(child,value,length);
       return;
     }
-  child=xmlNewCDataBlock(parser->myDoc,value,length);
-  if (xmlAddChild(parser->node,child) == (xmlNodePtr) NULL)
-    xmlFreeNode(child);
+  (void) xmlAddChild(parser->node,xmlNewCDataBlock(parser->myDoc,value,length));
 }
 
 static void SVGExternalSubset(void *context,const xmlChar *name,
@@ -3578,14 +3579,9 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
   message[n]='\0';
   if (n > 0)
     {
-      const char
-        *value;
-
       svg_info->parser=xmlCreatePushParserCtxt(sax_handler,svg_info,(char *)
         message,n,image->filename);
-      value=GetImageOption(image_info,"svg:xml-parse-huge");
-      if ((value != (char *) NULL) && (IsStringTrue(value) != MagickFalse))
-        (void) xmlCtxtUseOptions(svg_info->parser,XML_PARSE_HUGE);
+      (void) xmlCtxtUseOptions(svg_info->parser,XML_PARSE_HUGE);
       while ((n=ReadBlob(image,MagickPathExtent-1,message)) != 0)
       {
         message[n]='\0';
@@ -3596,8 +3592,6 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     }
   (void) xmlParseChunk(svg_info->parser,(char *) message,0,1);
   SVGEndDocument(svg_info);
-  if (svg_info->parser->myDoc != (xmlDocPtr) NULL)
-    xmlFreeDoc(svg_info->parser->myDoc);
   xmlFreeParserCtxt(svg_info->parser);
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(CoderEvent,GetMagickModule(),"end SAX");
@@ -3988,9 +3982,6 @@ static MagickBooleanType TraceSVGImage(Image *image,ExceptionInfo *exception)
       filename[MagickPathExtent],
       message[MagickPathExtent];
 
-    const DelegateInfo
-      *delegate_info;
-
     Image
       *clone_image;
 
@@ -4013,21 +4004,15 @@ static MagickBooleanType TraceSVGImage(Image *image,ExceptionInfo *exception)
     unsigned char
       *blob;
 
-    delegate_info=GetDelegateInfo((char *) NULL,"TRACE",exception);
-    if (delegate_info != (DelegateInfo *) NULL)
-      {
-        /*
-          Trace SVG with tracing delegate.
-        */
-        image_info=AcquireImageInfo();
-        (void) CopyMagickString(image_info->magick,"TRACE",MagickPathExtent);
-        (void) FormatLocaleString(filename,MagickPathExtent,"trace:%s",
-          image_info->filename);
-        (void) CopyMagickString(image_info->filename,filename,MagickPathExtent);
-        status=WriteImage(image_info,image,exception);
-        image_info=DestroyImageInfo(image_info);
-        return(status);
-      }
+    image_info=AcquireImageInfo();
+    (void) CopyMagickString(image_info->magick,"TRACE",MagickPathExtent);
+    (void) FormatLocaleString(filename,MagickPathExtent,"trace:%s",
+      image_info->filename);
+    (void) CopyMagickString(image_info->filename,filename,MagickPathExtent);
+    status=WriteImage(image_info,image,exception);
+    image_info=DestroyImageInfo(image_info);
+    if (status != MagickFalse)
+      return(status);
     (void) WriteBlobString(image,
       "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     (void) WriteBlobString(image,

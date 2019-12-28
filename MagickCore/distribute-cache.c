@@ -22,7 +22,7 @@
 %                                January 2013                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -64,6 +64,7 @@
 #include "MagickCore/list.h"
 #include "MagickCore/locale_.h"
 #include "MagickCore/memory_.h"
+#include "MagickCore/memory-private.h"
 #include "MagickCore/nt-base-private.h"
 #include "MagickCore/pixel.h"
 #include "MagickCore/policy.h"
@@ -86,7 +87,7 @@
 #define HANDLER_RETURN_VALUE (void *) NULL
 #define SOCKET_TYPE int
 #define LENGTH_TYPE size_t
-#define MAGICKCORE_HAVE_DISTRIBUTE_CACHE 1
+#define MAGICKCORE_HAVE_DISTRIBUTE_CACHE
 #elif defined(MAGICKCORE_WINDOWS_SUPPORT) && !defined(__MINGW32__)
 #define CHAR_TYPE_CAST (char *)
 #define CLOSE_SOCKET(socket) (void) closesocket(socket)
@@ -94,7 +95,7 @@
 #define HANDLER_RETURN_VALUE 0
 #define SOCKET_TYPE SOCKET
 #define LENGTH_TYPE int
-#define MAGICKCORE_HAVE_DISTRIBUTE_CACHE 1
+#define MAGICKCORE_HAVE_DISTRIBUTE_CACHE
 #else
 #ifdef __VMS
 #define CLOSE_SOCKET(socket) (void) close(socket)
@@ -153,7 +154,7 @@ static inline MagickOffsetType dpc_read(int file,const MagickSizeType length,
   ssize_t
     count;
 
-#if !MAGICKCORE_HAVE_DISTRIBUTE_CACHE
+#if !defined(MAGICKCORE_HAVE_DISTRIBUTE_CACHE)
   magick_unreferenced(file);
   magick_unreferenced(message);
 #endif
@@ -176,7 +177,7 @@ static inline MagickOffsetType dpc_read(int file,const MagickSizeType length,
 static int ConnectPixelCacheServer(const char *hostname,const int port,
   size_t *session_key,ExceptionInfo *exception)
 {
-#if MAGICKCORE_HAVE_DISTRIBUTE_CACHE
+#if defined(MAGICKCORE_HAVE_DISTRIBUTE_CACHE)
   char
     service[MagickPathExtent],
     *shared_secret;
@@ -421,6 +422,15 @@ MagickPrivate DistributeCacheInfo *DestroyDistributeCacheInfo(
 %
 */
 
+static MagickBooleanType DestroyDistributeCache(SplayTreeInfo *registry,
+  const size_t session_key)
+{
+  /*
+    Destroy distributed pixel cache.
+  */
+  return(DeleteNodeFromSplayTree(registry,(const void *) session_key));
+}
+
 static inline MagickOffsetType dpc_send(int file,const MagickSizeType length,
   const unsigned char *magick_restrict message)
 {
@@ -430,7 +440,7 @@ static inline MagickOffsetType dpc_send(int file,const MagickSizeType length,
   register MagickOffsetType
     i;
 
-#if !MAGICKCORE_HAVE_DISTRIBUTE_CACHE
+#if !defined(MAGICKCORE_HAVE_DISTRIBUTE_CACHE)
   magick_unreferenced(file);
   magick_unreferenced(message);
 #endif
@@ -451,22 +461,6 @@ static inline MagickOffsetType dpc_send(int file,const MagickSizeType length,
       }
   }
   return(i);
-}
-
-#if !MAGICKCORE_HAVE_DISTRIBUTE_CACHE
-MagickExport void DistributePixelCacheServer(const int port,ExceptionInfo *Exception)
-{
-  magick_unreferenced(port);
-  ThrowFatalException(MissingDelegateError,"DelegateLibrarySupportNotBuiltIn");
-}
-#else
-static MagickBooleanType DestroyDistributeCache(SplayTreeInfo *registry,
-  const size_t session_key)
-{
-  /*
-    Destroy distributed pixel cache.
-  */
-  return(DeleteNodeFromSplayTree(registry,(const void *) session_key));
 }
 
 static MagickBooleanType OpenDistributeCache(SplayTreeInfo *registry,int file,
@@ -893,6 +887,7 @@ static HANDLER_RETURN_TYPE DistributePixelCacheClient(void *socket)
 MagickExport void DistributePixelCacheServer(const int port,
   ExceptionInfo *exception)
 {
+#if defined(MAGICKCORE_HAVE_DISTRIBUTE_CACHE)
   char
     service[MagickPathExtent];
 
@@ -1001,8 +996,11 @@ MagickExport void DistributePixelCacheServer(const int port,
     Not implemented!
 #endif
   }
-}
+#else
+  magick_unreferenced(port);
+  ThrowFatalException(MissingDelegateError,"DelegateLibrarySupportNotBuiltIn");
 #endif
+}
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

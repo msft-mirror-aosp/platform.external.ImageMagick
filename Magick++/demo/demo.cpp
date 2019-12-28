@@ -19,20 +19,11 @@ using namespace std;
 
 using namespace Magick;
 
-#if MAGICKCORE_FREETYPE_DELEGATE
-  #define MakeLabel(image, text) image.label( (text) )
-#else
-  #define MakeLabel(image, text)
-#endif
-
 int main( int /*argc*/, char ** argv)
 {
 
   // Initialize ImageMagick install location for Windows
   InitializeMagick(*argv);
-
-  const char *const p = getenv("MAGICK_FONT");
-  const string MAGICK_FONT(p ? p : "");
   
   try {
     
@@ -49,12 +40,12 @@ int main( int /*argc*/, char ** argv)
       cout << "Read images ..." << endl;
 
       Image model( srcdir + "model.miff" );
-      MakeLabel(model, "Magick++");
+      model.label( "Magick++" );
       model.borderColor( "black" );
       model.backgroundColor( "black" );
     
       Image smile( srcdir + "smile.miff" );
-      MakeLabel(smile, "Smile");
+      smile.label( "Smile" );
       smile.borderColor( "black" );
     
       //
@@ -77,74 +68,73 @@ int main( int /*argc*/, char ** argv)
       //  4. append image to container
 
       cout << "  add noise ..." << endl;
-      MakeLabel(example, "Add Noise");
+      example.label( "Add Noise" );
       example.addNoise( LaplacianNoise );
       images.push_back( example );
 
       cout << "  add noise (blue) ..." << endl;
-      MakeLabel(example, "Add Noise\n(Blue Channel)");
+      example.label( "Add Noise\n(Blue Channel)" );
       example.addNoiseChannel( BlueChannel, PoissonNoise );
       images.push_back( example );
 
-#if MAGICKCORE_FREETYPE_DELEGATE
       cout << "  annotate ..." << endl;
       example = model;
-      MakeLabel(example, "Annotate");
+      example.label( "Annotate" );
       example.density( "72x72" );
       example.fontPointsize( 18 );
-      example.font(MAGICK_FONT);
+      if (getenv("MAGICK_FONT") != 0)
+        example.font(string(getenv("MAGICK_FONT")));
       example.strokeColor( Color() );
       example.fillColor( "gold" );
       example.annotate( "Magick++", "+0+20", NorthGravity );
       images.push_back( example );
-#endif
 
       cout << "  blur ..." << endl;
       example = model;
-      MakeLabel(example, "Blur");
+      example.label( "Blur" );
       example.blur( 0, 1.5 );
       images.push_back( example );
 
       cout << "  blur red channel ..." << endl;
       example = model;
-      MakeLabel(example, "Blur Channel\n(Red Channel)");
+      example.label( "Blur Channel\n(Red Channel)" );
       example.blurChannel( RedChannel, 0, 3.0 );
       images.push_back( example );
 
       cout << "  border ..." << endl;
       example = model;
-      MakeLabel(example, "Border");
+      example.label( "Border" );
       example.borderColor( "gold" );
       example.border( Geometry(6,6) );
       images.push_back( example );
 
       cout << "  channel ..." << endl;
       example = model;
-      MakeLabel(example, "Channel\n(Red Channel)");
+      example.label( "Channel\n(Red Channel)" );
       example.channel( RedChannel );
       images.push_back( example );
 
       cout << "  charcoal ..." << endl;
       example = model;
-      MakeLabel(example, "Charcoal");
+      example.label( "Charcoal" );
       example.charcoal( );
       images.push_back( example );
 
       cout << "  composite ..." << endl;
       example = model;
-      MakeLabel(example, "Composite");
+      example.label( "Composite" );
       example.composite( smile, "+35+65", OverCompositeOp);
       images.push_back( example );
 
       cout << "  contrast ..." << endl;
       example = model;
-      MakeLabel(example, "Contrast");
+      example.label( "Contrast" );
       example.contrast( false );
       images.push_back( example );
 
       cout << "  convolve ..." << endl;
       example = model;
-      MakeLabel(example, "Convolve");
+      example.label( "Convolve" );
       {
         // 3x3 matrix
         const double kernel[] = { 1, 1, 1, 1, 4, 1, 1, 1, 1 };
@@ -154,19 +144,19 @@ int main( int /*argc*/, char ** argv)
 
       cout << "  crop ..." << endl;
       example = model;
-      MakeLabel(example, "Crop");
+      example.label( "Crop" );
       example.crop( "80x80+25+50" );
       images.push_back( example );
 
       cout << "  despeckle ..." << endl;
       example = model;
-      MakeLabel(example, "Despeckle");
+      example.label( "Despeckle" );
       example.despeckle( );
       images.push_back( example );
 
       cout << "  draw ..." << endl;
       example = model;
-      MakeLabel(example, "Draw");
+      example.label( "Draw" );
       example.fillColor(Color());
       example.strokeColor( "gold" );
       example.strokeWidth( 2 );
@@ -175,62 +165,62 @@ int main( int /*argc*/, char ** argv)
 
       cout << "  edge ..." << endl;
       example = model;
-      MakeLabel(example, "Detect Edges");
+      example.label( "Detect Edges" );
       example.edge( );
       images.push_back( example );
 
       cout << "  emboss ..." << endl;
       example = model;
-      MakeLabel(example, "Emboss");
+      example.label( "Emboss" );
       example.emboss( );
       images.push_back( example );
 
       cout << "  equalize ..." << endl;
       example = model;
-      MakeLabel(example, "Equalize");
+      example.label( "Equalize" );
       example.equalize( );
       images.push_back( example );
     
       cout << "  explode ..." << endl;
       example = model;
-      MakeLabel(example, "Explode");
+      example.label( "Explode" );
       example.backgroundColor( "#000000FF" );
       example.implode( -1 );
       images.push_back( example );
 
       cout << "  flip ..." << endl;
       example = model;
-      MakeLabel(example, "Flip");
+      example.label( "Flip" );
       example.flip( );
       images.push_back( example );
 
       cout << "  flop ..." << endl;
       example = model;
-      MakeLabel(example, "Flop");
+      example.label( "Flop" );
       example.flop();
       images.push_back( example );
 
       cout << "  frame ..." << endl;
       example = model;
-      MakeLabel(example, "Frame");
+      example.label( "Frame" );
       example.frame( );
       images.push_back( example );
 
       cout << "  gamma ..." << endl;
       example = model;
-      MakeLabel(example, "Gamma");
+      example.label( "Gamma" );
       example.gamma( 1.6 );
       images.push_back( example );
 
       cout << "  gaussian blur ..." << endl;
       example = model;
-      MakeLabel(example, "Gaussian Blur");
+      example.label( "Gaussian Blur" );
       example.gaussianBlur( 0.0, 1.5 );
       images.push_back( example );
 
       cout << "  gaussian blur channel ..." << endl;
       example = model;
-      MakeLabel(example, "Gaussian Blur\n(Green Channel)");
+      example.label( "Gaussian Blur\n(Green Channel)" );
       example.gaussianBlurChannel( GreenChannel, 0.0, 1.5 );
       images.push_back( example );
     
@@ -238,49 +228,49 @@ int main( int /*argc*/, char ** argv)
       Image gradient;
       gradient.size( "130x194" );
       gradient.read( "gradient:#20a0ff-#ffff00" );
-      MakeLabel(gradient, "Gradient");
+      gradient.label( "Gradient" );
       images.push_back( gradient );
     
       cout << "  grayscale ..." << endl;
       example = model;
-      MakeLabel(example, "Grayscale");
+      example.label( "Grayscale" );
       example.quantizeColorSpace( GRAYColorspace );
       example.quantize( );
       images.push_back( example );
     
       cout << "  implode ..." << endl;
       example = model;
-      MakeLabel(example, "Implode");
+      example.label( "Implode" );
       example.implode( 0.5 );
       images.push_back( example );
 
       cout << "  level ..." << endl;
       example = model;
-      MakeLabel(example, "Level");
+      example.label( "Level" );
       example.level( 0.20*QuantumRange, 0.90*QuantumRange, 1.20 );
       images.push_back( example );
 
       cout << "  level red channel ..." << endl;
       example = model;
-      MakeLabel(example, "Level Channel\n(Red Channel)");
+      example.label( "Level Channel\n(Red Channel)" );
       example.levelChannel( RedChannel, 0.20*QuantumRange, 0.90*QuantumRange, 1.20 );
       images.push_back( example );
 
       cout << "  median filter ..." << endl;
       example = model;
-      MakeLabel(example, "Median Filter");
+      example.label( "Median Filter" );
       example.medianFilter( );
       images.push_back( example );
 
       cout << "  modulate ..." << endl;
       example = model;
-      MakeLabel(example, "Modulate");
+      example.label( "Modulate" );
       example.modulate( 110, 110, 110 );
       images.push_back( example );
 
       cout << "  monochrome ..." << endl;
       example = model;
-      MakeLabel(example, "Monochrome");
+      example.label( "Monochrome" );
       example.quantizeColorSpace( GRAYColorspace );
       example.quantizeColors( 2 );
       example.quantizeDither( false );
@@ -289,49 +279,49 @@ int main( int /*argc*/, char ** argv)
 
       cout << "  motion blur ..." << endl;
       example = model;
-      MakeLabel(example, "Motion Blur");
+      example.label( "Motion Blur" );
       example.motionBlur( 0.0, 7.0,45 );
       images.push_back( example );
     
       cout << "  negate ..." << endl;
       example = model;
-      MakeLabel(example, "Negate");
+      example.label( "Negate" );
       example.negate( );
       images.push_back( example );
     
       cout << "  normalize ..." << endl;
       example = model;
-      MakeLabel(example, "Normalize");
+      example.label( "Normalize" );
       example.normalize( );
       images.push_back( example );
     
       cout << "  oil paint ..." << endl;
       example = model;
-      MakeLabel(example, "Oil Paint");
+      example.label( "Oil Paint" );
       example.oilPaint( );
       images.push_back( example );
 
       cout << "  ordered dither 2x2 ..." << endl;
       example = model;
-      MakeLabel(example, "Ordered Dither\n(2x2)");
+      example.label( "Ordered Dither\n(2x2)" );
       example.randomThreshold(2,2);
       images.push_back( example );
 
       cout << "  ordered dither 3x3..." << endl;
       example = model;
-      MakeLabel(example, "Ordered Dither\n(3x3)");
+      example.label( "Ordered Dither\n(3x3)" );
       example.randomThreshold(3,3);
       images.push_back( example );
 
       cout << "  ordered dither 4x4..." << endl;
       example = model;
-      MakeLabel(example, "Ordered Dither\n(4x4)");
+      example.label( "Ordered Dither\n(4x4)" );
       example.randomThreshold(4,4);
       images.push_back( example );
     
       cout << "  ordered dither red 4x4..." << endl;
       example = model;
-      MakeLabel(example, "Ordered Dither\n(Red 4x4)");
+      example.label( "Ordered Dither\n(Red 4x4)" );
       example.randomThresholdChannel(RedChannel,4,4);
       images.push_back( example );
 
@@ -339,131 +329,131 @@ int main( int /*argc*/, char ** argv)
       Image plasma;
       plasma.size( "130x194" );
       plasma.read( "plasma:fractal" );
-      MakeLabel(plasma, "Plasma");
+      plasma.label( "Plasma" );
       images.push_back( plasma );
     
       cout << "  quantize ..." << endl;
       example = model;
-      MakeLabel(example, "Quantize");
+      example.label( "Quantize" );
       example.quantize( );
       images.push_back( example );
 
       cout << "  quantum operator ..." << endl;
       example = model;
-      MakeLabel(example, "Quantum Operator\nRed * 0.4");
+      example.label( "Quantum Operator\nRed * 0.4" );
       example.evaluate( RedChannel,MultiplyEvaluateOperator,0.40 );
       images.push_back( example );
 
       cout << "  raise ..." << endl;
       example = model;
-      MakeLabel(example, "Raise");
+      example.label( "Raise" );
       example.raise( );
       images.push_back( example );
     
       cout << "  reduce noise ..." << endl;
       example = model;
-      MakeLabel(example, "Reduce Noise");
+      example.label( "Reduce Noise" );
       example.reduceNoise( 1.0 );
       images.push_back( example );
     
       cout << "  resize ..." << endl;
       example = model;
-      MakeLabel(example, "Resize");
+      example.label( "Resize" );
       example.zoom( "50%" );
       images.push_back( example );
     
       cout << "  roll ..." << endl;
       example = model;
-      MakeLabel(example, "Roll");
+      example.label( "Roll" );
       example.roll( "+20+10" );
       images.push_back( example );
     
       cout << "  rotate ..." << endl;
       example = model;
-      MakeLabel(example, "Rotate");
+      example.label( "Rotate" );
       example.rotate( 45 );
       example.transparent( "black" );
       images.push_back( example );
 
       cout << "  scale ..." << endl;
       example = model;
-      MakeLabel(example, "Scale");
+      example.label( "Scale" );
       example.scale( "60%" );
       images.push_back( example );
     
       cout << "  segment ..." << endl;
       example = model;
-      MakeLabel(example, "Segment");
+      example.label( "Segment" );
       example.segment( 0.5, 0.25 );
       images.push_back( example );
     
       cout << "  shade ..." << endl;
       example = model;
-      MakeLabel(example, "Shade");
+      example.label( "Shade" );
       example.shade( 30, 30, false );
       images.push_back( example );
     
       cout << "  sharpen ..." << endl;
       example = model;
-      MakeLabel(example, "Sharpen");
+      example.label("Sharpen");
       example.sharpen( 0.0, 1.0 );
       images.push_back( example );
     
       cout << "  shave ..." << endl;
       example = model;
-      MakeLabel(example, "Shave");
+      example.label("Shave");
       example.shave( Geometry( 10, 10) );
       images.push_back( example );
     
       cout << "  shear ..." << endl;
       example = model;
-      MakeLabel(example, "Shear");
+      example.label( "Shear" );
       example.shear( 45, 45 );
       example.transparent( "black" );
       images.push_back( example );
     
       cout << "  spread ..." << endl;
       example = model;
-      MakeLabel(example, "Spread");
+      example.label( "Spread" );
       example.spread( 3 );
       images.push_back( example );
     
       cout << "  solarize ..." << endl;
       example = model;
-      MakeLabel(example, "Solarize");
+      example.label( "Solarize" );
       example.solarize( );
       images.push_back( example );
     
       cout << "  swirl ..." << endl;
       example = model;
       example.backgroundColor( "#000000FF" );
-      MakeLabel(example, "Swirl");
+      example.label( "Swirl" );
       example.swirl( 90 );
       images.push_back( example );
 
       cout << "  threshold ..." << endl;
       example = model;
-      MakeLabel(example, "Threshold");
+      example.label( "Threshold" );
       example.threshold( QuantumRange/2.0 );
       images.push_back( example );
 
       cout << "  threshold random ..." << endl;
       example = model;
-      MakeLabel(example, "Random\nThreshold");
+      example.label( "Random\nThreshold" );
       example.randomThreshold( (0.3*QuantumRange),
         (0.85*QuantumRange) );
       images.push_back( example );
     
       cout << "  unsharp mask ..." << endl;
       example = model;
-      MakeLabel(example, "Unsharp Mask");
+      example.label( "Unsharp Mask" );
       //           radius_, sigma_, amount_, threshold_
       example.unsharpmask( 0.0, 1.0, 1.0, 0.05);
       images.push_back( example );
     
       cout << "  wave ..." << endl;
       example = model;
-      MakeLabel(example, "Wave");
+      example.label( "Wave" );
       example.alpha( true );
       example.backgroundColor( "#000000FF" );
       example.wave( 25, 150 );
@@ -484,7 +474,6 @@ int main( int /*argc*/, char ** argv)
       montageOpts.tile( "7x4" );
       montageOpts.backgroundColor( "#ffffff" );
       montageOpts.pointSize( 18 );
-      montageOpts.font(MAGICK_FONT);
       montageOpts.fillColor( "#600" );
       montageOpts.strokeColor( Color() );
       montageOpts.fileName( "Magick++ Demo" );

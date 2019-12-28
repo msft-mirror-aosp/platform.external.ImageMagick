@@ -25,17 +25,15 @@ jobs:
             hdri: no
 
     steps:
-    - name: Install dependencies
-      run: |
-        set -e
-        apt update
-        sh -c "echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections"
-        apt-get install -y autoconf pkg-config gcc msttcorefonts libfontconfig1-dev libfreetype6-dev libltdl-dev
-
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@master
       with:
         fetch-depth: 1
 
+    - name: Install dependencies
+      run: |
+        apt update
+        sh -c "echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections"
+        apt-get install -y autoconf pkg-config gcc msttcorefonts libfontconfig1-dev libfreetype6-dev libltdl-dev
     - name: Configure ImageMagick
       run: |
         export CFLAGS="-Wno-deprecated-declarations"
@@ -44,7 +42,6 @@ jobs:
     - name: Build ImageMagick
       run: |
         make
-
     - name: Test ImageMagick
       run: |
         make check || exit_code=$?
@@ -72,20 +69,18 @@ jobs:
 
     steps:
     - name: Clone ImageMagick-Windows
-      uses: actions/checkout@v1
+      uses: actions/checkout@master
       with:
-        repository: ImageMagick/ImageMagick-Windows
-        ref: refs/heads/master
         fetch-depth: 1
+        repository: ImageMagick/ImageMagick-Windows
+        ref: remotes/origin/master
 
     - name: Clone repositories
-      shell: cmd
       run: |
         cd %RUNNER_WORKSPACE%\ImageMagick-Windows
         CloneRepositories.cmd https://github.com/ImageMagick shallow
 
     - name: Build configure
-      shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
         cd %RUNNER_WORKSPACE%\ImageMagick-Windows\VisualMagick\configure
@@ -93,13 +88,11 @@ jobs:
         msbuild configure.sln /m /t:Rebuild /p:Configuration=Release,Platform=Win32
 
     - name: Configure ImageMagick
-      shell: cmd
       run: |
         cd %RUNNER_WORKSPACE%\ImageMagick-Windows\VisualMagick\configure
         configure.exe /noWizard /VS2019 /${{matrix.platform}} /${{matrix.buildType}}
 
     - name: Build ImageMagick
-      shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
         cd %RUNNER_WORKSPACE%\ImageMagick-Windows\VisualMagick
