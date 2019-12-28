@@ -33,10 +33,7 @@ static ssize_t EncoderInitializer(const uint8_t *Data, const size_t Size, Magick
   return 0;
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
-{
-  if (Size < 1)
-    return 0;
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
   Magick::Image image;
   const ssize_t offset = EncoderInitializer(Data, Size, image);
   if (offset < 0)

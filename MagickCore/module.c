@@ -17,7 +17,7 @@
 %                                March 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1222,6 +1222,7 @@ MagickPrivate MagickBooleanType OpenModule(const char *module,
   ExceptionInfo *exception)
 {
   char
+    filename[MagickPathExtent],
     module_name[MagickPathExtent],
     name[MagickPathExtent],
     path[MagickPathExtent];
@@ -1269,11 +1270,11 @@ MagickPrivate MagickBooleanType OpenModule(const char *module,
     Locate module.
   */
   handle=(ModuleHandle) NULL;
-  TagToCoderModuleName(module_name,name);
+  TagToCoderModuleName(module_name,filename);
   (void) LogMagickEvent(ModuleEvent,GetMagickModule(),
-    "Searching for module \"%s\" using filename \"%s\"",module_name,name);
+    "Searching for module \"%s\" using filename \"%s\"",module_name,filename);
   *path='\0';
-  status=GetMagickModulePath(name,MagickImageCoderModule,path,exception);
+  status=GetMagickModulePath(filename,MagickImageCoderModule,path,exception);
   if (status == MagickFalse)
     return(MagickFalse);
   /*

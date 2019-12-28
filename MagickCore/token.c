@@ -17,7 +17,7 @@
 %                              January 1993                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -156,9 +156,8 @@ MagickExport TokenInfo *DestroyTokenInfo(TokenInfo *token_info)
 %
 %  The format of the GetNextToken method is:
 %
-%      size_t GetNextToken(const char *magick_restrict start,
-%        const char **magick_restrict end,const size_t extent,
-%        char *magick_restrict token)
+%      size_t GetNextToken(const char *start,const char **end,
+%        const size_t extent,char *token)
 %
 %  A description of each parameter follows:
 %
@@ -171,18 +170,17 @@ MagickExport TokenInfo *DestroyTokenInfo(TokenInfo *token_info)
 %    o token: copy the token to this buffer.
 %
 */
-MagickExport magick_hot_spot size_t GetNextToken(
-  const char *magick_restrict start,const char **magick_restrict end,
-  const size_t extent,char *magick_restrict token)
+MagickExport size_t GetNextToken(const char *start,const char **end,
+  const size_t extent,char *token)
 {
   double
     value;
 
   register char
-    *magick_restrict q;
+    *q;
 
   register const char
-    *magick_restrict p;
+    *p;
 
   register ssize_t
     i;
@@ -338,9 +336,8 @@ MagickExport magick_hot_spot size_t GetNextToken(
 %
 %  The format of the GlobExpression function is:
 %
-%      MagickBooleanType GlobExpression(const char *magick_restrict expression,
-%        const char *magick_restrict pattern,
-%        const MagickBooleanType case_insensitive)
+%      MagickBooleanType GlobExpression(const char *expression,
+%        const char *pattern,const MagickBooleanType case_insensitive)
 %
 %  A description of each parameter follows:
 %
@@ -352,16 +349,15 @@ MagickExport magick_hot_spot size_t GetNextToken(
 %      an expression.
 %
 */
-MagickExport MagickBooleanType GlobExpression(
-  const char *magick_restrict expression,const char *magick_restrict pattern,
-  const MagickBooleanType case_insensitive)
+MagickExport MagickBooleanType GlobExpression(const char *expression,
+  const char *pattern,const MagickBooleanType case_insensitive)
 {
   MagickBooleanType
     done,
     match;
 
   register const char
-    *magick_restrict p;
+    *p;
 
   /*
     Return on empty pattern or '*'.

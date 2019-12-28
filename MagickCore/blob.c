@@ -17,7 +17,7 @@
 %                                 July 1999                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1537,8 +1537,9 @@ MagickExport void *FileToBlob(const char *filename,const size_t extent,
 %    o filename: the filename.
 %
 */
+
 static inline ssize_t WriteBlobStream(Image *image,const size_t length,
-  const void *magick_restrict data)
+  const void *data)
 {
   BlobInfo
     *magick_restrict blob_info;
@@ -1547,7 +1548,7 @@ static inline ssize_t WriteBlobStream(Image *image,const size_t length,
     extent;
 
   register unsigned char
-    *magick_restrict q;
+    *q;
 
   assert(image->blob != (BlobInfo *) NULL);
   assert(image->blob->type != UndefinedStream);
@@ -4694,8 +4695,8 @@ MagickExport signed short ReadBlobSignedShort(Image *image)
 %
 %  The format of the ReadBlobStream method is:
 %
-%      const void *ReadBlobStream(Image *image,const size_t length,
-%        void *magick_restrict data,ssize_t *count)
+%      const void *ReadBlobStream(Image *image,const size_t length,void *data,
+%        ssize_t *count)
 %
 %  A description of each parameter follows:
 %
@@ -4710,8 +4711,8 @@ MagickExport signed short ReadBlobSignedShort(Image *image)
 %      file.
 %
 */
-MagickExport magick_hot_spot const void *ReadBlobStream(Image *image,
-  const size_t length,void *magick_restrict data,ssize_t *count)
+MagickExport const void *ReadBlobStream(Image *image,const size_t length,
+  void *data,ssize_t *count)
 {
   BlobInfo
     *magick_restrict blob_info;
