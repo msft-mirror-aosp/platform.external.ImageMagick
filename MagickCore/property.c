@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -4515,6 +4515,17 @@ MagickExport MagickBooleanType SetImageProperty(Image *image,
           geometry=GetPageGeometry(value);
           flags=ParseAbsoluteGeometry(geometry,&image->tile_offset);
           geometry=DestroyString(geometry);
+          return(MagickTrue);
+        }
+      if (LocaleCompare("type",property) == 0)
+        {
+          ssize_t
+            type;
+
+          type=ParseCommandOption(MagickTypeOptions,MagickFalse,value);
+          if (type < 0)
+            return(MagickFalse);
+          image->type=(ImageType) type;
           return(MagickTrue);
         }
       break; /* not an attribute, add as a property */

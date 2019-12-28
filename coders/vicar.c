@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -149,9 +149,6 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
     keyword[MagickPathExtent],
     value[MagickPathExtent];
 
-  const unsigned char
-    *pixels;
-
   Image
     *image;
 
@@ -177,6 +174,9 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   ssize_t
     count,
     y;
+
+  unsigned char
+    *pixels;
 
   /*
     Open image file.
@@ -300,17 +300,20 @@ static Image *ReadVICARImage(const ImageInfo *image_info,
   if (quantum_info == (QuantumInfo *) NULL)
     ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
   length=GetQuantumExtent(image,quantum_info,quantum_type);
+  pixels=GetQuantumPixels(quantum_info);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
+    const void
+      *stream;
+
     q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
     if (q == (Quantum *) NULL)
       break;
-    pixels=(const unsigned char *) ReadBlobStream(image,length,
-      GetQuantumPixels(quantum_info),&count);
+    stream=ReadBlobStream(image,length,pixels,&count);
     if (count != (ssize_t) length)
       break;
     (void) ImportQuantumPixels(image,(CacheView *) NULL,quantum_info,
-      quantum_type,pixels,exception);
+      quantum_type,(unsigned char *) stream,exception);
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
       break;
     status=SetImageProgress(image,LoadImageTag,(MagickOffsetType) y,
