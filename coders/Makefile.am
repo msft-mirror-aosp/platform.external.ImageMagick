@@ -1,4 +1,4 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -55,11 +55,6 @@ endif
 if JPEG_DELEGATE
 MAGICKCORE_JPEG_MODULES = coders/jpeg.la
 MAGICKCORE_JPEG_SRCS = coders/jpeg.c
-endif
-
-if JXL_DELEGATE
-MAGICKCORE_JXL_MODULES = coders/jxl.la
-MAGICKCORE_JXL_SRCS = coders/jxl.c
 endif
 
 if LIBOPENJP2_DELEGATE
@@ -193,7 +188,6 @@ MAGICKCORE_CODER_SRCS = \
 	coders/jpeg.h \
 	coders/json.c \
 	coders/json.h \
-	coders/jxl.h \
 	coders/label.c \
 	coders/label.h \
 	coders/mac.c \
@@ -362,7 +356,6 @@ MAGICKCORE_CODER_SRCS = \
 	$(MAGICKCORE_JBIG_SRCS) \
 	$(MAGICKCORE_JPEG_SRCS) \
 	$(MAGICKCORE_JP2_SRCS) \
-	$(MAGICKCORE_JXL_SRCS) \
 	$(MAGICKCORE_PNG_SRCS) \
 	$(MAGICKCORE_TIFF_SRCS) \
 	$(MAGICKCORE_WEBP_SRCS) \
@@ -424,7 +417,6 @@ CODERS_NOINST_HDRS = \
 	coders/jp2.h \
 	coders/jpeg.h \
 	coders/json.h \
-	coders/jxl.h \
 	coders/label.h \
 	coders/mac.h \
 	coders/magick.h \
@@ -631,7 +623,6 @@ coders_LTLIBRARIES = \
 	$(MAGICKCORE_JBIG_MODULES) \
 	$(MAGICKCORE_JPEG_MODULES) \
 	$(MAGICKCORE_JP2_MODULES) \
-	$(MAGICKCORE_JXL_MODULES) \
 	$(MAGICKCORE_PNG_MODULES) \
 	$(MAGICKCORE_TIFF_MODULES) \
 	$(MAGICKCORE_WEBP_MODULES) \
@@ -934,12 +925,6 @@ coders_json_la_SOURCES     = coders/json.c
 coders_json_la_CPPFLAGS    = $(MAGICK_CODER_CPPFLAGS)
 coders_json_la_LDFLAGS     = $(MODULECOMMONFLAGS)
 coders_json_la_LIBADD      = $(MAGICKCORE_LIBS)
-
-# JXL coder module
-coders_jxl_la_SOURCES      = coders/jxl.c
-coders_jxl_la_CPPFLAGS     = $(MAGICK_CODER_CPPFLAGS)
-coders_jxl_la_LDFLAGS      = $(MODULECOMMONFLAGS)
-coders_jxl_la_LIBADD       = $(MAGICKCORE_LIBS) $(JXL_LIBS)
 
 # LABEL coder module
 coders_label_la_SOURCES    = coders/label.c

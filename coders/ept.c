@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -156,10 +156,6 @@ static MagickBooleanType IsEPT(const unsigned char *magick,const size_t length)
 */
 static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
-  const void
-    *postscript_data,
-    *tiff_data;
-
   EPTInfo
     ept_info;
 
@@ -200,13 +196,13 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
     ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   ept_info.postscript_offset=(MagickOffsetType) ReadBlobLSBLong(image);
   ept_info.postscript_length=ReadBlobLSBLong(image);
-  if ((MagickSizeType) ept_info.postscript_length > GetBlobSize(image))
+  if (ept_info.postscript_length > GetBlobSize(image))
     ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
   (void) ReadBlobLSBLong(image);
   (void) ReadBlobLSBLong(image);
   ept_info.tiff_offset=(MagickOffsetType) ReadBlobLSBLong(image);
   ept_info.tiff_length=ReadBlobLSBLong(image);
-  if ((MagickSizeType) ept_info.tiff_length > GetBlobSize(image))
+  if (ept_info.tiff_length > GetBlobSize(image))
     ThrowReaderException(CorruptImageError,"InsufficientImageDataInFile");
   (void) ReadBlobLSBShort(image);
   ept_info.postscript=(unsigned char *) AcquireQuantumMemory(
@@ -233,7 +229,7 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
         ept_info.postscript);
       ThrowReaderException(CorruptImageError,"ImproperImageHeader");
     }
-  tiff_data=ReadBlobStream(image,ept_info.tiff_length,ept_info.tiff,&count);
+  count=ReadBlob(image,ept_info.tiff_length,ept_info.tiff);
   if (count != (ssize_t) (ept_info.tiff_length))
     (void) ThrowMagickException(exception,GetMagickModule(),CorruptImageWarning,
       "InsufficientImageDataInFile","`%s'",image->filename);
@@ -245,8 +241,7 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
         ept_info.postscript);
       ThrowReaderException(CorruptImageError,"ImproperImageHeader");
     }
-  postscript_data=ReadBlobStream(image,ept_info.postscript_length,
-    ept_info.postscript,&count);
+  count=ReadBlob(image,ept_info.postscript_length,ept_info.postscript);
   if (count != (ssize_t) (ept_info.postscript_length))
     (void) ThrowMagickException(exception,GetMagickModule(),CorruptImageWarning,
       "InsufficientImageDataInFile","`%s'",image->filename);
@@ -254,12 +249,12 @@ static Image *ReadEPTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   image=DestroyImage(image);
   read_info=CloneImageInfo(image_info);
   (void) CopyMagickString(read_info->magick,"EPS",MagickPathExtent);
-  image=BlobToImage(read_info,postscript_data,ept_info.postscript_length,
+  image=BlobToImage(read_info,ept_info.postscript,ept_info.postscript_length,
     exception);
   if (image == (Image *) NULL)
     {
       (void) CopyMagickString(read_info->magick,"TIFF",MagickPathExtent);
-      image=BlobToImage(read_info,tiff_data,ept_info.tiff_length,exception);
+      image=BlobToImage(read_info,ept_info.tiff,ept_info.tiff_length,exception);
     }
   read_info=DestroyImageInfo(read_info);
   if (image != (Image *) NULL)
@@ -445,7 +440,7 @@ static MagickBooleanType WriteEPTImage(const ImageInfo *image_info,Image *image,
   write_info=CloneImageInfo(image_info);
   (void) CopyMagickString(write_info->magick,"TIFF",MagickPathExtent);
   (void) FormatLocaleString(filename,MagickPathExtent,"tiff:%s",
-    write_info->filename);
+    write_info->filename); 
   (void) CopyMagickString(write_info->filename,filename,MagickPathExtent);
   if ((write_image->columns > 512) || (write_image->rows > 512))
     {

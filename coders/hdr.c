@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -785,13 +785,9 @@ static MagickBooleanType WriteHDRImage(const ImageInfo *image_info,Image *image,
             exponent;
 
           gamma=frexp(gamma,&exponent)*256.0/gamma;
-          if (GetPixelRed(image,p) > 0)
-            pixel[0]=(unsigned char) (gamma*QuantumScale*GetPixelRed(image,p));
-          if (GetPixelGreen(image,p) > 0)
-            pixel[1]=(unsigned char) (gamma*QuantumScale*
-              GetPixelGreen(image,p));
-          if (GetPixelBlue(image,p) > 0)
-            pixel[2]=(unsigned char) (gamma*QuantumScale*GetPixelBlue(image,p));
+          pixel[0]=(unsigned char) (gamma*QuantumScale*GetPixelRed(image,p));
+          pixel[1]=(unsigned char) (gamma*QuantumScale*GetPixelGreen(image,p));
+          pixel[2]=(unsigned char) (gamma*QuantumScale*GetPixelBlue(image,p));
           pixel[3]=(unsigned char) (exponent+128);
         }
       if ((image->columns >= 8) && (image->columns <= 0x7ffff))
