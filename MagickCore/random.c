@@ -242,7 +242,7 @@ MagickExport RandomInfo *AcquireRandomInfo(void)
       digest=GetSignatureDigest(signature_info);
       (void) memcpy(random_info->seed,GetStringInfoDatum(digest),
         MagickMin((size_t) GetSignatureDigestsize(signature_info),
-        sizeof(*random_info->seed)));
+        sizeof(random_info->seed)));
       signature_info=DestroySignatureInfo(signature_info);
     }
   return(random_info);
@@ -596,7 +596,7 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 %
 %  GetPseudoRandomValue() is a Xoshiro generator that returns a non-negative
 %  double-precision floating-point value uniformly distributed over the
-%  interval [0.0, 1.0) with a 2 to the 128th-1 period.
+%  interval [0.0, 1.0) with a 2 to the 256th-1 period.
 %
 %  The format of the GetPseudoRandomValue method is:
 %
@@ -607,7 +607,8 @@ static StringInfo *GenerateEntropicChaos(RandomInfo *random_info)
 %    o random_info: the random info.
 %
 */
-MagickExport double GetPseudoRandomValue(RandomInfo *random_info)
+MagickExport double GetPseudoRandomValue(
+  RandomInfo *magick_restrict random_info)
 {
 #define RandomROTL(x,k) (((x) << (k)) | ((x) >> (64-(k))))
 

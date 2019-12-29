@@ -1,9 +1,37 @@
+2019-12-29  7.0.9-13 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-13, GIT revision 16608:5231475:20191229.
+
+2019-12-27  7.0.9-13 Cristy  <quetzlzacatenango@image...>
+  * xc:white no longer creates a black PNM image (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1817).
+  * Sync pixel cache for -kmeans option.
+  * Thread -kmeans option.
+  * PSD: only set the alpha channel when type is not 0.
+ * Fix Lab to custom profile (CMYK or RGB) conversion bug (reference
+   https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=37318).
+
+2019-12-26  7.0.9-12 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-12, GIT revision 16587:7d6a559:20191226.
+
+2019-12-26  7.0.9-12 Cristy  <quetzlzacatenango@image...>
+  * Fix Build failure with MinGW-w64 (reference
+    https://github.com/ImageMagick/ImageMagick6/issues/67).
+  * Inject image profile properties immediately after the image is read.
+
+2019-12-23  7.0.9-11 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-11, GIT revision 16568:1d6c960:20191224.
+
+2019-12-18  7.0.9-11 Cristy  <quetzlzacatenango@image...>
+  * Replace pseudo-random number generator with a Xoshiro generator.
+  * The -layers optimize option requires a fully transparent previous image.
+
 2019-12-22  7.0.9-10 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.9-10, GIT revision 16548:281649843:20191222.
 
 2019-12-18  7.0.9-10 Cristy  <quetzlzacatenango@image...>
   * Some clang releases do not support _aligned_alloc().
   * Support -kmeans command-line option.
+  * The -layers optimize option requires a fully transparent previous image.
 
 2019-12-07  7.0.9-9 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.9-9, GIT revision 16513:8ec82f4:20191215.
@@ -15,7 +43,6 @@
     https://github.com/ImageMagick/ImageMagick/pull/1798).
   * Introduce HeapOverflowSanityCheckGetExtent() method (reference
     https://github.com/ImageMagick/ImageMagick/pull/1798).
-  * The -layers optimize option requires a fully transparent previous image.
 
 2019-12-01  7.0.9-8 Cristy  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.9-8, GIT revision 16474:0bc0e95:20191207.
