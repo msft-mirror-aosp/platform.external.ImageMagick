@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -105,6 +105,7 @@ static MagickBooleanType MontageUsage(void)
       "  -flip                flip image in the vertical direction\n"
       "  -flop                flop image in the horizontal direction\n"
       "  -frame geometry      surround image with an ornamental border\n"
+      "  -layers method       optimize, merge, or compare image layers\n"
       "  -monochrome          transform image to black and white\n"
       "  -polaroid angle      simulate a Polaroid picture\n"
       "  -repage geometry     size and location of an image canvas (operator)\n"
@@ -134,6 +135,7 @@ static MagickBooleanType MontageUsage(void)
       "  -compress type       type of pixel compression when writing the image\n"
       "  -define format:option\n"
       "                       define one or more image format options\n"
+      "  -delay value         display the next image after pausing\n"
       "  -density geometry    horizontal and vertical density of the image\n"
       "  -depth value         image depth\n"
       "  -display server      query font from this X server\n"
@@ -601,7 +603,7 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
             Image
               *clone_images,
               *clone_list;
-            
+
             clone_list=CloneImageList(image,exception);
             if (k != 0)
               clone_list=CloneImageList(image_stack[k-1].image,exception);
@@ -611,7 +613,7 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
             if (*option == '+')
               clone_images=CloneImages(clone_list,"-1",exception);
             else
-              { 
+              {
                 i++;
                 if (i == (ssize_t) argc)
                   ThrowMontageException(OptionError,"MissingArgument",option);
@@ -748,6 +750,17 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
                   ThrowMontageException(OptionError,"NoSuchOption",argv[i]);
                 break;
               }
+            break;
+          }
+        if (LocaleCompare("delay",option+1) == 0)
+          {
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowMontageException(OptionError,"MissingArgument",option);
+            if (IsGeometry(argv[i]) == MagickFalse)
+              ThrowMontageInvalidArgumentException(option,argv[i]);
             break;
           }
         if (LocaleCompare("delete",option+1) == 0)
@@ -1113,6 +1126,22 @@ WandExport MagickBooleanType MontageImageCommand(ImageInfo *image_info,
             i++;
             if (i == (ssize_t) argc)
               ThrowMontageException(OptionError,"MissingArgument",option);
+            break;
+          }
+        if (LocaleCompare("layers",option+1) == 0)
+          {
+            ssize_t
+              type;
+
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowMontageException(OptionError,"MissingArgument",option);
+            type=ParseCommandOption(MagickLayerOptions,MagickFalse,argv[i]);
+            if (type < 0)
+              ThrowMontageException(OptionError,"UnrecognizedLayerMethod",
+                argv[i]);
             break;
           }
         if (LocaleCompare("limit",option+1) == 0)

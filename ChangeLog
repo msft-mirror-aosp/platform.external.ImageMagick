@@ -1,5 +1,130 @@
-2019-09-02  7.0.8-64 Cristy  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.8-64, GIT revision 16...
+2019-12-22  7.0.9-10 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-10, GIT revision 16548:281649843:20191222.
+
+2019-12-18  7.0.9-10 Cristy  <quetzlzacatenango@image...>
+  * Some clang releases do not support _aligned_alloc().
+  * Support -kmeans command-line option.
+
+2019-12-07  7.0.9-9 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-9, GIT revision 16513:8ec82f4:20191215.
+
+2019-12-07  7.0.9-9 Cristy  <quetzlzacatenango@image...>
+  * Build file clean-up (reference
+    https://github.com/ImageMagick/ImageMagick/pull/1798).
+  * Improve semaphore handling @
+    https://github.com/ImageMagick/ImageMagick/pull/1798).
+  * Introduce HeapOverflowSanityCheckGetExtent() method (reference
+    https://github.com/ImageMagick/ImageMagick/pull/1798).
+  * The -layers optimize option requires a fully transparent previous image.
+
+2019-12-01  7.0.9-8 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-8, GIT revision 16474:0bc0e95:20191207.
+
+2019-12-01  7.0.9-8 Cristy  <quetzlzacatenango@image...>
+  * -type bilevel behavior restored, it creates a black and white image.
+
+2019-11-30  7.0.9-7 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-7, GIT revision 16449:971ba06:20191130.
+
+2019-11-26  7.0.9-7 Cristy  <quetzlzacatenango@image...>
+  * Support Pocketmod image format, e.g.
+    convert -density 300 pages?.pdf pocketmod:organize.pdf
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+  * Update documentation.
+
+2019-11-26  7.0.9-6 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-6, GIT revision 16407:1725ec3:20191126.
+
+2019-11-19  7.0.9-6 Cristy  <quetzlzacatenango@image...>
+  * Increase the maximum number of bezier coordinates (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1784).
+  * Santize "'" from SHOW and WIN delegates under Linux, '"\' for Windows
+    (thanks to Enzo Puig).
+  * Correct for TGA orientation (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=34757).
+  * The result for -compose Copy -extent on a  MYK image is CMYK (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=3&t=37118).
+  * Fix potential buffer overflow when reading a fax image (alert from
+    Justin).
+  * Support dng:use-camera-wb option.
+
+2019-11-17  7.0.9-5 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-5, GIT revision 16369:747618e:20191117.
+
+2019-11-16  7.0.9-5 Cristy  <quetzlzacatenango@image...>
+  * Ensure Ascii85 compression is thread safe.
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-11-13  7.0.9-4 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-4, GIT revision 16354:5f53562:20191114.
+
+2019-11-10  7.0.9-4 Cristy  <quetzlzacatenango@image...>
+  * Add exception parameter to CMS transform methods.
+  * Output exception there is an attempt to perform an operation not allowed by
+    the security policy
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-10-30  7.0.9-2 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-2, GIT revision 16325:6f84d89:20191030.
+
+2019-10-29  7.0.9-2 Cristy  <quetzlzacatenango@image...>
+  * JPEG and JPG are aliases in coder security policy.
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-10-27  7.0.9-1 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-1, GIT revision 16313:e068be3:20191027.
+
+2019-10-27  7.0.9-1 Cristy  <quetzlzacatenango@image...>
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+
+2019-10-23  7.0.9-0 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.9-0, GIT revision 16297:8744fd9:20191024
+
+2019-10-06  7.0.9-0 Cristy  <quetzlzacatenango@image...>
+  * Fixed numerous issues  posted to GitHub (reference
+    https://github.com/ImageMagick/ImageMagick/issues).
+  * Support trim:background-color define for -trim option.
+
+2019-10-05  7.0.8-68 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-68, GIT revision 16184:b75b0e5:20191005.
+
+2019-09-30  7.0.8-68 Cristy  <quetzlzacatenango@image...>
+  * Support animated WebP encoding/decoding (reference
+    https://github.com/ImageMagick/ImageMagick/pull/1708).
+  * Text stroke cut off (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=1&t=36829).
+  * Adds support for lossless JPEG1 recompression (reference
+    https://imagemagick.org/discourse-server/viewtopic.php?f=2&t=36828).
+
+2019-09-29  7.0.8-67 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-67, GIT revision 16145:6f2feb9:20190929.
+
+2019-09-28  7.0.8-67 Cristy  <quetzlzacatenango@image...>
+  * line endings renedered as empty boxes (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1704).
+
+2019-09-21  7.0.8-66 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-66, GIT revision 16134:f6ce80a:20190921.
+
+2019-09-09  7.0.8-66 Cristy  <quetzlzacatenango@image...>
+  * Support compound statements in FX while() (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1701).
+
+2019-09-15  7.0.8-65 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-65, GIT revision 16130:254db34:20190915.
+
+2019-09-09  7.0.8-65 Cristy  <quetzlzacatenango@image...>
+  * Eliminate fault when trace delegate is not available.
+  * Properly distinquish linear and non-linear gray colorspaces (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1680).
+
+2019-09-07  7.0.8-64 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.8-64, GIT revision 16108:2ad3cbc:20190907.
 
 2019-09-02  7.0.8-64 Cristy  <quetzlzacatenango@image...>
   * Support XPM symbolic (reference
