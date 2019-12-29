@@ -17,7 +17,7 @@
 %                              July 1992                                      %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -182,7 +182,6 @@
 #include "MagickCore/colormap.h"
 #include "MagickCore/colorspace.h"
 #include "MagickCore/colorspace-private.h"
-#include "MagickCore/compare.h"
 #include "MagickCore/enhance.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
@@ -200,7 +199,6 @@
 #include "MagickCore/quantize.h"
 #include "MagickCore/quantum.h"
 #include "MagickCore/quantum-private.h"
-#include "MagickCore/random_.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
@@ -2307,323 +2305,6 @@ MagickExport void GetQuantizeInfo(QuantizeInfo *quantize_info)
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%  K m e a n s I m a g e                                                      %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  KmeansImage() applies k-means color reduction to an image. This is a
-%  colorspace clustering or segmentation technique.
-%
-%  The format of the KmeansImage method is:
-%
-%      MagickBooleanType KmeansImage(Image *image,const size_t number_colors,
-%        const size_t max_iterations,const double max_distortion,
-%        ExceptionInfo *exception)
-%
-%  A description of each parameter follows:
-%
-%    o image: the image.
-%
-%    o number_colors: number of colors to use as seeds.
-%
-%    o max_iterations: maximum number of iterations while converging.
-%
-%    o max_distortion: the maximum quantization distortion.
-%
-%    o exception: return any errors or warnings in this structure.
-%
-*/
-
-static inline double KmeansDistance(const Image *magick_restrict image,
-  const Quantum *magick_restrict p,const PixelInfo *magick_restrict q)
-{
-  double
-    distance,
-    gamma,
-    pixel;
-
-  gamma=1.0;
-  distance=0.0;
-  if (image->alpha_trait != UndefinedPixelTrait)
-    {
-      pixel=GetPixelAlpha(image,p)-q->alpha;
-      distance+=gamma*QuantumScale*pixel*pixel;
-      gamma=(QuantumScale*GetPixelAlpha(image,p))*(QuantumScale*q->alpha);
-    }
-  if (image->colorspace == CMYKColorspace)
-    {
-      pixel=GetPixelBlack(image,p)-q->black;
-      distance+=gamma*QuantumScale*pixel*pixel;
-      gamma*=(double) (QuantumScale*(QuantumRange-GetPixelBlack(image,p)));
-      gamma*=(double) (QuantumScale*(QuantumRange-q->black));
-    }
-  distance*=3.0;
-  pixel=GetPixelRed(image,p)-q->red;
-  if ((image->colorspace == HSLColorspace) ||
-      (image->colorspace == HSBColorspace) ||
-      (image->colorspace == HWBColorspace))
-    {
-      if (fabs((double) pixel) > (QuantumRange/2))
-        pixel-=QuantumRange;
-      pixel*=2.0;
-    }
-  distance+=gamma*QuantumScale*pixel*pixel;
-  pixel=GetPixelGreen(image,p)-q->green;
-  distance+=gamma*QuantumScale*pixel*pixel;
-  pixel=GetPixelBlue(image,p)-q->blue;
-  distance+=gamma*QuantumScale*pixel*pixel;
-  return(QuantumScale*distance);
-}
-
-MagickExport MagickBooleanType KmeansImage(Image *image,
-  const size_t number_colors,const size_t max_iterations,
-  const double max_distortion,ExceptionInfo *exception)
-{
-#define KmeansImageTag  "Kmeans/Image"
-#define RandomColorComponent(random_info)  \
-  (QuantumRange*GetPseudoRandomValue(random_info))
-
-  CacheView
-    *image_view;
-
-  const char
-    *colors;
-
-  double
-    previous_distortion;
-
-  MagickBooleanType
-    verbose,
-    status;
-
-  PixelInfo
-    *kmeans_colormap;
-
-  QuantizeInfo
-    *quantize_info;
-
-  register ssize_t
-    n;
-
-  /*
-    Initialize the initial set of K means.
-  */
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-  assert(exception != (ExceptionInfo *) NULL);
-  assert(exception->signature == MagickCoreSignature);
-  if (AcquireImageColormap(image,number_colors,exception) == MagickFalse)
-    return(MagickFalse);
-  kmeans_colormap=(PixelInfo *) AcquireQuantumMemory(image->colors,
-    sizeof(*kmeans_colormap));
-  if (kmeans_colormap == (PixelInfo *) NULL)
-    ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
-      image->filename);
-  (void) memcpy(kmeans_colormap,image->colormap,image->colors*
-    sizeof(*kmeans_colormap));
-  colors=GetImageArtifact(image,"kmeans:seed-colors");
-  if (colors == (const char *) NULL)
-    {
-      Image
-        *kmeans_image;
-
-      kmeans_image=CloneImage(image,0,0,MagickTrue,exception);
-      if (kmeans_image == (Image *) NULL)
-        return(MagickFalse);
-      quantize_info=AcquireQuantizeInfo((ImageInfo *) NULL);
-      quantize_info->number_colors=number_colors;
-      quantize_info->dither_method=NoDitherMethod;
-      status=QuantizeImage(quantize_info,kmeans_image,exception);
-      quantize_info=DestroyQuantizeInfo(quantize_info);
-      if (status == MagickFalse)
-        {
-          kmeans_image=DestroyImage(kmeans_image);
-          return(status);
-        }
-      (void) memcpy(kmeans_colormap,kmeans_image->colormap,kmeans_image->colors*
-        sizeof(*kmeans_colormap));
-      image->colors=kmeans_image->colors;
-      kmeans_image=DestroyImage(kmeans_image);
-    }
-  else
-    {
-      char
-        color[MagickPathExtent];
-
-      register const char
-        *p;
-
-      for (n=0, p=colors; n < (ssize_t) image->colors; n++)
-      {
-        register const char
-          *q;
-
-        for (q=p; *q != '\0'; q++)
-          if (*q == ';')
-            break;
-        (void) CopyMagickString(color,p,(size_t) MagickMin(q-p+1,
-          MagickPathExtent));
-        status=QueryColorCompliance(color,AllCompliance,kmeans_colormap+n,
-          exception);
-        if (*q == '\0')
-          {
-            n++;
-            break;
-          }
-        p=q+1;
-      }
-      if (n < (ssize_t) image->colors)
-        {
-          RandomInfo
-            *random_info;
-
-          /*
-            Seed with random pixels in image.
-          */
-          random_info=AcquireRandomInfo();
-          for ( ; n < (ssize_t) image->colors; n++)
-          {
-            kmeans_colormap[n].red=RandomColorComponent(random_info);
-            kmeans_colormap[n].green=RandomColorComponent(random_info);
-            kmeans_colormap[n].blue=RandomColorComponent(random_info);
-            kmeans_colormap[n].alpha=RandomColorComponent(random_info);
-            kmeans_colormap[n].black=RandomColorComponent(random_info);
-          }
-          random_info=DestroyRandomInfo(random_info);
-        }
-    }
-  (void) memcpy(image->colormap,kmeans_colormap,image->colors*
-    sizeof(*kmeans_colormap));
-  /*
-    Iterative refinement.
-  */
-  status=MagickTrue;
-  previous_distortion=0.0;
-  verbose=IsStringTrue(GetImageArtifact(image,"debug"));
-  image_view=AcquireAuthenticCacheView(image,exception);
-  for (n=0; n < (ssize_t) max_iterations; n++)
-  {
-    double
-      distortion;
-
-    register ssize_t
-      i;
-
-    ssize_t
-      y;
-
-    distortion=0.0;
-    (void) memset(kmeans_colormap,0,image->colors*sizeof(*kmeans_colormap));
-    for (y=0; y < (ssize_t) image->rows; y++)
-    {
-      register Quantum
-        *magick_restrict q;
-
-      register ssize_t
-        x;
-
-      q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,exception);
-      if (q == (Quantum *) NULL)
-        {
-          status=MagickFalse;
-          break;
-        }
-      for (x=0; x < (ssize_t) image->columns; x++)
-      {
-        double
-          min_distance;
-
-        register ssize_t
-          i;
-
-        ssize_t
-          j;
-
-        /*
-          Assign each pixel whose mean has the least squared Euclidean distance.
-        */
-        j=0;
-        min_distance=KmeansDistance(image,q,image->colormap+0);
-        for (i=1; i < (ssize_t) image->colors; i++)
-        {
-          double
-            distance;
-
-          if (min_distance <= MagickEpsilon)
-            break;
-          distance=KmeansDistance(image,q,image->colormap+i);
-          if (distance < min_distance)
-            {
-              min_distance=distance;
-              j=i;
-            }
-        }
-        distortion+=min_distance;
-        kmeans_colormap[j].red+=QuantumScale*GetPixelRed(image,q);
-        kmeans_colormap[j].green+=QuantumScale*GetPixelGreen(image,q);
-        kmeans_colormap[j].blue+=QuantumScale*GetPixelBlue(image,q);
-        if (image->alpha_trait != BlendPixelTrait)
-          kmeans_colormap[j].alpha+=QuantumScale*GetPixelAlpha(image,q);
-        if (image->colorspace == CMYKColorspace)
-          kmeans_colormap[j].black+=QuantumScale*GetPixelBlack(image,q);
-        kmeans_colormap[j].count++;
-        SetPixelIndex(image,(Quantum) j,q);
-        q+=GetPixelChannels(image);
-      }
-    }
-    /*
-      Calculate the new means (centroids) of the pixels in the new clusters.
-    */
-    for (i=0; i < (ssize_t) image->colors; i++)
-    {
-      double
-        count;
-
-      count=PerceptibleReciprocal((double) kmeans_colormap[i].count);
-      image->colormap[i].red=QuantumRange*count*kmeans_colormap[i].red;
-      image->colormap[i].green=QuantumRange*count*kmeans_colormap[i].green;
-      image->colormap[i].blue=QuantumRange*count*kmeans_colormap[i].blue;
-      if (image->alpha_trait != BlendPixelTrait)
-        image->colormap[i].alpha=QuantumRange*count*kmeans_colormap[i].alpha;
-      if (image->colorspace == CMYKColorspace)
-        image->colormap[i].black=QuantumRange*count*kmeans_colormap[i].black;
-    }
-    if (verbose != MagickFalse)
-      (void) (void) FormatLocaleFile(stderr,"distortion[%ld]: %g %g\n",n,
-        distortion,fabs(distortion-previous_distortion));
-    if (fabs(distortion-previous_distortion) <= max_distortion)
-      break;
-    previous_distortion=distortion;
-    if (image->progress_monitor != (MagickProgressMonitor) NULL)
-      {
-        MagickBooleanType
-          proceed;
-
-        proceed=SetImageProgress(image,KmeansImageTag,(MagickOffsetType) n,
-          max_iterations);
-        if (proceed == MagickFalse)
-          status=MagickFalse;
-      }
-  }
-  image_view=DestroyCacheView(image_view);
-  kmeans_colormap=(PixelInfo *) RelinquishMagickMemory(kmeans_colormap);
-  if (image->progress_monitor != (MagickProgressMonitor) NULL)
-    (void) SetImageProgress(image,KmeansImageTag,(MagickOffsetType)
-      max_iterations-1,max_iterations);
-  if (status == MagickFalse)
-    return(status);
-  return(SyncImage(image,exception));
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
 %     P o s t e r i z e I m a g e                                             %
 %                                                                             %
 %                                                                             %
@@ -2666,8 +2347,8 @@ MagickExport MagickBooleanType PosterizeImage(Image *image,const size_t levels,
   const DitherMethod dither_method,ExceptionInfo *exception)
 {
 #define PosterizeImageTag  "Posterize/Image"
-#define PosterizePixel(pixel) ClampToQuantum((MagickRealType) QuantumRange*( \
-  MagickRound(QuantumScale*pixel*(levels-1)))/MagickMax((ssize_t) levels-1,1))
+#define PosterizePixel(pixel) (Quantum) (QuantumRange*(MagickRound( \
+  QuantumScale*pixel*(levels-1)))/MagickMax((ssize_t) levels-1,1))
 
   CacheView
     *image_view;
@@ -2828,20 +2509,17 @@ static void PruneChild(CubeInfo *cube_info,const NodeInfo *node_info)
   for (i=0; i < (ssize_t) number_children; i++)
     if (node_info->child[i] != (NodeInfo *) NULL)
       PruneChild(cube_info,node_info->child[i]);
-  if (cube_info->nodes > cube_info->maximum_colors)
-    {
-      /*
-        Merge color statistics into parent.
-      */
-      parent=node_info->parent;
-      parent->number_unique+=node_info->number_unique;
-      parent->total_color.red+=node_info->total_color.red;
-      parent->total_color.green+=node_info->total_color.green;
-      parent->total_color.blue+=node_info->total_color.blue;
-      parent->total_color.alpha+=node_info->total_color.alpha;
-      parent->child[node_info->id]=(NodeInfo *) NULL;
-      cube_info->nodes--;
-    }
+  /*
+    Merge color statistics into parent.
+  */
+  parent=node_info->parent;
+  parent->number_unique+=node_info->number_unique;
+  parent->total_color.red+=node_info->total_color.red;
+  parent->total_color.green+=node_info->total_color.green;
+  parent->total_color.blue+=node_info->total_color.blue;
+  parent->total_color.alpha+=node_info->total_color.alpha;
+  parent->child[node_info->id]=(NodeInfo *) NULL;
+  cube_info->nodes--;
 }
 
 /*
@@ -2994,6 +2672,16 @@ MagickExport MagickBooleanType QuantizeImage(const QuantizeInfo *quantize_info,
       if (SetImageGray(image,exception) != MagickFalse)
         (void) SetGrayscaleImage(image,exception);
     }
+  if ((quantize_info->dither_method == NoDitherMethod) &&
+      (image->storage_class == PseudoClass) &&
+      (image->colors <= maximum_colors))
+    {
+      if ((quantize_info->colorspace != UndefinedColorspace) &&
+          (quantize_info->colorspace != CMYKColorspace))
+        (void) TransformImageColorspace(image,quantize_info->colorspace,
+          exception);
+      return(MagickTrue);
+    }
   depth=quantize_info->tree_depth;
   if (depth == 0)
     {
@@ -3024,10 +2712,13 @@ MagickExport MagickBooleanType QuantizeImage(const QuantizeInfo *quantize_info,
   if (status != MagickFalse)
     {
       /*
-        Reduce the number of colors in the image.
+        Reduce the number of colors in the image if it contains more than the
+        maximum, otherwise we can disable dithering to improve the performance.
       */
       if (cube_info->colors > cube_info->maximum_colors)
         ReduceImageColors(image,cube_info);
+      else
+        cube_info->quantize_info->dither_method=NoDitherMethod;
       status=AssignImageColors(image,cube_info,exception);
     }
   DestroyCubeInfo(cube_info);
@@ -3602,10 +3293,6 @@ static int IntensityCompare(const void *x,const void *y)
   color_2=(PixelInfo *) y;
   intensity=GetPixelInfoIntensity((const Image *) NULL,color_1)-
     GetPixelInfoIntensity((const Image *) NULL,color_2);
-  if (intensity < (double) INT_MIN)
-    intensity=(double) INT_MIN;
-  if (intensity > (double) INT_MAX)
-    intensity=(double) INT_MAX;
   return((int) intensity);
 }
 

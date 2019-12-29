@@ -17,7 +17,7 @@
 %                               August 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the license.  You may  %
@@ -411,8 +411,8 @@ MagickExport int CompareStringInfo(const StringInfo *target,
 %
 %  The format of the ConcatenateMagickString method is:
 %
-%      size_t ConcatenateMagickString(char *magick_restrict destination,
-%        const char *magick_restrict source,const size_t length)
+%      size_t ConcatenateMagickString(char *destination,const char *source,
+%        const size_t length)
 %
 %  A description of each parameter follows:
 %
@@ -423,14 +423,14 @@ MagickExport int CompareStringInfo(const StringInfo *target,
 %    o length: the length of the destination string.
 %
 */
-MagickExport size_t ConcatenateMagickString(char *magick_restrict destination,
-  const char *magick_restrict source,const size_t length)
+MagickExport size_t ConcatenateMagickString(char *destination,
+  const char *source,const size_t length)
 {
   register char
-    *magick_restrict q;
+    *q;
 
   register const char
-    *magick_restrict p;
+    *p;
 
   register size_t
     i;
@@ -479,8 +479,8 @@ MagickExport size_t ConcatenateMagickString(char *magick_restrict destination,
 %
 %  The format of the ConcatenateString method is:
 %
-%      MagickBooleanType ConcatenateString(char **magick_restrict destination,
-%        const char *magick_restrict source)
+%      MagickBooleanType ConcatenateString(char **destination,
+%        const char *source)
 %
 %  A description of each parameter follows:
 %
@@ -489,8 +489,8 @@ MagickExport size_t ConcatenateMagickString(char *magick_restrict destination,
 %    o source: A character string.
 %
 */
-MagickExport MagickBooleanType ConcatenateString(
-  char **magick_restrict destination,const char *magick_restrict source)
+MagickExport MagickBooleanType ConcatenateString(char **destination,
+  const char *source)
 {
   size_t
     destination_length,
@@ -740,8 +740,8 @@ MagickExport char *ConstantString(const char *source)
 %
 %  The format of the CopyMagickString method is:
 %
-%      size_t CopyMagickString(const char *magick_restrict destination,
-%        char *magick_restrict source,const size_t length)
+%      size_t CopyMagickString(const char *destination,char *source,
+%        const size_t length)
 %
 %  A description of each parameter follows:
 %
@@ -752,14 +752,14 @@ MagickExport char *ConstantString(const char *source)
 %    o length: the length of the destination string.
 %
 */
-MagickExport size_t CopyMagickString(char *magick_restrict destination,
-  const char *magick_restrict source,const size_t length)
+MagickExport size_t CopyMagickString(char *destination,const char *source,
+  const size_t length)
 {
   register char
-    *magick_restrict q;
+    *q;
 
   register const char
-    *magick_restrict p;
+    *p;
 
   register size_t
     n;
@@ -1607,10 +1607,10 @@ MagickExport void ResetStringInfo(StringInfo *string_info)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  SanitizeString() returns n new string removes all characters except
+%  SanitizeString() returns an new string removes all characters except
 %  letters, digits and !#$%&'*+-=?^_`{|}~@.[].
 %
-%  Free the sanitized string with DestroyString().
+%  The returned string shoud be freed using DestoryString().
 %
 %  The format of the SanitizeString method is:
 %
@@ -2312,7 +2312,7 @@ MagickExport char **StringToList(const char *text)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  StringToStrings() converts a text string into a list by segmenting the text
+%  StringToList() converts a text string into a list by segmenting the text
 %  string at each carriage return discovered.  The list is converted to HEX
 %  characters if any control characters are discovered within the text string.
 %
@@ -2406,9 +2406,6 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
       p=text;
       for (i=0; i < (ssize_t) lines; i++)
       {
-        size_t
-          length;
-
         textlist[i]=(char *) AcquireQuantumMemory(2UL*MagickPathExtent,
           sizeof(**textlist));
         if (textlist[i] == (char *) NULL)
@@ -2416,8 +2413,7 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
         (void) FormatLocaleString(textlist[i],MagickPathExtent,"0x%08lx: ",
           (long) (CharsPerLine*i));
         q=textlist[i]+strlen(textlist[i]);
-        length=strlen(p);
-        for (j=1; j <= (ssize_t) MagickMin(length,CharsPerLine); j++)
+        for (j=1; j <= (ssize_t) MagickMin(strlen(p),CharsPerLine); j++)
         {
           (void) FormatLocaleString(hex_string,MagickPathExtent,"%02x",*(p+j));
           (void) CopyMagickString(q,hex_string,MagickPathExtent);
@@ -2433,7 +2429,7 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
             *q++=' ';
         }
         *q++=' ';
-        for (j=1; j <= (ssize_t) MagickMin(length,CharsPerLine); j++)
+        for (j=1; j <= (ssize_t) MagickMin(strlen(p),CharsPerLine); j++)
         {
           if (isprint((int) ((unsigned char) *p)) != 0)
             *q++=(*p);
@@ -2442,8 +2438,8 @@ MagickExport char **StringToStrings(const char *text,size_t *count)
           p++;
         }
         *q='\0';
-        textlist[i]=(char *) ResizeQuantumMemory(textlist[i],(size_t) (q-
-          textlist[i]+1),sizeof(**textlist));
+        textlist[i]=(char *) ResizeQuantumMemory(textlist[i],q-textlist[i]+1,
+          sizeof(**textlist));
         if (textlist[i] == (char *) NULL)
           ThrowFatalException(ResourceLimitFatalError,"UnableToConvertText");
       }
@@ -2624,9 +2620,7 @@ MagickExport MagickBooleanType SubstituteString(char **string,
       (void) memmove(p+replace_extent,p+search_extent,
         strlen(p+search_extent)+1);
     (void) memcpy(p,replace,replace_extent);
-    p+=replace_extent;
-    if (replace_extent != 0)
-      p--;
+    p+=replace_extent-1;
   }
   return(status);
 }

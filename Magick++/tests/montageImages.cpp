@@ -21,9 +21,6 @@ int main( int /*argc*/, char ** /*argv*/)
   // Initialize ImageMagick install location for Windows
   // InitializeMagick(*argv);
   InitializeMagick("");
-
-  const char *const p = getenv("MAGICK_FONT");
-  const string MAGICK_FONT(p ? p : "");
   
   int failures=0;
 
@@ -42,7 +39,6 @@ int main( int /*argc*/, char ** /*argv*/)
 
     vector<Image> montage;
     MontageFramed montageOpts;
-    montageOpts.font(MAGICK_FONT);
 
     // Default montage
     montageImages( &montage, imageList.begin(), imageList.end(), montageOpts );

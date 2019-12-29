@@ -17,7 +17,7 @@
 %                                 April 2007                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -61,9 +61,6 @@
 #include "MagickCore/utility.h"
 #if defined(MAGICKCORE_OPENEXR_DELEGATE)
 #include <ImfCRgbaFile.h>
-#if IMF_VERSION_NUMBER > 1
-#include <OpenEXRConfig.h>
-#endif
 
 /*
   Typedef declaractions.
@@ -348,24 +345,15 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
 */
 ModuleExport size_t RegisterEXRImage(void)
 {
-  char
-    version[MagickPathExtent];
-
   MagickInfo
     *entry;
 
-  *version='\0';
   entry=AcquireMagickInfo("EXR","EXR","High Dynamic-range (HDR)");
 #if defined(MAGICKCORE_OPENEXR_DELEGATE)
   entry->decoder=(DecodeImageHandler *) ReadEXRImage;
   entry->encoder=(EncodeImageHandler *) WriteEXRImage;
-#if defined( OPENEXR_PACKAGE_STRING)
-  (void) FormatLocaleString(version,MagickPathExtent,OPENEXR_PACKAGE_STRING);
-#endif
 #endif
   entry->magick=(IsImageFormatHandler *) IsEXR;
-  if (*version != '\0')
-    entry->version=ConstantString(version);
   entry->flags|=CoderDecoderSeekableStreamFlag;
   entry->flags^=CoderAdjoinFlag;
   entry->flags^=CoderBlobSupportFlag;

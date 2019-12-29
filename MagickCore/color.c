@@ -16,7 +16,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -56,6 +56,7 @@
 #include "MagickCore/geometry.h"
 #include "MagickCore/image-private.h"
 #include "MagickCore/memory_.h"
+#include "MagickCore/memory-private.h"
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/option.h"
@@ -65,7 +66,6 @@
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/semaphore.h"
 #include "MagickCore/string_.h"
-#include "MagickCore/string-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/utility.h"
 #include "MagickCore/utility-private.h"
@@ -796,13 +796,9 @@ static SemaphoreInfo
   Forward declarations.
 */
 static MagickBooleanType
-  IsColorCacheInstantiated(ExceptionInfo *);
-
-#if !MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
-static MagickBooleanType
+  IsColorCacheInstantiated(ExceptionInfo *),
   LoadColorCache(LinkedListInfo *,const char *,const char *,const size_t,
     ExceptionInfo *);
-#endif
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -847,7 +843,7 @@ static LinkedListInfo *AcquireColorCache(const char *filename,
   */
   cache=NewLinkedList(0);
   status=MagickTrue;
-#if !MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
+#if !defined(MAGICKCORE_ZERO_CONFIGURATION_SUPPORT)
   {
     const StringInfo
       *option;
@@ -1969,7 +1965,6 @@ MagickExport MagickBooleanType ListColorInfo(FILE *file,
   return(MagickTrue);
 }
 
-#if !MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
@@ -2147,11 +2142,11 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
               compliance;
 
             compliance=color_info->compliance;
-            if (StringLocateSubstring(token,"SVG") != (char *) NULL)
+            if (GlobExpression(token,"*SVG*",MagickTrue) != MagickFalse)
               compliance|=SVGCompliance;
-            if (StringLocateSubstring(token,"X11") != (char *) NULL)
+            if (GlobExpression(token,"*X11*",MagickTrue) != MagickFalse)
               compliance|=X11Compliance;
-            if (StringLocateSubstring(token,"XPM") != (char *) NULL)
+            if (GlobExpression(token,"*XPM*",MagickTrue) != MagickFalse)
               compliance|=XPMCompliance;
             color_info->compliance=(ComplianceType) compliance;
             break;
@@ -2185,7 +2180,6 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
   token=(char *) RelinquishMagickMemory(token);
   return(status != 0 ? MagickTrue : MagickFalse);
 }
-#endif
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2249,11 +2243,11 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
   assert(name != (const char *) NULL);
   (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
   assert(color != (PixelInfo *) NULL);
+  GetPixelInfo((Image *) NULL,color);
   if ((name == (char *) NULL) || (*name == '\0'))
     name=BackgroundColor;
   while (isspace((int) ((unsigned char) *name)) != 0)
     name++;
-  GetPixelInfo((Image *) NULL,color);
   if (*name == '#')
     {
       char
@@ -2275,8 +2269,7 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
       (void) memset(&pixel,0,sizeof(pixel));
       name++;
       for (n=0; isxdigit((int) ((unsigned char) name[n])) != 0; n++) ;
-      if ((n == 3) || (n == 6) || (n == 9) || (n == 12) || (n == 24) ||
-          (n == 48))
+      if ((n % 3) == 0)
         {
           do
           {
@@ -2303,7 +2296,7 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
         }
       else
         {
-          if ((n != 4) && (n != 8) && (n != 16) && (n != 32) && (n != 64))
+          if ((n % 4) != 0)
             {
               (void) ThrowMagickException(exception,GetMagickModule(),
                 OptionWarning,"UnrecognizedColor","`%s'",name);
@@ -2435,14 +2428,8 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
           if (LocaleCompare(name,colorname) != 0)
             status=QueryColorCompliance(colorname,AllCompliance,color,
               exception);
-          color->colorspace=colorspaceType;
-          if (*colorname == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionWarning,"UnrecognizedColor","`%s'",name);
-              status=MagickFalse;
-            }
           colorname=DestroyString(colorname);
+          color->colorspace=colorspaceType;
           return(status);
         }
       if ((flags & PercentValue) != 0)
@@ -2488,6 +2475,12 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
               (color->alpha_trait != UndefinedPixelTrait))
             color->alpha=(double) ClampToQuantum(QuantumRange*
               geometry_info.sigma);
+          if ((icc_color == MagickFalse) &&
+              (color->colorspace == LinearGRAYColorspace))
+            {
+              color->colorspace=GRAYColorspace;
+              color->depth=8;
+            }
         }
       if ((LocaleCompare(colorspace,"HCL") == 0) ||
           (LocaleCompare(colorspace,"HSB") == 0) ||

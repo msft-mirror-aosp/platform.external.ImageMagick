@@ -17,7 +17,7 @@
 %                                 June 2001                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -845,7 +845,7 @@ static MagickBooleanType WriteJP2Image(const ImageInfo *image_info,Image *image,
   /*
     Initialize JPEG 2000 API.
   */
-  parameters=(opj_cparameters_t *) AcquireMagickMemory(sizeof(*parameters));
+  parameters=AcquireMagickMemory(sizeof(*parameters));
   if (parameters == (opj_cparameters_t *) NULL)
     ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
   opj_set_default_encoder_parameters(parameters);

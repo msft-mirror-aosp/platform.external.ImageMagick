@@ -17,7 +17,7 @@
 %                                March 2001                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -727,6 +727,8 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     dpx.file.version);
   (void) FormatImageProperty(image,"dpx:file.version","%.8s",dpx.file.version);
   dpx.file.file_size=ReadBlobLong(image);
+  if (0 && dpx.file.file_size > GetBlobSize(image))
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   offset+=4;
   dpx.file.ditto_key=ReadBlobLong(image);
   offset+=4;
@@ -1141,9 +1143,6 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     return(DestroyImageList(image));
   for (n=0; n < (ssize_t) dpx.image.number_elements; n++)
   {
-    unsigned char
-      *pixels;
-
     /*
       Convert DPX raster image to pixel packets.
     */
@@ -1239,11 +1238,10 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     SetQuantumQuantum(quantum_info,32);
     SetQuantumPack(quantum_info,dpx.image.image_element[n].packing == 0 ?
       MagickTrue : MagickFalse);
-    pixels=GetQuantumPixels(quantum_info);
     for (y=0; y < (ssize_t) image->rows; y++)
     {
-      const void
-        *stream;
+      const unsigned char
+        *pixels;
 
       MagickBooleanType
         sync;
@@ -1255,9 +1253,10 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
         length;
 
       ssize_t
-        row_offset;
+        offset;
 
-      stream=ReadBlobStream(image,extent,pixels,&count);
+      pixels=(const unsigned char *) ReadBlobStream(image,extent,
+        GetQuantumPixels(quantum_info),&count);
       if (count != (ssize_t) extent)
         break;
       if ((image->progress_monitor != (MagickProgressMonitor) NULL) &&
@@ -1271,12 +1270,12 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
           if (proceed == MagickFalse)
             break;
         }
-      row_offset=row++;
-      q=QueueAuthenticPixels(image,0,row_offset,image->columns,1,exception);
+      offset=row++;
+      q=QueueAuthenticPixels(image,0,offset,image->columns,1,exception);
       if (q == (Quantum *) NULL)
         break;
       length=ImportQuantumPixels(image,(CacheView *) NULL,quantum_info,
-        quantum_type,(unsigned char *) stream,exception);
+        quantum_type,pixels,exception);
       (void) length;
       sync=SyncAuthenticPixels(image,exception);
       if (sync == MagickFalse)
