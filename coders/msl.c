@@ -19,7 +19,7 @@
 %                               December 2001                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -544,6 +544,13 @@ static void MSLEndDocument(void *context)
   msl_info=(MSLInfo *) context;
   if (msl_info->content != (char *) NULL)
     msl_info->content=DestroyString(msl_info->content);
+#if defined(MAGICKCORE_XML_DELEGATE)
+  if (msl_info->document != (xmlDocPtr) NULL)
+    {
+      xmlFreeDoc(msl_info->document);
+      msl_info->document=(xmlDocPtr) NULL;
+    }
+#endif
 }
 
 static void MSLPushImage(MSLInfo *msl_info,Image *image)
@@ -7695,8 +7702,8 @@ static void MSLCDataBlock(void *context,const xmlChar *value,int length)
   MSLInfo
     *msl_info;
 
-   xmlNodePtr
-     child;
+  xmlNodePtr
+    child;
 
   xmlParserCtxtPtr
     parser;
@@ -7715,7 +7722,9 @@ static void MSLCDataBlock(void *context,const xmlChar *value,int length)
       xmlTextConcat(child,value,length);
       return;
     }
-  (void) xmlAddChild(parser->node,xmlNewCDataBlock(parser->myDoc,value,length));
+  child=xmlNewCDataBlock(parser->myDoc,value,length);
+  if (xmlAddChild(parser->node,child) == (xmlNodePtr) NULL)
+    xmlFreeNode(child);
 }
 
 static void MSLExternalSubset(void *context,const xmlChar *name,
@@ -7912,6 +7921,8 @@ static MagickBooleanType ProcessMSLScript(const ImageInfo *image_info,
   /*
     Free resources.
   */
+  if (msl_info.parser->myDoc != (xmlDocPtr) NULL)
+    xmlFreeDoc(msl_info.parser->myDoc);
   xmlFreeParserCtxt(msl_info.parser);
   (void) LogMagickEvent(CoderEvent,GetMagickModule(),"end SAX");
   if (*image == (Image *) NULL)
@@ -8355,7 +8366,6 @@ static MagickBooleanType WriteMSLImage(const ImageInfo *image_info,Image *image,
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   msl_image=CloneImage(image,0,0,MagickTrue,exception);
   status=ProcessMSLScript(image_info,&msl_image,exception);
-  msl_image=DestroyImageList(msl_image);
   return(status);
 }
 #endif
