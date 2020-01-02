@@ -16,7 +16,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -184,7 +184,7 @@ static LinkedListInfo *AcquirePolicyCache(const char *filename,
   */
   cache=NewLinkedList(0);
   status=MagickTrue;
-#if defined(MAGICKCORE_ZERO_CONFIGURATION_SUPPORT)
+#if MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
   status=LoadPolicyCache(cache,ZeroConfigurationPolicy,"[zero-configuration]",0,
     exception);
 #else
