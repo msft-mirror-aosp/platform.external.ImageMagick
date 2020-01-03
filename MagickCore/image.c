@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -2433,7 +2433,7 @@ MagickExport MagickBooleanType SetImageBackgroundColor(Image *image,
   assert(image->signature == MagickCoreSignature);
   if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
     return(MagickFalse);
-  if ((image->background_color.alpha != OpaqueAlpha) &&
+  if ((image->background_color.alpha_trait != UndefinedPixelTrait) &&
       (image->alpha_trait == UndefinedPixelTrait))
     (void) SetImageAlphaChannel(image,OnAlphaChannel,exception);
   ConformPixelInfo(image,&image->background_color,&background,exception);
@@ -2661,8 +2661,18 @@ MagickExport MagickBooleanType SetImageExtent(Image *image,const size_t columns,
     ThrowBinaryException(ImageError,"NegativeOrZeroImageSize",image->filename);
   image->columns=columns;
   image->rows=rows;
-  if ((image->depth == 0) || (image->depth > (8*sizeof(MagickSizeType))))
-    ThrowBinaryException(ImageError,"ImageDepthNotSupported",image->filename);
+  if (image->depth == 0)
+    {
+      image->depth=8;
+      (void) ThrowMagickException(exception,GetMagickModule(),ImageError,
+        "ImageDepthNotSupported","`%s'",image->filename);
+    }
+  if (image->depth > (8*sizeof(MagickSizeType)))
+    {
+      image->depth=8*sizeof(MagickSizeType);
+      (void) ThrowMagickException(exception,GetMagickModule(),ImageError,
+        "ImageDepthNotSupported","`%s'",image->filename);
+    }
   return(SyncImagePixelCache(image,exception));
 }
 
@@ -2706,6 +2716,9 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
   char
     component[MagickPathExtent],
     magic[MagickPathExtent],
+#if defined(MAGICKCORE_ZLIB_DELEGATE) || defined(MAGICKCORE_BZLIB_DELEGATE)
+    path[MagickPathExtent],
+#endif
     *q;
 
   const MagicInfo
@@ -2790,9 +2803,6 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
         (LocaleCompare(component,"svgz") == 0) ||
         (LocaleCompare(component,"wmz") == 0))
       {
-        char
-          path[MagickPathExtent];
-
         (void) CopyMagickString(path,image_info->filename,MagickPathExtent);
         path[strlen(path)-strlen(component)-1]='\0';
         GetPathComponent(path,ExtensionPath,component);
@@ -2802,9 +2812,6 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
   if (*component != '\0')
     if (LocaleCompare(component,"bz2") == 0)
       {
-        char
-          path[MagickPathExtent];
-
         (void) CopyMagickString(path,image_info->filename,MagickPathExtent);
         path[strlen(path)-strlen(component)-1]='\0';
         GetPathComponent(path,ExtensionPath,component);

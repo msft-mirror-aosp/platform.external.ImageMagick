@@ -18,7 +18,7 @@
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -2949,12 +2949,28 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
     {
       if (IsFxFunction(expression,"while",5) != MagickFalse)
         {
-          do
+          /*
+            Parse while(condition,expression).
+          */
+          (void) CopyMagickString(subexpression,expression+5,MagickPathExtent);
+          q=subexpression;
+          p=StringToken(",",&q);
+          if ((p == (char *) NULL) || (strlen(p) < 1) || (q == (char *) NULL))
+            {
+              (void) ThrowMagickException(exception,GetMagickModule(),
+                OptionError,"UnableToParseExpression","`%s'",expression);
+              FxReturn(0.0);
+            }
+          for ( ; ; )
           {
-            alpha=FxEvaluateSubexpression(fx_info,channel,x,y,expression+5,
-              depth+1,beta,exception);
-          } while (fabs(alpha) >= MagickEpsilon);
-          FxReturn(*beta);
+            double sans = 0.0;
+            alpha=FxEvaluateSubexpression(fx_info,channel,x,y,p+1,depth+1,&sans,
+              exception);
+            if (fabs(alpha) < MagickEpsilon)
+              FxReturn(*beta);
+            alpha=FxEvaluateSubexpression(fx_info,channel,x,y,q,depth+1,beta,
+              exception);
+          }
         }
       if (LocaleCompare(expression,"w") == 0)
         FxReturn(FxGetSymbol(fx_info,channel,x,y,expression,depth+1,exception));
@@ -3732,28 +3748,26 @@ MagickExport Image *MorphImages(const Image *image,const size_t number_frames,
 %
 */
 
-static inline Quantum PlasmaPixel(RandomInfo *random_info,
+static inline Quantum PlasmaPixel(RandomInfo *magick_restrict random_info,
   const double pixel,const double noise)
 {
-  Quantum
+  MagickRealType
     plasma;
 
-  plasma=ClampToQuantum(pixel+noise*GetPseudoRandomValue(random_info)-
-    noise/2.0);
-  if (plasma <= 0)
-    return((Quantum) 0);
-  if (plasma >= QuantumRange)
-    return(QuantumRange);
-  return(plasma);
+  plasma=pixel+noise*GetPseudoRandomValue(random_info)-noise/2.0;
+  return(ClampToQuantum(plasma));
 }
 
 static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
-  CacheView *u_view,CacheView *v_view,RandomInfo *random_info,
-  const SegmentInfo *segment,size_t attenuate,size_t depth,
+  CacheView *u_view,CacheView *v_view,RandomInfo *magick_restrict random_info,
+  const SegmentInfo *magick_restrict segment,size_t attenuate,size_t depth,
   ExceptionInfo *exception)
 {
   double
     plasma;
+
+  MagickBooleanType
+    status;
 
   register const Quantum
     *magick_restrict u,
@@ -3771,14 +3785,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
     y,
     y_mid;
 
-  if ((fabs(segment->x2-segment->x1) <= MagickEpsilon) &&
-      (fabs(segment->y2-segment->y1) <= MagickEpsilon))
+  if ((fabs(segment->x2-segment->x1) < MagickEpsilon) &&
+      (fabs(segment->y2-segment->y1) < MagickEpsilon))
     return(MagickTrue);
   if (depth != 0)
     {
-      MagickBooleanType
-        status;
-
       SegmentInfo
         local_info;
 
@@ -3792,22 +3803,22 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
       local_info=(*segment);
       local_info.x2=(double) x_mid;
       local_info.y2=(double) y_mid;
-      (void) PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
+      status=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
         &local_info,attenuate,depth,exception);
       local_info=(*segment);
       local_info.y1=(double) y_mid;
       local_info.x2=(double) x_mid;
-      (void) PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
+      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
         &local_info,attenuate,depth,exception);
       local_info=(*segment);
       local_info.x1=(double) x_mid;
       local_info.y2=(double) y_mid;
-      (void) PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
+      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
         &local_info,attenuate,depth,exception);
       local_info=(*segment);
       local_info.x1=(double) x_mid;
       local_info.y1=(double) y_mid;
-      status=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
+      status&=PlasmaImageProxy(image,image_view,u_view,v_view,random_info,
         &local_info,attenuate,depth,exception);
       return(status);
     }
@@ -3821,9 +3832,10 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
   /*
     Average pixels and apply plasma.
   */
+  status=MagickTrue;
   plasma=(double) QuantumRange/(2.0*attenuate);
-  if ((fabs(segment->x1-x_mid) > MagickEpsilon) ||
-      (fabs(segment->x2-x_mid) > MagickEpsilon))
+  if ((fabs(segment->x1-x_mid) >= MagickEpsilon) ||
+      (fabs(segment->x2-x_mid) >= MagickEpsilon))
     {
       /*
         Left pixel.
@@ -3843,10 +3855,10 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if (traits == UndefinedPixelTrait)
           continue;
-        q[i]=PlasmaPixel(random_info,(u[i]+v[i])/2.0,plasma);
+        q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
       }
-      (void) SyncCacheViewAuthenticPixels(image_view,exception);
-      if (fabs(segment->x1-segment->x2) > MagickEpsilon)
+      status=SyncCacheViewAuthenticPixels(image_view,exception);
+      if (fabs(segment->x1-segment->x2) >= MagickEpsilon)
         {
           /*
             Right pixel.
@@ -3859,23 +3871,23 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
           q=QueueCacheViewAuthenticPixels(image_view,x,y_mid,1,1,exception);
           if ((u == (const Quantum *) NULL) || (v == (const Quantum *) NULL) ||
               (q == (Quantum *) NULL))
-            return(MagickTrue);
+            return(MagickFalse);
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
           {
             PixelChannel channel = GetPixelChannelChannel(image,i);
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,(u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
           }
-          (void) SyncCacheViewAuthenticPixels(image_view,exception);
+          status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
     }
-  if ((fabs(segment->y1-y_mid) > MagickEpsilon) ||
-      (fabs(segment->y2-y_mid) > MagickEpsilon))
+  if ((fabs(segment->y1-y_mid) >= MagickEpsilon) ||
+      (fabs(segment->y2-y_mid) >= MagickEpsilon))
     {
-      if ((fabs(segment->x1-x_mid) > MagickEpsilon) ||
-          (fabs(segment->y2-y_mid) > MagickEpsilon))
+      if ((fabs(segment->x1-x_mid) >= MagickEpsilon) ||
+          (fabs(segment->y2-y_mid) >= MagickEpsilon))
         {
           /*
             Bottom pixel.
@@ -3895,11 +3907,11 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,(u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
           }
-          (void) SyncCacheViewAuthenticPixels(image_view,exception);
+          status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
-      if (fabs(segment->y1-segment->y2) > MagickEpsilon)
+      if (fabs(segment->y1-segment->y2) >= MagickEpsilon)
         {
           /*
             Top pixel.
@@ -3919,13 +3931,13 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
             PixelTrait traits = GetPixelChannelTraits(image,channel);
             if (traits == UndefinedPixelTrait)
               continue;
-            q[i]=PlasmaPixel(random_info,(u[i]+v[i])/2.0,plasma);
+            q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
           }
-          (void) SyncCacheViewAuthenticPixels(image_view,exception);
+          status=SyncCacheViewAuthenticPixels(image_view,exception);
         }
     }
-  if ((fabs(segment->x1-segment->x2) > MagickEpsilon) ||
-      (fabs(segment->y1-segment->y2) > MagickEpsilon))
+  if ((fabs(segment->x1-segment->x2) >= MagickEpsilon) ||
+      (fabs(segment->y1-segment->y2) >= MagickEpsilon))
     {
       /*
         Middle pixel.
@@ -3946,13 +3958,13 @@ static MagickBooleanType PlasmaImageProxy(Image *image,CacheView *image_view,
         PixelTrait traits = GetPixelChannelTraits(image,channel);
         if (traits == UndefinedPixelTrait)
           continue;
-        q[i]=PlasmaPixel(random_info,(u[i]+v[i])/2.0,plasma);
+        q[i]=PlasmaPixel(random_info,((double) u[i]+v[i])/2.0,plasma);
       }
-      (void) SyncCacheViewAuthenticPixels(image_view,exception);
+      status=SyncCacheViewAuthenticPixels(image_view,exception);
     }
   if ((fabs(segment->x2-segment->x1) < 3.0) &&
       (fabs(segment->y2-segment->y1) < 3.0))
-    return(MagickTrue);
+    return(status);
   return(MagickFalse);
 }
 
@@ -5177,7 +5189,7 @@ MagickExport Image *SwirlImage(const Image *image,double degrees,
       return((Image *) NULL);
     }
   if (swirl_image->background_color.alpha_trait != UndefinedPixelTrait)
-    (void) SetImageAlpha(swirl_image,OnAlphaChannel,exception);
+    (void) SetImageAlphaChannel(swirl_image,OnAlphaChannel,exception);
   /*
     Compute scaling factor.
   */
