@@ -2038,13 +2038,13 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
 #endif
   for (y=bounding_box.y; y < (ssize_t) bounding_box.height; y++)
   {
-    PixelInfo
-      composite,
-      pixel;
-
     double
       alpha,
       offset;
+
+    PixelInfo
+      composite,
+      pixel;
 
     register Quantum
       *magick_restrict q;
@@ -2139,11 +2139,11 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
         }
         case RepeatSpread:
         {
-          MagickBooleanType
-            antialias;
-
           double
             repeat;
+
+          MagickBooleanType
+            antialias;
 
           antialias=MagickFalse;
           repeat=0.0;
@@ -2908,7 +2908,10 @@ static MagickBooleanType RenderMVGContent(Image *image,
               StringToDouble(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
-            graphic_context[n]->fill_alpha*=opacity;
+            if (graphic_context[n]->compliance == SVGCompliance)
+              graphic_context[n]->fill_alpha*=opacity;
+            else
+              graphic_context[n]->fill_alpha=QuantumRange*opacity;
             if (graphic_context[n]->fill.alpha != TransparentAlpha)
               graphic_context[n]->fill.alpha=graphic_context[n]->fill_alpha;
             else
@@ -3155,8 +3158,16 @@ static MagickBooleanType RenderMVGContent(Image *image,
               StringToDouble(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
-            graphic_context[n]->fill_alpha*=opacity;
-            graphic_context[n]->stroke_alpha*=opacity;
+            if (graphic_context[n]->compliance == SVGCompliance)
+              {
+                graphic_context[n]->fill_alpha*=opacity;
+                graphic_context[n]->stroke_alpha*=opacity;
+              }
+            else
+              {
+                graphic_context[n]->fill_alpha=QuantumRange*opacity;
+                graphic_context[n]->stroke_alpha=QuantumRange*opacity;
+              }
             break;
           }
         status=MagickFalse;
@@ -3709,7 +3720,10 @@ static MagickBooleanType RenderMVGContent(Image *image,
               StringToDouble(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
-            graphic_context[n]->stroke_alpha*=opacity;
+            if (graphic_context[n]->compliance == SVGCompliance)
+              graphic_context[n]->stroke_alpha*=opacity;
+            else
+              graphic_context[n]->stroke_alpha=QuantumRange*opacity;
             if (graphic_context[n]->stroke.alpha != TransparentAlpha)
               graphic_context[n]->stroke.alpha=graphic_context[n]->stroke_alpha;
             else
