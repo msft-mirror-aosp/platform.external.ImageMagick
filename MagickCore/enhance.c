@@ -3932,7 +3932,7 @@ MagickExport MagickBooleanType NegateImage(Image *image,
       /*
         Negate colormap.
       */
-      if( grayscale != MagickFalse )
+      if (grayscale != MagickFalse)
         if ((image->colormap[i].red != image->colormap[i].green) ||
             (image->colormap[i].green != image->colormap[i].blue))
           continue;
@@ -3976,7 +3976,7 @@ MagickExport MagickBooleanType NegateImage(Image *image,
           register ssize_t
             j;
 
-          if (IsPixelGray(image,q) != MagickFalse)
+          if (IsPixelGray(image,q) == MagickFalse)
             {
               q+=GetPixelChannels(image);
               continue;
