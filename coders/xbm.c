@@ -573,7 +573,7 @@ static MagickBooleanType WriteXBMImage(const ImageInfo *image_info,Image *image,
     for (x=0; x < (ssize_t) image->columns; x++)
     {
       byte>>=1;
-      if (GetPixelLuma(image,p) < (QuantumRange/2))
+      if (GetPixelLuma(image,p) > (QuantumRange/2))
         byte|=0x80;
       bit++;
       if (bit == 8)
@@ -594,8 +594,8 @@ static MagickBooleanType WriteXBMImage(const ImageInfo *image_info,Image *image,
           bit=0;
           byte=0;
         }
-        p+=GetPixelChannels(image);
-      }
+      p+=GetPixelChannels(image);
+    }
     if (bit != 0)
       {
         /*
