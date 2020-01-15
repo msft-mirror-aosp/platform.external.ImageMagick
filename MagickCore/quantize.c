@@ -653,12 +653,15 @@ static MagickBooleanType AssignImageColors(Image *image,CubeInfo *cube_info,
       /*
         Monochrome image.
       */
-      intensity=GetPixelInfoLuma(image->colormap+0) < QuantumRange/2.0 ? 0.0 :
+      intensity=GetPixelInfoLuma(image->colormap+0) > QuantumRange/2.0 ? 0.0 :
         QuantumRange;
-      if ((image->colors > 1) &&
-          (GetPixelInfoLuma(image->colormap+0) >
-           GetPixelInfoLuma(image->colormap+1)))
-        intensity=(double) QuantumRange;
+      if (image->colors > 1)
+        {
+          intensity=0.0;
+          if (GetPixelInfoLuma(image->colormap+0) >
+              GetPixelInfoLuma(image->colormap+1))
+            intensity=(double) QuantumRange;
+        }
       image->colormap[0].red=intensity;
       image->colormap[0].green=intensity;
       image->colormap[0].blue=intensity;
@@ -2320,7 +2323,7 @@ MagickExport void GetQuantizeInfo(QuantizeInfo *quantize_info)
 %  The format of the KmeansImage method is:
 %
 %      MagickBooleanType KmeansImage(Image *image,const size_t number_colors,
-%        const size_t max_iterations,const double max_distortion,
+%        const size_t max_iterations,const double tolerance,
 %        ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
@@ -2331,7 +2334,7 @@ MagickExport void GetQuantizeInfo(QuantizeInfo *quantize_info)
 %
 %    o max_iterations: maximum number of iterations while converging.
 %
-%    o max_distortion: the maximum quantization distortion.
+%    o tolerance: the maximum tolerance.
 %
 %    o exception: return any errors or warnings in this structure.
 %
@@ -2389,50 +2392,56 @@ static KmeansInfo **AcquireKmeansThreadSet(const size_t number_colors)
   return(kmeans_info);
 }
 
-static inline double KmeansDistance(const Image *magick_restrict image,
+static inline double KmeansMetric(const Image *magick_restrict image,
   const Quantum *magick_restrict p,const PixelInfo *magick_restrict q)
 {
   double
-    distance,
     gamma,
+    metric,
     pixel;
 
   gamma=1.0;
-  distance=0.0;
-  if (image->alpha_trait != UndefinedPixelTrait)
+  metric=0.0;
+  if ((image->alpha_trait != UndefinedPixelTrait) ||
+      (q->alpha_trait != UndefinedPixelTrait))
     {
-      pixel=GetPixelAlpha(image,p)-q->alpha;
-      distance+=gamma*QuantumScale*pixel*pixel;
-      gamma=(QuantumScale*GetPixelAlpha(image,p))*(QuantumScale*q->alpha);
+      double
+        que_alpha;
+
+      que_alpha=q->alpha_trait != UndefinedPixelTrait ? q->alpha : OpaqueAlpha;
+      pixel=QuantumScale*(GetPixelAlpha(image,p)-que_alpha);
+      metric+=pixel*pixel;
+      gamma*=QuantumScale*GetPixelAlpha(image,p);
+      gamma*=QuantumScale*que_alpha;
     }
   if (image->colorspace == CMYKColorspace)
     {
-      pixel=GetPixelBlack(image,p)-q->black;
-      distance+=gamma*QuantumScale*pixel*pixel;
-      gamma*=(double) (QuantumScale*(QuantumRange-GetPixelBlack(image,p)));
-      gamma*=(double) (QuantumScale*(QuantumRange-q->black));
+      pixel=QuantumScale*(GetPixelBlack(image,p)-q->black);
+      metric+=gamma*pixel*pixel;
+      gamma*=QuantumScale*(QuantumRange-GetPixelBlack(image,p));
+      gamma*=QuantumScale*(QuantumRange-q->black);
     }
-  distance*=3.0;
-  pixel=GetPixelRed(image,p)-q->red;
+  metric*=3.0;
+  pixel=QuantumScale*(GetPixelRed(image,p)-q->red);
   if ((image->colorspace == HSLColorspace) ||
       (image->colorspace == HSBColorspace) ||
       (image->colorspace == HWBColorspace))
     {
-      if (fabs((double) pixel) > (QuantumRange/2))
-        pixel-=QuantumRange;
+      if (fabs((double) pixel) > 0.5)
+        pixel-=0.5;
       pixel*=2.0;
     }
-  distance+=gamma*QuantumScale*pixel*pixel;
-  pixel=GetPixelGreen(image,p)-q->green;
-  distance+=gamma*QuantumScale*pixel*pixel;
-  pixel=GetPixelBlue(image,p)-q->blue;
-  distance+=gamma*QuantumScale*pixel*pixel;
-  return(QuantumScale*distance);
+  metric+=gamma*pixel*pixel;
+  pixel=QuantumScale*(GetPixelGreen(image,p)-q->green);
+  metric+=gamma*pixel*pixel;
+  pixel=QuantumScale*(GetPixelBlue(image,p)-q->blue);
+  metric+=gamma*pixel*pixel;
+  return(metric);
 }
 
 MagickExport MagickBooleanType KmeansImage(Image *image,
-  const size_t number_colors,const size_t max_iterations,
-  const double max_distortion,ExceptionInfo *exception)
+  const size_t number_colors,const size_t max_iterations,const double tolerance,
+  ExceptionInfo *exception)
 {
 #define KmeansImageTag  "Kmeans/Image"
 #define RandomColorComponent(info)  (QuantumRange*GetPseudoRandomValue(info))
@@ -2444,7 +2453,7 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
     *colors;
 
   double
-    previous_distortion;
+    previous_tolerance;
 
   KmeansInfo
     **kmeans_pixels;
@@ -2571,7 +2580,7 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
   if (kmeans_pixels == (KmeansInfo **) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
       image->filename);
-  previous_distortion=0.0;
+  previous_tolerance=0.0;
   verbose=IsStringTrue(GetImageArtifact(image,"debug"));
   number_threads=(size_t) GetMagickResourceLimit(ThreadResource);
   image_view=AcquireAuthenticCacheView(image,exception);
@@ -2626,7 +2635,7 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
           Assign each pixel whose mean has the least squared color distance.
         */
         j=0;
-        min_distance=KmeansDistance(image,q,image->colormap+0);
+        min_distance=KmeansMetric(image,q,image->colormap+0);
         for (i=1; i < (ssize_t) image->colors; i++)
         {
           double
@@ -2634,7 +2643,7 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
 
           if (min_distance <= MagickEpsilon)
             break;
-          distance=KmeansDistance(image,q,image->colormap+i);
+          distance=KmeansMetric(image,q,image->colormap+i);
           if (distance < min_distance)
             {
               min_distance=distance;
@@ -2701,10 +2710,10 @@ MagickExport MagickBooleanType KmeansImage(Image *image,
     if (verbose != MagickFalse)
       (void) FormatLocaleFile(stderr,"distortion[%.20g]: %*g %*g\n",(double) n,
         GetMagickPrecision(),distortion,GetMagickPrecision(),
-        fabs(distortion-previous_distortion));
-    if (fabs(distortion-previous_distortion) <= max_distortion)
+        fabs(distortion-previous_tolerance));
+    if (fabs(distortion-previous_tolerance) <= tolerance)
       break;
-    previous_distortion=distortion;
+    previous_tolerance=distortion;
     if (image->progress_monitor != (MagickProgressMonitor) NULL)
       {
         MagickBooleanType
