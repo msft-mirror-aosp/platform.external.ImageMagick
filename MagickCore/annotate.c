@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1316,7 +1316,8 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
 
   FT_UInt
     first_glyph_id,
-    last_glyph_id;
+    last_glyph_id,
+    missing_glyph_id;
 
   FT_Vector
     origin;
@@ -1566,6 +1567,7 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
   grapheme=(GraphemeInfo *) NULL;
   length=ComplexTextLayout(image,draw_info,p,strlen(p),face,flags,&grapheme,
     exception);
+  missing_glyph_id=FT_Get_Char_Index(face,' ');
   code=0;
   for (i=0; i < (ssize_t) length; i++)
   {
@@ -1576,6 +1578,8 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
       Render UTF-8 sequence.
     */
     glyph.id=(FT_UInt) grapheme[i].index;
+    if (glyph.id == 0)
+      glyph.id=missing_glyph_id;
     if ((glyph.id != 0) && (last_glyph_id != 0))
       origin.x+=(FT_Pos) (64.0*draw_info->kerning);
     glyph.origin=origin;
