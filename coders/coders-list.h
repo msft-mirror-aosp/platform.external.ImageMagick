@@ -14,6 +14,11 @@
   limitations under the License.
 */
 
+#if defined(__ANDROID__)
+AddMagickCoder(DDS)
+AddMagickCoder(JPEG)
+AddMagickCoder(XC)
+#else
 AddMagickCoder(AAI)
 AddMagickCoder(ART)
 AddMagickCoder(AVS)
@@ -183,3 +188,4 @@ AddMagickCoder(XTRN)
 #endif
 AddMagickCoder(YCBCR)
 AddMagickCoder(YUV)
+#endif
