@@ -14,7 +14,11 @@
   limitations under the License.
 */
 
-#if 0
+#if defined(__ANDROID__)
+AddMagickCoder(DDS)
+AddMagickCoder(JPEG)
+AddMagickCoder(XC)
+#else
 AddMagickCoder(AAI)
 AddMagickCoder(ART)
 AddMagickCoder(AVS)
@@ -86,11 +90,9 @@ AddMagickCoder(JNX)
 #if defined(MAGICKCORE_JP2_DELEGATE) || defined(MAGICKCORE_LIBOPENJP2_DELEGATE)
   AddMagickCoder(JP2)
 #endif
-#endif
 #if defined(MAGICKCORE_JPEG_DELEGATE)
   AddMagickCoder(JPEG)
 #endif
-#if 0
 AddMagickCoder(JSON)
 #if defined(MAGICKCORE_JXL_DELEGATE)
   AddMagickCoder(JXL)
