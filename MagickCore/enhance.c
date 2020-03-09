@@ -504,7 +504,7 @@ static MagickBooleanType CLAHE(const RectangleInfo *clahe_info,
     number_bins*sizeof(*tiles));
   if (tile_cache == (MemoryInfo *) NULL)
     return(MagickFalse);
-  lut=AcquireQuantumMemory(NumberCLAHEGrays,sizeof(*lut));
+  lut=(unsigned short *) AcquireQuantumMemory(NumberCLAHEGrays,sizeof(*lut));
   if (lut == (unsigned short *) NULL)
     {
       tile_cache=RelinquishVirtualMemory(tile_cache);
@@ -609,7 +609,7 @@ static MagickBooleanType CLAHE(const RectangleInfo *clahe_info,
     }
     p+=clahe_info->width*(tile.height-1);
   }
-  lut=RelinquishMagickMemory(lut);
+  lut=(unsigned short *) RelinquishMagickMemory(lut);
   tile_cache=RelinquishVirtualMemory(tile_cache);
   return(MagickTrue);
 }
@@ -4154,7 +4154,7 @@ MagickExport MagickBooleanType NormalizeImage(Image *image,
   constant" set to a.
 
   The first version, based on the hyperbolic tangent tanh, when combined with
-  the scaling step, is an exact arithmetic clone of the the sigmoid function
+  the scaling step, is an exact arithmetic clone of the sigmoid function
   based on the logistic curve. The equivalence is based on the identity
 
     1/(1+exp(-t)) = (1+tanh(t/2))/2
