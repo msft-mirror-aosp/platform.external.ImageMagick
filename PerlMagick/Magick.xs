@@ -440,7 +440,7 @@ static struct
       {"sigma", RealReference}, {"x", IntegerReference},
       {"y", IntegerReference} } },
     { "Identify", { {"file", FileReference}, {"features", StringReference},
-      {"unique", MagickBooleanOptions} } },
+      {"moments", MagickBooleanOptions}, {"unique", MagickBooleanOptions} } },
     { "SepiaTone", { {"threshold", RealReference} } },
     { "SigmoidalContrast", { {"geometry", StringReference},
       {"contrast", RealReference}, {"mid-point", RealReference},
@@ -577,6 +577,8 @@ static struct
       {"clip-limit", RealReference} } },
     { "Kmeans", { {"geometry", StringReference}, {"colors", IntegerReference},
       {"iterations", IntegerReference}, {"tolerance", RealReference} } },
+    { "ColorThreshold", { {"start-color", StringReference},
+      {"stop-color", StringReference}, {"channel", MagickChannelOptions} } },
   };
 
 static SplayTreeInfo
@@ -1920,6 +1922,11 @@ static void SetAttribute(pTHX_ struct PackageInfo *info,Image *image,
               (void) ParseGeometry(SvPV(sval,na),&geometry_info);
               info->image_info->pointsize=geometry_info.rho;
             }
+          break;
+        }
+      if (LocaleCompare(attribute,"precision") == 0)
+        {
+          (void) SetMagickPrecision(SvIV(sval));
           break;
         }
       if (info)
@@ -5557,6 +5564,12 @@ Get(ref,...)
               PUSHs(s ? sv_2mortal(s) : &sv_undef);
               continue;
             }
+          if (LocaleCompare(attribute,"precision") == 0)
+            {
+              s=newSViv((ssize_t) GetMagickPrecision());
+              PUSHs(s ? sv_2mortal(s) : &sv_undef);
+              continue;
+            }
           ThrowPerlException(exception,OptionError,"UnrecognizedAttribute",
             attribute);
           break;
@@ -7651,6 +7664,8 @@ Mogrify(ref,...)
     CLAHEImage         = 298
     Kmeans             = 299
     KMeansImage        = 300
+    ColorThreshold     = 301
+    ColorThresholdImage= 302
     MogrifyRegion      = 666
   PPCODE:
   {
@@ -10102,9 +10117,6 @@ Mogrify(ref,...)
         {
           if (attribute_flag[0] == 0)
             argument_list[0].file_reference=(FILE *) NULL;
-          if (attribute_flag[1] != 0)
-            (void) SetImageArtifact(image,"identify:features",
-              argument_list[1].string_reference);
           (void) IdentifyImage(image,argument_list[0].file_reference,
             MagickTrue,exception);
           break;
@@ -10116,7 +10128,7 @@ Mogrify(ref,...)
           if (attribute_flag[2] != 0)
             channel=(ChannelType) argument_list[2].integer_reference;
           channel_mask=SetImageChannelMask(image,channel);
-          BlackThresholdImage(image,argument_list[0].string_reference,
+          (void) BlackThresholdImage(image,argument_list[0].string_reference,
             exception);
           (void) SetImageChannelMask(image,channel_mask);
           break;
@@ -10259,6 +10271,9 @@ Mogrify(ref,...)
               argument_list[1].string_reference);
           if ((attribute_flag[2] != 0) &&
               (argument_list[2].integer_reference != 0))
+            (void) SetImageArtifact(image,"identify:moments","true");
+          if ((attribute_flag[3] != 0) &&
+              (argument_list[3].integer_reference != 0))
             (void) SetImageArtifact(image,"identify:unique","true");
           (void) IdentifyImage(image,argument_list[0].file_reference,
             MagickTrue,exception);
@@ -11524,6 +11539,27 @@ Mogrify(ref,...)
             geometry_info.xi=(ChannelType) argument_list[3].real_reference;
           (void) KmeansImage(image,geometry_info.rho,geometry_info.sigma,
             geometry_info.xi,exception);
+          break;
+        }
+        case 151:  /* ColorThreshold */
+        {
+          PixelInfo
+            start_color,
+            stop_color;
+
+          (void) QueryColorCompliance("black",AllCompliance,&start_color,
+            exception);
+          (void) QueryColorCompliance("white",AllCompliance,&stop_color,
+            exception);
+          if (attribute_flag[0] != 0)
+            (void) QueryColorCompliance(argument_list[0].string_reference,
+              AllCompliance,&start_color,exception);
+          if (attribute_flag[1] != 0)
+            (void) QueryColorCompliance(argument_list[1].string_reference,
+              AllCompliance,&stop_color,exception);
+          channel_mask=SetImageChannelMask(image,channel);
+          (void) ColorThresholdImage(image,&start_color,&stop_color,exception);
+          (void) SetImageChannelMask(image,channel_mask);
           break;
         }
       }

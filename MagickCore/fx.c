@@ -180,9 +180,6 @@ struct _FxInfo
 MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
   ExceptionInfo *exception)
 {
-  char
-    fx_op[2];
-
   const Image
     *next;
 
@@ -191,6 +188,9 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
 
   register ssize_t
     i;
+
+  unsigned char
+    fx_op[2];
 
   fx_info=(FxInfo *) AcquireCriticalMemory(sizeof(*fx_info));
   (void) memset(fx_info,0,sizeof(*fx_info));
@@ -214,53 +214,52 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
   fx_info->random_info=AcquireRandomInfo();
   fx_info->expression=ConstantString(expression);
   fx_info->file=stderr;
-  (void) SubstituteString(&fx_info->expression," ","");  /* compact string */
   /*
     Convert compound to simple operators.
   */
   fx_op[1]='\0';
-  *fx_op=(char) BitwiseAndAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"&=",fx_op);
-  *fx_op=(char) BitwiseOrAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"|=",fx_op);
-  *fx_op=(char) LeftShiftAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"<<=",fx_op);
-  *fx_op=(char) RightShiftAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,">>=",fx_op);
-  *fx_op=(char) PowerAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"^=",fx_op);
-  *fx_op=(char) ModuloAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"%=",fx_op);
-  *fx_op=(char) PlusAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"+=",fx_op);
-  *fx_op=(char) SubtractAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"-=",fx_op);
-  *fx_op=(char) MultiplyAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"*=",fx_op);
-  *fx_op=(char) DivideAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"/=",fx_op);
-  *fx_op=(char) IncrementAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"++",fx_op);
-  *fx_op=(char) DecrementAssignmentOperator;
-  (void) SubstituteString(&fx_info->expression,"--",fx_op);
-  *fx_op=(char) LeftShiftOperator;
-  (void) SubstituteString(&fx_info->expression,"<<",fx_op);
-  *fx_op=(char) RightShiftOperator;
-  (void) SubstituteString(&fx_info->expression,">>",fx_op);
-  *fx_op=(char) LessThanEqualOperator;
-  (void) SubstituteString(&fx_info->expression,"<=",fx_op);
-  *fx_op=(char) GreaterThanEqualOperator;
-  (void) SubstituteString(&fx_info->expression,">=",fx_op);
-  *fx_op=(char) EqualOperator;
-  (void) SubstituteString(&fx_info->expression,"==",fx_op);
-  *fx_op=(char) NotEqualOperator;
-  (void) SubstituteString(&fx_info->expression,"!=",fx_op);
-  *fx_op=(char) LogicalAndOperator;
-  (void) SubstituteString(&fx_info->expression,"&&",fx_op);
-  *fx_op=(char) LogicalOrOperator;
-  (void) SubstituteString(&fx_info->expression,"||",fx_op);
-  *fx_op=(char) ExponentialNotation;
-  (void) SubstituteString(&fx_info->expression,"**",fx_op);
+  *fx_op=(unsigned char) BitwiseAndAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"&=",(char *) fx_op);
+  *fx_op=(unsigned char) BitwiseOrAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"|=",(char *) fx_op);
+  *fx_op=(unsigned char) LeftShiftAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"<<=",(char *) fx_op);
+  *fx_op=(unsigned char) RightShiftAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,">>=",(char *) fx_op);
+  *fx_op=(unsigned char) PowerAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"^=",(char *) fx_op);
+  *fx_op=(unsigned char) ModuloAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"%=",(char *) fx_op);
+  *fx_op=(unsigned char) PlusAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"+=",(char *) fx_op);
+  *fx_op=(unsigned char) SubtractAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"-=",(char *) fx_op);
+  *fx_op=(unsigned char) MultiplyAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"*=",(char *) fx_op);
+  *fx_op=(unsigned char) DivideAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"/=",(char *) fx_op);
+  *fx_op=(unsigned char) IncrementAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"++",(char *) fx_op);
+  *fx_op=(unsigned char) DecrementAssignmentOperator;
+  (void) SubstituteString(&fx_info->expression,"--",(char *) fx_op);
+  *fx_op=(unsigned char) LeftShiftOperator;
+  (void) SubstituteString(&fx_info->expression,"<<",(char *) fx_op);
+  *fx_op=(unsigned char) RightShiftOperator;
+  (void) SubstituteString(&fx_info->expression,">>",(char *) fx_op);
+  *fx_op=(unsigned char) LessThanEqualOperator;
+  (void) SubstituteString(&fx_info->expression,"<=",(char *) fx_op);
+  *fx_op=(unsigned char) GreaterThanEqualOperator;
+  (void) SubstituteString(&fx_info->expression,">=",(char *) fx_op);
+  *fx_op=(unsigned char) EqualOperator;
+  (void) SubstituteString(&fx_info->expression,"==",(char *) fx_op);
+  *fx_op=(unsigned char) NotEqualOperator;
+  (void) SubstituteString(&fx_info->expression,"!=",(char *) fx_op);
+  *fx_op=(unsigned char) LogicalAndOperator;
+  (void) SubstituteString(&fx_info->expression,"&&",(char *) fx_op);
+  *fx_op=(unsigned char) LogicalOrOperator;
+  (void) SubstituteString(&fx_info->expression,"||",(char *) fx_op);
+  *fx_op=(unsigned char) ExponentialNotation;
+  (void) SubstituteString(&fx_info->expression,"**",(char *) fx_op);
   /*
     Force right-to-left associativity for unary negation.
   */
@@ -268,6 +267,7 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
   (void) SubstituteString(&fx_info->expression,"^-1.0*","^-");
   (void) SubstituteString(&fx_info->expression,"E-1.0*","E-");
   (void) SubstituteString(&fx_info->expression,"e-1.0*","e-");
+  (void) SubstituteString(&fx_info->expression," ","");  /* compact string */
   return(fx_info);
 }
 
@@ -1149,6 +1149,8 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
   value=GetFxSymbolValue(fx_info,symbol);
   if (value != (const double *) NULL)
     return(*value);
+  (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+    "UndefinedVariable","`%s'",symbol);
   (void) SetFxSymbolValue(fx_info,symbol,0.0);
   return(0.0);
 }
@@ -1437,6 +1439,26 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
 { \
   subexpression=DestroyString(subexpression); \
   return(value); \
+}
+#define FxParseConditional(subexpression,sentinal,p,q) \
+{ \
+  p=subexpression; \
+  for (q=(char *) p; (*q != (sentinal)) && (*q != '\0'); q++) \
+    if (*q == '(') \
+      { \
+        for (q++; (*q != ')') && (*q != '\0'); q++); \
+        if (*q == '\0') \
+          break; \
+      } \
+  if (*q == '\0') \
+    { \
+      (void) ThrowMagickException(exception,GetMagickModule(), \
+        OptionError,"UnableToParseExpression","`%s'",subexpression); \
+      FxReturn(0.0); \
+    } \
+  if (strlen(q) == 1) \
+    *(q+1)='\0'; \
+  *q='\0'; \
 }
 
   char
@@ -1865,18 +1887,8 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
         }
         case '?':
         {
-          (void) CopyMagickString(subexpression,++p,MagickPathExtent);
-          p=subexpression;
-          for (q=(char *) p; (*q != ':') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          *q='\0';
+          (void) CopyMagickString(subexpression,++p,MagickPathExtent-1);
+          FxParseConditional(subexpression,':',p,q);
           if (fabs(alpha) >= MagickEpsilon)
             gamma=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,beta,
               exception);
@@ -2151,20 +2163,12 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
           /*
             Parse do(expression,condition test).
           */
-          length=CopyMagickString(subexpression,expression+3,MagickPathExtent);
+          length=CopyMagickString(subexpression,expression+3,
+            MagickPathExtent-1);
           if (length != 0)
             subexpression[length-1]='\0';
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          for (*q='\0'; ; )
+          FxParseConditional(subexpression,',',p,q);
+          for (alpha=0.0; ; )
           {
             alpha=FxEvaluateSubexpression(fx_info,channel,x,y,q+1,depth+1,beta,
               exception);
@@ -2226,34 +2230,16 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
           /*
             Parse for(initialization, condition test, expression).
           */
-          length=CopyMagickString(subexpression,expression+4,MagickPathExtent);
+          length=CopyMagickString(subexpression,expression+4,
+            MagickPathExtent-1);
           if (length != 0)
             subexpression[length-1]='\0';
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          *q='\0';
+          FxParseConditional(subexpression,',',p,q);
           alpha=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,&sans,
             exception);
-          (void) CopyMagickString(subexpression,q+1,MagickPathExtent);
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          for (*q='\0'; ; )
+          (void) CopyMagickString(subexpression,q+1,MagickPathExtent-1);
+          FxParseConditional(subexpression,',',p,q);
+          for (alpha=0.0; ; )
           {
             gamma=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,&sans,
               exception);
@@ -2323,34 +2309,15 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
           size_t
             length;
 
-          length=CopyMagickString(subexpression,expression+3,MagickPathExtent);
+          length=CopyMagickString(subexpression,expression+3,
+            MagickPathExtent-1);
           if (length != 0)
             subexpression[length-1]='\0';
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          *q='\0';
+          FxParseConditional(subexpression,',',p,q);
           alpha=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,&sans,
             exception);
-          (void) CopyMagickString(subexpression,q+1,MagickPathExtent);
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          *q='\0';
+          (void) CopyMagickString(subexpression,q+1,MagickPathExtent-1);
+          FxParseConditional(subexpression,',',p,q);
           if (fabs(alpha) >= MagickEpsilon)
             alpha=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,beta,
               exception);
@@ -2641,27 +2608,19 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
           /*
             Parse while(condition test, expression).
           */
-          length=CopyMagickString(subexpression,expression+6,MagickPathExtent);
+          length=CopyMagickString(subexpression,expression+6,
+            MagickPathExtent-1);
           if (length != 0)
             subexpression[length-1]='\0';
-          p=subexpression;
-          for (q=(char *) p; (*q != ',') && (*q != '\0'); q++)
-            if (*q == '(')
-              for ( ; (*q != ')') && (*q != '\0'); q++);
-          if (*q == '\0')
-            {
-              (void) ThrowMagickException(exception,GetMagickModule(),
-                OptionError,"UnableToParseExpression","`%s'",subexpression);
-              FxReturn(0.0);
-            }
-          for (*q='\0'; ; )
+          FxParseConditional(subexpression,',',p,q);
+          for (alpha=0.0; ; )
           {
             gamma=FxEvaluateSubexpression(fx_info,channel,x,y,p,depth+1,&sans,
               exception);
             if (fabs(gamma) < MagickEpsilon)
               break;
-            alpha=FxEvaluateSubexpression(fx_info,channel,x,y,q+1,depth+1,beta,
-              exception);
+            alpha=FxEvaluateSubexpression(fx_info,channel,x,y,q+1,depth+1,
+              beta,exception);
           }
           FxReturn(alpha);
         }
