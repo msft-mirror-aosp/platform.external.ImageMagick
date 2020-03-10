@@ -28,6 +28,7 @@ cc_library_static {
         "-Wno-for-loop-analysis",
         "-Wno-unused-function",
         "-Wno-unused-parameter",
+        "-Wno-unused-variable",
     ],
 
     header_libs: ["Magick_headers"],
