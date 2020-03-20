@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -60,6 +60,7 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/pixel-accessor.h"
+#include "MagickCore/property.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/resize.h"
 #include "MagickCore/statistic.h"
@@ -594,8 +595,8 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
       crop_image=CloneImage(image,1,1,MagickTrue,exception);
       if (crop_image == (Image *) NULL)
         return((Image *) NULL);
+      crop_image->background_color.alpha_trait=BlendPixelTrait;
       crop_image->background_color.alpha=(MagickRealType) TransparentAlpha;
-      crop_image->alpha_trait=BlendPixelTrait;
       (void) SetImageBackgroundColor(crop_image,exception);
       crop_image->page=bounding_box;
       crop_image->page.x=(-1);
@@ -765,14 +766,23 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 %
 */
 
-static inline double MagickRound(double x)
+static inline double ConstrainPixelOffset(double x)
+{
+  if (x < (double) -(SSIZE_MAX-512))
+    return((double) -(SSIZE_MAX-512));
+  if (x > (double) (SSIZE_MAX-512))
+    return((double) (SSIZE_MAX-512));
+  return(x);
+}
+
+static inline ssize_t PixelRoundOffset(double x)
 {
   /*
     Round the fraction to nearest integer.
   */
   if ((x-floor(x)) < (ceil(x)-x))
-    return(floor(x));
-  return(ceil(x));
+    return((ssize_t) floor(ConstrainPixelOffset(x)));
+  return((ssize_t) ceil(ConstrainPixelOffset(x)));
 }
 
 MagickExport Image *CropImageToTiles(const Image *image,
@@ -837,18 +847,18 @@ MagickExport Image *CropImageToTiles(const Image *image,
       {
         if ((flags & AspectValue) == 0)
           {
-            crop.y=(ssize_t) MagickRound((double) (offset.y-
+            crop.y=PixelRoundOffset((double) (offset.y-
               (geometry.y > 0 ? 0 : geometry.y)));
             offset.y+=delta.y;   /* increment now to find width */
-            crop.height=(size_t) MagickRound((double) (offset.y+
+            crop.height=(size_t) PixelRoundOffset((double) (offset.y+
               (geometry.y < 0 ? 0 : geometry.y)));
           }
         else
           {
-            crop.y=(ssize_t) MagickRound((double) (offset.y-
+            crop.y=PixelRoundOffset((double) (offset.y-
               (geometry.y > 0 ? geometry.y : 0)));
             offset.y+=delta.y;  /* increment now to find width */
-            crop.height=(size_t) MagickRound((double)
+            crop.height=(size_t) PixelRoundOffset((double)
               (offset.y+(geometry.y < -1 ? geometry.y : 0)));
           }
         crop.height-=crop.y;
@@ -857,18 +867,18 @@ MagickExport Image *CropImageToTiles(const Image *image,
         {
           if ((flags & AspectValue) == 0)
             {
-              crop.x=(ssize_t) MagickRound((double) (offset.x-
+              crop.x=PixelRoundOffset((double) (offset.x-
                 (geometry.x > 0 ? 0 : geometry.x)));
               offset.x+=delta.x;  /* increment now to find height */
-              crop.width=(size_t) MagickRound((double) (offset.x+
+              crop.width=(size_t) PixelRoundOffset((double) (offset.x+
                 (geometry.x < 0 ? 0 : geometry.x)));
             }
           else
             {
-              crop.x=(ssize_t) MagickRound((double) (offset.x-
+              crop.x=PixelRoundOffset((double) (offset.x-
                 (geometry.x > 0 ? geometry.x : 0)));
               offset.x+=delta.x;  /* increment now to find height */
-              crop.width=(size_t) MagickRound((double) (offset.x+
+              crop.width=(size_t) PixelRoundOffset((double) (offset.x+
                 (geometry.x < 0 ? geometry.x : 0)));
             }
           crop.width-=crop.x;
@@ -2392,6 +2402,9 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
 */
 MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
 {
+  char
+    bounding_box[MagickPathExtent];
+
   RectangleInfo
     geometry;
 
@@ -2408,8 +2421,8 @@ MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
       crop_image=CloneImage(image,1,1,MagickTrue,exception);
       if (crop_image == (Image *) NULL)
         return((Image *) NULL);
+      crop_image->background_color.alpha_trait=BlendPixelTrait;
       crop_image->background_color.alpha=(MagickRealType) TransparentAlpha;
-      crop_image->alpha_trait=BlendPixelTrait;
       (void) SetImageBackgroundColor(crop_image,exception);
       crop_image->page=image->page;
       crop_image->page.x=(-1);

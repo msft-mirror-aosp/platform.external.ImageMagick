@@ -23,7 +23,7 @@
 %                                 August 2003                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1778,6 +1778,52 @@ WandExport MagickBooleanType MagickColorMatrixImage(MagickWand *wand,
     return(MagickFalse);
   ReplaceImageInList(&wand->images,color_image);
   return(MagickTrue);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   M a g i c k C o l o r T h r e s h o l d I m a g e                         %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  MagickColorThresholdImage() forces all pixels in the color range to white
+%  otherwise black.
+%
+%  The format of the MagickWhiteThresholdImage method is:
+%
+%      MagickBooleanType MagickWhiteThresholdImage(MagickWand *wand,
+%        const PixelWand *start_color,const PixelWand *stop_color)
+%
+%  A description of each parameter follows:
+%
+%    o wand: the magick wand.
+%
+%    o start-color: the start color pixel wand.
+%
+%    o stop-color: the stop color pixel wand.
+%
+*/
+WandExport MagickBooleanType MagickColorThresholdImage(MagickWand *wand,
+  const PixelWand *start_color,const PixelWand *stop_color)
+{
+  PixelInfo
+    start,
+    stop;
+
+  assert(wand != (MagickWand *) NULL);
+  assert(wand->signature == MagickWandSignature);
+  if (wand->debug != MagickFalse)
+    (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
+  if (wand->images == (Image *) NULL)
+    ThrowWandException(WandError,"ContainsNoImages",wand->name);
+  PixelGetMagickColor(start_color,&start);
+  PixelGetMagickColor(stop_color,&stop);
+  return(ColorThresholdImage(wand->images,&start,&stop,wand->exception));
 }
 
 /*

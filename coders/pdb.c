@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1006,7 +1006,7 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   (void) WriteBlobMSBShort(image,(unsigned short) pdb_image.height);
   (void) WriteBlob(image,(size_t) (q-runlength),runlength);
   runlength=(unsigned char *) RelinquishMagickMemory(runlength);
-  if (pdb_info.number_records > 1)
+  if (comment != (const char *) NULL)
     (void) WriteBlobString(image,comment);
   (void) CloseBlob(image);
   return(MagickTrue);

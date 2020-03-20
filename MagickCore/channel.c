@@ -17,7 +17,7 @@
 %                               December 2003                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -613,7 +613,7 @@ MagickExport Image *CombineImages(const Image *image,
       {
         if (x < (ssize_t) next->columns)
           {
-            q[i]=GetPixelGray(next,p);
+            q[i]=GetPixelIntensity(next,p);
             p+=GetPixelChannels(next);
           }
         q+=GetPixelChannels(combine_image);
@@ -1259,9 +1259,14 @@ MagickExport MagickBooleanType SetImageAlphaChannel(Image *image,
     }
     case ShapeAlphaChannel:
     {
+      PixelInfo
+        background;
+
       /*
         Remove transparency.
       */
+      ConformPixelInfo(image,&image->background_color,&background,exception);
+      background.alpha_trait=BlendPixelTrait;
       image->alpha_trait=BlendPixelTrait;
       status=SetImageStorageClass(image,DirectClass,exception);
       if (status == MagickFalse)
@@ -1274,7 +1279,7 @@ MagickExport MagickBooleanType SetImageAlphaChannel(Image *image,
       for (y=0; y < (ssize_t) image->rows; y++)
       {
         PixelInfo
-          background;
+          pixel;
 
         register Quantum
           *magick_restrict q;
@@ -1291,12 +1296,11 @@ MagickExport MagickBooleanType SetImageAlphaChannel(Image *image,
             status=MagickFalse;
             continue;
           }
-        ConformPixelInfo(image,&image->background_color,&background,exception);
-        background.alpha_trait=BlendPixelTrait;
+        pixel=background;
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          background.alpha=GetPixelIntensity(image,q);
-          SetPixelViaPixelInfo(image,&background,q);
+          pixel.alpha=GetPixelIntensity(image,q);
+          SetPixelViaPixelInfo(image,&pixel,q);
           q+=GetPixelChannels(image);
         }
         if (SyncCacheViewAuthenticPixels(image_view,exception) == MagickFalse)

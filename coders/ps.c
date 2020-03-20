@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -73,6 +73,7 @@
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
+#include "MagickCore/string-private.h"
 #include "MagickCore/timer-private.h"
 #include "MagickCore/token.h"
 #include "MagickCore/transform.h"
@@ -206,7 +207,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
 {
 #define BeginDocument  "BeginDocument:"
 #define EndDocument  "EndDocument:"
-#define PostscriptLevel  "!PS-"
+#define PostscriptLevel  "PS-"
 #define ImageData  "ImageData:"
 #define DocumentProcessColors  "DocumentProcessColors:"
 #define CMYKCustomColor  "CMYKCustomColor:"
@@ -228,6 +229,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
     c;
 
   MagickBooleanType
+    new_line,
     skip;
 
   MagickByteBuffer
@@ -289,6 +291,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
   *version='\0';
   spotcolor=0;
   skip=MagickFalse;
+  new_line=MagickTrue;
   (void) memset(&buffer,0,sizeof(buffer));
   buffer.image=image;
   for (c=ReadMagickByteBuffer(&buffer); c != EOF; c=ReadMagickByteBuffer(&buffer))
@@ -302,8 +305,23 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
       }
       case '\n':
       case '\r':
+        new_line=MagickTrue;
+        continue;
       case '%':
-        break;
+      {
+        if (new_line == MagickFalse)
+          continue;
+        new_line=MagickFalse;
+        c=ReadMagickByteBuffer(&buffer);
+        if ((c == '%') || (c == '!'))
+          break;
+        if (c == 'B')
+          {
+            buffer.offset--;
+            break;
+          }
+        continue;
+      }
       default:
         continue;
     }
@@ -340,9 +358,9 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
     if (CompareMagickByteBuffer(&buffer,DocumentProcessColors,length) != MagickFalse)
       {
         p=GetMagickByteBufferDatum(&buffer);
-        if ((GlobExpression(p,"*Cyan*",MagickTrue) != MagickFalse) ||
-            (GlobExpression(p,"*Magenta*",MagickTrue) != MagickFalse) ||
-            (GlobExpression(p,"*Yellow*",MagickTrue) != MagickFalse))
+        if ((StringLocateSubstring(p,"Cyan") != (char *) NULL) ||
+            (StringLocateSubstring(p,"Magenta") != (char *) NULL) ||
+            (StringLocateSubstring(p,"Yellow") != (char *) NULL))
           ps_info->cmyk=MagickTrue;
       }
     if (CompareMagickByteBuffer(&buffer,CMYKCustomColor,strlen(CMYKCustomColor)) != MagickFalse)
@@ -390,18 +408,21 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
         /*
           Read ICC profile.
         */
-        ps_info->icc_profile=AcquireStringInfo(MagickPathExtent);
-        datum=GetStringInfoDatum(ps_info->icc_profile);
-        for (i=0; (c=ProfileInteger(&buffer,hex_digits)) != EOF; i++)
-        {
-          if (i >= (ssize_t) GetStringInfoLength(ps_info->icc_profile))
+        if (SkipMagickByteBufferUntil(&buffer,'\n') != MagickFalse)
+          {
+            ps_info->icc_profile=AcquireStringInfo(MagickPathExtent);
+            datum=GetStringInfoDatum(ps_info->icc_profile);
+            for (i=0; (c=ProfileInteger(&buffer,hex_digits)) != EOF; i++)
             {
-              SetStringInfoLength(ps_info->icc_profile,(size_t) i << 1);
-              datum=GetStringInfoDatum(ps_info->icc_profile);
+              if (i >= (ssize_t) GetStringInfoLength(ps_info->icc_profile))
+                {
+                  SetStringInfoLength(ps_info->icc_profile,(size_t) i << 1);
+                  datum=GetStringInfoDatum(ps_info->icc_profile);
+                }
+              datum[i]=(unsigned char) c;
             }
-          datum[i]=(unsigned char) c;
-        }
-        SetStringInfoLength(ps_info->icc_profile,(size_t) i+1);
+            SetStringInfoLength(ps_info->icc_profile,(size_t) i+1);
+          }
         continue;
       }
     if ((ps_info->photoshop_profile == (StringInfo *) NULL) &&
@@ -424,17 +445,20 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
         if ((MagickSizeType) extent > GetBlobSize(image))
           continue;
         length=(size_t) extent;
-        ps_info->photoshop_profile=AcquireStringInfo(length+1U);
-        q=GetStringInfoDatum(ps_info->photoshop_profile);
-        while (extent > 0)
-        {
-          c=ProfileInteger(&buffer,hex_digits);
-          if (c == EOF)
-            break;
-          *q++=(unsigned char) c;
-          extent-=MagickMin(extent,2);
-        }
-        SetStringInfoLength(ps_info->photoshop_profile,length);
+        if (SkipMagickByteBufferUntil(&buffer,'\n') != MagickFalse)
+          {
+            ps_info->photoshop_profile=AcquireStringInfo(length+1U);
+            q=GetStringInfoDatum(ps_info->photoshop_profile);
+            while (extent > 0)
+            {
+              c=ProfileInteger(&buffer,hex_digits);
+              if (c == EOF)
+                break;
+              *q++=(unsigned char) c;
+              extent-=MagickMin(extent,2);
+            }
+            SetStringInfoLength(ps_info->photoshop_profile,length);
+          }
         continue;
       }
     if (image_info->page != (char *) NULL)
@@ -610,8 +634,10 @@ static Image *ReadPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (image_info->page != (char *) NULL)
     (void) ParseAbsoluteGeometry(image_info->page,&page);
   resolution=image->resolution;
-  page.width=(size_t) ceil((double) (page.width*resolution.x/delta.x)-0.5);
-  page.height=(size_t) ceil((double) (page.height*resolution.y/delta.y)-0.5);
+  page.width=(size_t) ((ssize_t) ceil((double) (page.width*resolution.x/
+    delta.x)-0.5));
+  page.height=(size_t) ((ssize_t) ceil((double) (page.height*resolution.y/
+    delta.y)-0.5));
   /*
     Determine page geometry from the Postscript bounding box.
   */
@@ -627,10 +653,10 @@ static Image *ReadPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
         info.bounds.x2-info.bounds.x1,info.bounds.y2-info.bounds.y1,
         info.bounds.x1,info.bounds.y1);
       (void) SetImageProperty(image,"ps:HiResBoundingBox",geometry,exception);
-      page.width=(size_t) ceil((double) ((info.bounds.x2-info.bounds.x1)*
-        resolution.x/delta.x)-0.5);
-      page.height=(size_t) ceil((double) ((info.bounds.y2-info.bounds.y1)*
-        resolution.y/delta.y)-0.5);
+      page.width=(size_t) ((ssize_t) ceil((double) ((info.bounds.x2-
+        info.bounds.x1)*resolution.x/delta.x)-0.5));
+      page.height=(size_t) ((ssize_t) ceil((double) ((info.bounds.y2-
+        info.bounds.y1)*resolution.y/delta.y)-0.5));
     }
   fitPage=MagickFalse;
   option=GetImageOption(image_info,"eps:fit-page");
@@ -650,10 +676,10 @@ static Image *ReadPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
           image=DestroyImage(image);
           return((Image *) NULL);
         }
-      page.width=(size_t) ceil((double) (page.width*image->resolution.x/delta.x)
-        -0.5);
-      page.height=(size_t) ceil((double) (page.height*image->resolution.y/
-        delta.y) -0.5);
+      page.width=(size_t) ((ssize_t) ceil((double) (page.width*
+        image->resolution.x/delta.x)-0.5));
+      page.height=(size_t) ((ssize_t) ceil((double) (page.height*
+        image->resolution.y/delta.y) -0.5));
       page_geometry=DestroyString(page_geometry);
       fitPage=MagickTrue;
     }

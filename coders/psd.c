@@ -20,7 +20,7 @@
 %                                December 2013                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -931,18 +931,21 @@ static inline void SetPSDPixel(Image *image,const size_t channels,
       PixelInfo
         *color;
 
+      Quantum
+        index;
+
+      index=pixel;
+      if (packet_size == 1)
+        index=(Quantum) ScaleQuantumToChar(index);
+      index=(Quantum) ConstrainColormapIndex(image,(ssize_t) index,
+        exception);
+
       if (type == 0)
-        {
-          if (packet_size == 1)
-            SetPixelIndex(image,ScaleQuantumToChar(pixel),q);
-          else
-            SetPixelIndex(image,ScaleQuantumToShort(pixel),q);
-        }
-      color=image->colormap+(ssize_t) ConstrainColormapIndex(image,
-        (ssize_t) GetPixelIndex(image,q),exception);
+        SetPixelIndex(image,index,q);
       if ((type == 0) && (channels > 1))
         return;
-      else
+      color=image->colormap+(ssize_t) GetPixelIndex(image,q);
+      if (type != 0)
         color->alpha=(MagickRealType) pixel;
       SetPixelViaPixelInfo(image,color,q);
       return;
@@ -1569,6 +1572,8 @@ static MagickBooleanType CheckPSDChannels(const PSDInfo *psd_info,
       type;
 
     type=layer_info->channel_info[i].type;
+    if ((i == 0) && (psd_info->mode == IndexedMode) && (type != 0))
+      return(MagickFalse);
     if (type == -1)
       {
         channel_type|=AlphaChannel;
@@ -1644,6 +1649,18 @@ static inline MagickBooleanType PSDSkipImage(const PSDInfo *psd_info,
   return(MagickFalse);
 }
 
+static void CheckMergedImageAlpha(const PSDInfo *psd_info,Image *image)
+{
+  /*
+    The number of layers cannot be used to determine if the merged image
+    contains an alpha channel. So we enable it when we think we should.
+  */
+  if (((psd_info->mode == GrayscaleMode) && (psd_info->channels > 2)) ||
+      ((psd_info->mode == RGBMode) && (psd_info->channels > 3)) ||
+      ((psd_info->mode == CMYKMode) && (psd_info->channels > 4)))
+    image->alpha_trait=BlendPixelTrait;
+}
+
 static MagickBooleanType ReadPSDLayersInternal(Image *image,
   const ImageInfo *image_info,const PSDInfo *psd_info,
   const MagickBooleanType skip_layers,ExceptionInfo *exception)
@@ -1680,7 +1697,10 @@ static MagickBooleanType ReadPSDLayersInternal(Image *image,
       if (count == 4)
         ReversePSDString(image,type,(size_t) count);
       if ((count != 4) || (LocaleNCompare(type,"8BIM",4) != 0))
-        return(MagickTrue);
+        {
+          CheckMergedImageAlpha(psd_info,image);
+          return(MagickTrue);
+        }
       else
         {
           count=ReadBlob(image,4,(unsigned char *) type);
@@ -1690,7 +1710,10 @@ static MagickBooleanType ReadPSDLayersInternal(Image *image,
               (LocaleNCompare(type,"Lr32",4) == 0)))
             size=GetPSDSize(psd_info,image);
           else
-            return(MagickTrue);
+            {
+              CheckMergedImageAlpha(psd_info,image);
+              return(MagickTrue);
+            }
         }
     }
   if (size == 0)
@@ -2224,8 +2247,8 @@ static Image *ReadPSDImage(const ImageInfo *image_info,ExceptionInfo *exception)
       {
         if (psd_info.depth != 32)
           {
-            status=AcquireImageColormap(image,(size_t) (psd_info.depth < 16 ?
-              256 : 65536),exception);
+            status=AcquireImageColormap(image,MagickMin((size_t)
+              (psd_info.depth < 16 ? 256 : 65536), MaxColormapSize),exception);
             if (status == MagickFalse)
               ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
             if (image->debug != MagickFalse)

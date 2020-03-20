@@ -18,7 +18,7 @@
 %                             November 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -61,11 +61,11 @@
 #include "MagickCore/magick.h"
 #include "MagickCore/magick-private.h"
 #include "MagickCore/memory_.h"
-#include "MagickCore/memory-private.h"
 #include "MagickCore/mime-private.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/module.h"
 #include "MagickCore/module-private.h"
+#include "MagickCore/mutex.h"
 #include "MagickCore/nt-base-private.h"
 #include "MagickCore/nt-feature.h"
 #include "MagickCore/opencl-private.h"
@@ -77,6 +77,7 @@
 #include "MagickCore/resource-private.h"
 #include "MagickCore/policy.h"
 #include "MagickCore/policy-private.h"
+#include "MagickCore/mutex.h"
 #include "MagickCore/semaphore.h"
 #include "MagickCore/semaphore-private.h"
 #include "MagickCore/signature-private.h"
@@ -103,9 +104,6 @@
 /*
   Define declarations.
 */
-#if !defined(MAGICKCORE_RETSIGTYPE)
-# define MAGICKCORE_RETSIGTYPE  void
-#endif
 #if !defined(SIG_DFL)
 # define SIG_DFL  ((SignalHandler *) 0)
 #endif
@@ -119,8 +117,7 @@
 /*
   Typedef declarations.
 */
-typedef MAGICKCORE_RETSIGTYPE
-  SignalHandler(int);
+typedef void SignalHandler(int);
 
 /*
   Global declarations.
@@ -135,7 +132,7 @@ static SplayTreeInfo
   *magick_list = (SplayTreeInfo *) NULL;
 
 static volatile MagickBooleanType
-  instantiate_magickcore = MagickFalse,
+  magickcore_instantiated = MagickFalse,
   magickcore_signal_in_progress = MagickFalse,
   magick_list_initialized = MagickFalse;
 
@@ -1093,6 +1090,7 @@ static void *DestroyMagickNode(void *magick_info)
 
 static MagickBooleanType IsMagickTreeInstantiated(ExceptionInfo *exception)
 {
+  (void) exception;
   if (magick_list_initialized == MagickFalse)
     {
       if (magick_semaphore == (SemaphoreInfo *) NULL)
@@ -1270,9 +1268,10 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  IsMagickCoreInstantiated() returns MagickTrue if the ImageMagick environment
-%  is currently instantiated:  MagickCoreGenesis() has been called but
-%  MagickDestroy() has not.
+%  IsMagickCoreInstantiated() returns MagickFalse if the ImageMagick
+%  environment has not been instantiated; the ImageMagick environment
+%  has been instantiated when MagickCoreGenesis() has been called but
+%  MagickDestroy() has not been called.
 %
 %  The format of the IsMagickCoreInstantiated method is:
 %
@@ -1281,7 +1280,7 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
 */
 MagickExport MagickBooleanType IsMagickCoreInstantiated(void)
 {
-  return(instantiate_magickcore);
+  return(magickcore_instantiated);
 }
 
 /*
@@ -1426,14 +1425,6 @@ static void MagickSignalHandler(int signal_number)
   if (signal_number == SIGFPE)
     abort();
 #endif
-#if defined(SIGXCPU)
-  if (signal_number == SIGXCPU)
-    abort();
-#endif
-#if defined(SIGXFSZ)
-  if (signal_number == SIGXFSZ)
-    abort();
-#endif
 #if defined(SIGSEGV)
   if (signal_number == SIGSEGV)
     abort();
@@ -1447,10 +1438,6 @@ static void MagickSignalHandler(int signal_number)
 #endif
 #if defined(SIGINT)
   if (signal_number == SIGINT)
-    _exit(signal_number);
-#endif
-#if defined(SIGBUS)
-  if (signal_number == SIGBUS)
     _exit(signal_number);
 #endif
 #if defined(MAGICKCORE_HAVE_RAISE)
@@ -1490,7 +1477,7 @@ MagickExport void MagickCoreGenesis(const char *path,
   */
   InitializeMagickMutex();
   LockMagickMutex();
-  if (instantiate_magickcore != MagickFalse)
+  if (magickcore_instantiated != MagickFalse)
     {
       UnlockMagickMutex();
       return;
@@ -1576,7 +1563,7 @@ MagickExport void MagickCoreGenesis(const char *path,
   */
   (void) ConfigureComponentGenesis();
   (void) PolicyComponentGenesis();
-#if defined(MAGICKCORE_ZERO_CONFIGURATION_SUPPORT)
+#if MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
   (void) ZeroConfigurationPolicy;
 #endif
   (void) CacheComponentGenesis();
@@ -1597,7 +1584,7 @@ MagickExport void MagickCoreGenesis(const char *path,
 #endif
   (void) RegistryComponentGenesis();
   (void) MonitorComponentGenesis();
-  instantiate_magickcore=MagickTrue;
+  magickcore_instantiated=MagickTrue;
   UnlockMagickMutex();
 }
 
@@ -1621,13 +1608,8 @@ MagickExport void MagickCoreGenesis(const char *path,
 */
 MagickExport void MagickCoreTerminus(void)
 {
-  InitializeMagickMutex();
-  LockMagickMutex();
-  if (instantiate_magickcore == MagickFalse)
-    {
-      UnlockMagickMutex();
-      return;
-    }
+  if (magickcore_instantiated == MagickFalse)
+    return;
   MonitorComponentTerminus();
   RegistryComponentTerminus();
 #if defined(MAGICKCORE_X11_DELEGATE)
@@ -1664,9 +1646,8 @@ MagickExport void MagickCoreTerminus(void)
   LocaleComponentTerminus();
   LogComponentTerminus();
   ExceptionComponentTerminus();
-  instantiate_magickcore=MagickFalse;
-  UnlockMagickMutex();
   SemaphoreComponentTerminus();
+  magickcore_instantiated=MagickFalse;
 }
 
 /*
@@ -1769,7 +1750,7 @@ MagickPrivate void ResetMagickPrecision(void)
 */
 MagickExport int SetMagickPrecision(const int precision)
 {
-#define MagickPrecision  6
+#define MagickPrecision  (4+MAGICKCORE_QUANTUM_DEPTH/8)
 
   (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (precision > 0)

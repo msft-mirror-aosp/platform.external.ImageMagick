@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
   
   You may not use this file except in compliance with the License.  You may
@@ -96,6 +96,22 @@ static inline void SkipMagickByteBuffer(MagickByteBuffer *buffer,
   CheckMagickByteBuffer(buffer,length);
   if ((ssize_t) (buffer->offset+length) < buffer->count)
     buffer->offset+=length;
+}
+
+static inline MagickBooleanType SkipMagickByteBufferUntil(
+  MagickByteBuffer *buffer,const int p)
+{
+  int
+    c;
+
+  c=ReadMagickByteBuffer(buffer);
+  while (c != p)
+  {
+    c=ReadMagickByteBuffer(buffer);
+    if (c == EOF)
+      return(MagickFalse);
+  }
+  return(MagickTrue);
 }
 
 #endif

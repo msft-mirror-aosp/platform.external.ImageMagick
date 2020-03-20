@@ -16,7 +16,7 @@
 %                               October 1998                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -218,13 +218,13 @@ MagickExport void ConformPixelInfo(Image *image,const PixelInfo *source,
   *destination=(*source);
   if (image->colorspace == CMYKColorspace)
     {
-      if (IssRGBCompatibleColorspace(destination->colorspace))
+      if (IssRGBCompatibleColorspace(destination->colorspace) != MagickFalse)
         ConvertRGBToCMYK(destination);
     }
   else
     if (destination->colorspace == CMYKColorspace)
       {
-        if (IssRGBCompatibleColorspace(image->colorspace))
+        if (IssRGBCompatibleColorspace(image->colorspace) != MagickFalse)
           ConvertCMYKToRGB(destination);
       }
   if ((IsPixelInfoGray(&image->background_color) == MagickFalse) &&
@@ -2393,7 +2393,8 @@ MagickExport MagickRealType GetPixelIntensity(
     }
     case Rec601LumaPixelIntensityMethod:
     {
-      if (image->colorspace == RGBColorspace)
+      if ((image->colorspace == RGBColorspace) ||
+          (image->colorspace == LinearGRAYColorspace))
         {
           red=EncodePixelGamma(red);
           green=EncodePixelGamma(green);
@@ -2404,7 +2405,8 @@ MagickExport MagickRealType GetPixelIntensity(
     }
     case Rec601LuminancePixelIntensityMethod:
     {
-      if (image->colorspace == sRGBColorspace)
+      if ((image->colorspace == sRGBColorspace) ||
+          (image->colorspace == GRAYColorspace))
         {
           red=DecodePixelGamma(red);
           green=DecodePixelGamma(green);
@@ -2416,7 +2418,8 @@ MagickExport MagickRealType GetPixelIntensity(
     case Rec709LumaPixelIntensityMethod:
     default:
     {
-      if (image->colorspace == RGBColorspace)
+      if ((image->colorspace == RGBColorspace) ||
+          (image->colorspace == LinearGRAYColorspace))
         {
           red=EncodePixelGamma(red);
           green=EncodePixelGamma(green);
@@ -2427,7 +2430,8 @@ MagickExport MagickRealType GetPixelIntensity(
     }
     case Rec709LuminancePixelIntensityMethod:
     {
-      if (image->colorspace == sRGBColorspace)
+      if ((image->colorspace == sRGBColorspace) ||
+          (image->colorspace == GRAYColorspace))
         {
           red=DecodePixelGamma(red);
           green=DecodePixelGamma(green);
@@ -4448,6 +4452,15 @@ static inline void CatromWeights(const double x,double (*weights)[4])
   (*weights)[2]=x-(*weights)[3]-gamma;
 }
 
+static inline double ConstrainPixelOffset(double x)
+{
+  if (x < (double) -(SSIZE_MAX-512))
+    return((double) -(SSIZE_MAX-512));
+  if (x > (double) (SSIZE_MAX-512))
+    return((double) (SSIZE_MAX-512));
+  return(x);
+}
+
 static inline void SplineWeights(const double x,double (*weights)[4])
 {
   double
@@ -4473,15 +4486,6 @@ static inline double MeshInterpolate(const PointInfo *delta,const double p,
 {
   return(delta->x*x+delta->y*y+(1.0-delta->x-delta->y)*p);
 }
-
-/*
-static inline ssize_t NearestNeighbor(const double x)
-{
-  if (x >= 0.0)
-    return((ssize_t) (x+0.5));
-  return((ssize_t) (x-0.5));
-}
-*/
 
 MagickExport MagickBooleanType InterpolatePixelChannel(
   const Image *magick_restrict image,const CacheView_ *image_view,
@@ -4518,8 +4522,8 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
   status=MagickTrue;
   *pixel=0.0;
   traits=GetPixelChannelTraits(image,channel);
-  x_offset=(ssize_t) floor(x);
-  y_offset=(ssize_t) floor(y);
+  x_offset=(ssize_t) floor(ConstrainPixelOffset(x));
+  y_offset=(ssize_t) floor(ConstrainPixelOffset(y));
   interpolate=method;
   if (interpolate == UndefinedInterpolatePixel)
     interpolate=image->interpolate;
@@ -4536,8 +4540,8 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
       if (interpolate == Average9InterpolatePixel)
         {
           count=3;
-          x_offset=(ssize_t) (floor(x+0.5)-1);
-          y_offset=(ssize_t) (floor(y+0.5)-1);
+          x_offset=(ssize_t) (floor(ConstrainPixelOffset(x)+0.5)-1);
+          y_offset=(ssize_t) (floor(ConstrainPixelOffset(y)+0.5)-1);
         }
       else
         if (interpolate == Average16InterpolatePixel)
@@ -4720,8 +4724,8 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
     }
     case NearestInterpolatePixel:
     {
-      x_offset=(ssize_t) floor(x+0.5);
-      y_offset=(ssize_t) floor(y+0.5);
+      x_offset=(ssize_t) floor(ConstrainPixelOffset(x)+0.5);
+      y_offset=(ssize_t) floor(ConstrainPixelOffset(y)+0.5);
       p=GetCacheViewVirtualPixels(image_view,x_offset,y_offset,1,1,exception);
       if (p == (const Quantum *) NULL)
         {
@@ -4938,8 +4942,8 @@ MagickExport MagickBooleanType InterpolatePixelChannels(
   assert(source->signature == MagickCoreSignature);
   assert(source_view != (CacheView *) NULL);
   status=MagickTrue;
-  x_offset=(ssize_t) floor(x);
-  y_offset=(ssize_t) floor(y);
+  x_offset=(ssize_t) floor(ConstrainPixelOffset(x));
+  y_offset=(ssize_t) floor(ConstrainPixelOffset(y));
   interpolate=method;
   if (interpolate == UndefinedInterpolatePixel)
     interpolate=source->interpolate;
@@ -4956,8 +4960,8 @@ MagickExport MagickBooleanType InterpolatePixelChannels(
       if (interpolate == Average9InterpolatePixel)
         {
           count=3;
-          x_offset=(ssize_t) (floor(x+0.5)-1);
-          y_offset=(ssize_t) (floor(y+0.5)-1);
+          x_offset=(ssize_t) (floor(ConstrainPixelOffset(x)+0.5)-1);
+          y_offset=(ssize_t) (floor(ConstrainPixelOffset(y)+0.5)-1);
         }
       else
         if (interpolate == Average16InterpolatePixel)
@@ -5221,8 +5225,8 @@ MagickExport MagickBooleanType InterpolatePixelChannels(
     }
     case NearestInterpolatePixel:
     {
-      x_offset=(ssize_t) floor(x+0.5);
-      y_offset=(ssize_t) floor(y+0.5);
+      x_offset=(ssize_t) floor(ConstrainPixelOffset(x)+0.5);
+      y_offset=(ssize_t) floor(ConstrainPixelOffset(y)+0.5);
       p=GetCacheViewVirtualPixels(source_view,x_offset,y_offset,1,1,exception);
       if (p == (const Quantum *) NULL)
         {
@@ -5505,8 +5509,8 @@ MagickExport MagickBooleanType InterpolatePixelInfo(const Image *image,
   assert(image->signature == MagickCoreSignature);
   assert(image_view != (CacheView *) NULL);
   status=MagickTrue;
-  x_offset=(ssize_t) floor(x);
-  y_offset=(ssize_t) floor(y);
+  x_offset=(ssize_t) floor(ConstrainPixelOffset(x));
+  y_offset=(ssize_t) floor(ConstrainPixelOffset(y));
   interpolate=method;
   if (interpolate == UndefinedInterpolatePixel)
     interpolate=image->interpolate;
@@ -5525,8 +5529,8 @@ MagickExport MagickBooleanType InterpolatePixelInfo(const Image *image,
       if (interpolate == Average9InterpolatePixel)
         {
           count=3;
-          x_offset=(ssize_t) (floor(x+0.5)-1);
-          y_offset=(ssize_t) (floor(y+0.5)-1);
+          x_offset=(ssize_t) (floor(ConstrainPixelOffset(x)+0.5)-1);
+          y_offset=(ssize_t) (floor(ConstrainPixelOffset(y)+0.5)-1);
         }
       else if (interpolate == Average16InterpolatePixel)
         {
@@ -5850,8 +5854,8 @@ MagickExport MagickBooleanType InterpolatePixelInfo(const Image *image,
     }
     case NearestInterpolatePixel:
     {
-      x_offset=(ssize_t) floor(x+0.5);
-      y_offset=(ssize_t) floor(y+0.5);
+      x_offset=(ssize_t) floor(ConstrainPixelOffset(x)+0.5);
+      y_offset=(ssize_t) floor(ConstrainPixelOffset(y)+0.5);
       p=GetCacheViewVirtualPixels(image_view,x_offset,y_offset,1,1,exception);
       if (p == (const Quantum *) NULL)
         {
@@ -5988,9 +5992,7 @@ MagickExport MagickBooleanType IsFuzzyEquivalencePixel(const Image *source,
   distance*=3.0;  /* rescale appropriately */
   fuzz*=3.0;
   pixel=GetPixelRed(source,p)-(double) GetPixelRed(destination,q);
-  if ((source->colorspace == HSLColorspace) ||
-      (source->colorspace == HSBColorspace) ||
-      (source->colorspace == HWBColorspace))
+  if (IsHueCompatibleColorspace(source->colorspace) != MagickFalse)
     {
       /*
         Compute an arc distance for hue.  It should be a vector angle of
@@ -5998,7 +6000,7 @@ MagickExport MagickBooleanType IsFuzzyEquivalencePixel(const Image *source,
       */
       if (fabs((double) pixel) > (QuantumRange/2))
         pixel-=QuantumRange;
-      pixel*=2;
+      pixel*=2.0;
     }
   distance+=scale*pixel*pixel;
   if (distance > fuzz)
@@ -6038,7 +6040,7 @@ MagickExport MagickBooleanType IsFuzzyEquivalencePixel(const Image *source,
 %  For example for an RGB:
 %    color_distance^2  = ( (u.r-v.r)^2 + (u.g-v.g)^2 + (u.b-v.b)^2 ) / 3
 %
-%  See http://imagemagick.org/Usage/bugs/fuzz_distance/
+%  See https://imagemagick.org/Usage/bugs/fuzz_distance/
 %
 %  Hue colorspace distances need more work.  Hue is not a distance, it is an
 %  angle!
@@ -6114,8 +6116,7 @@ MagickExport MagickBooleanType IsFuzzyEquivalencePixelInfo(const PixelInfo *p,
   distance*=3.0;  /* rescale appropriately */
   fuzz*=3.0;
   pixel=p->red-q->red;
-  if ((p->colorspace == HSLColorspace) || (p->colorspace == HSBColorspace) ||
-      (p->colorspace == HWBColorspace))
+  if (IsHueCompatibleColorspace(p->colorspace) != MagickFalse)
     {
       /*
         This calculates a arc distance for hue-- it should be a vector
@@ -6124,7 +6125,7 @@ MagickExport MagickBooleanType IsFuzzyEquivalencePixelInfo(const PixelInfo *p,
       */
       if (fabs((double) pixel) > (QuantumRange/2))
         pixel-=QuantumRange;
-      pixel*=2;
+      pixel*=2.0;
     }
   distance+=pixel*pixel*scale;
   if (distance > fuzz)

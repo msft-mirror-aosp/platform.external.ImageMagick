@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -563,16 +563,16 @@ static Image *ReadTXTImage(const ImageInfo *image_info,ExceptionInfo *exception)
             green+=(range+1)/2.0;
             blue+=(range+1)/2.0;
           }
-        pixel.red=(MagickRealType) ScaleAnyToQuantum((QuantumAny) (red+0.5),
-          range);
-        pixel.green=(MagickRealType) ScaleAnyToQuantum((QuantumAny) (green+0.5),
-          range);
-        pixel.blue=(MagickRealType) ScaleAnyToQuantum((QuantumAny) (blue+0.5),
-          range);
-        pixel.black=(MagickRealType) ScaleAnyToQuantum((QuantumAny) (black+0.5),
-          range);
-        pixel.alpha=(MagickRealType) ScaleAnyToQuantum((QuantumAny) (alpha+0.5),
-          range);
+        pixel.red=(MagickRealType) ScaleAnyToQuantum((QuantumAny)
+          MagickMax(red+0.5,0.0),range);
+        pixel.green=(MagickRealType) ScaleAnyToQuantum((QuantumAny)
+          MagickMax(green+0.5,0.0),range);
+        pixel.blue=(MagickRealType) ScaleAnyToQuantum((QuantumAny)
+          MagickMax(blue+0.5,0.0),range);
+        pixel.black=(MagickRealType) ScaleAnyToQuantum((QuantumAny)
+          MagickMax(black+0.5,0.0),range);
+        pixel.alpha=(MagickRealType) ScaleAnyToQuantum((QuantumAny)
+          MagickMax(alpha+0.5,0.0),range);
         q=GetAuthenticPixels(image,(ssize_t) x_offset,(ssize_t) y_offset,1,1,
           exception);
         if (q == (Quantum *) NULL)
@@ -609,7 +609,8 @@ static Image *ReadTXTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   } while (LocaleNCompare((char *) text,MagickTXTID,strlen(MagickTXTID)) == 0);
   (void) CloseBlob(image);
   if (status == MagickFalse)
-    return(DestroyImageList(image));
+    (void) ThrowMagickException(exception,GetMagickModule(),CorruptImageWarning,
+      "InsufficientImageDataInFile","`%s'",image->filename);
   return(GetFirstImageInList(image));
 }
 
@@ -797,11 +798,6 @@ static MagickBooleanType WriteTXTImage(const ImageInfo *image_info,Image *image,
       for (x=0; x < (ssize_t) image->columns; x++)
       {
         GetPixelInfoPixel(image,p,&pixel);
-        if (pixel.colorspace == LabColorspace)
-          {
-            pixel.green-=(QuantumRange+1)/2.0;
-            pixel.blue-=(QuantumRange+1)/2.0;
-          }
         if (LocaleCompare(image_info->magick,"SPARSE-COLOR") == 0)
           {
             /*

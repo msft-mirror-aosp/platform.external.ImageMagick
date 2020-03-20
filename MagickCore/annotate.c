@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -717,17 +717,22 @@ MagickExport MagickBooleanType GetMultilineTypeMetrics(Image *image,
   char
     **textlist;
 
+  double
+    height;
+
   DrawInfo
     *annotate_info;
 
   MagickBooleanType
     status;
 
+  MagickSizeType
+    size;
+
   register ssize_t
     i;
 
   size_t
-    height,
     count;
 
   TypeMetric
@@ -762,7 +767,8 @@ MagickExport MagickBooleanType GetMultilineTypeMetrics(Image *image,
   *metrics=extent;
   height=(count*(size_t) (metrics->ascent-metrics->descent+
     0.5)+(count-1)*draw_info->interline_spacing);
-  if (AcquireMagickResource(HeightResource,height) == MagickFalse)
+  size=(MagickSizeType) fabs(height);
+  if (AcquireMagickResource(HeightResource,size) == MagickFalse)
     {
       (void) ThrowMagickException(exception,GetMagickModule(),ImageError,
         "WidthOrHeightExceedsLimit","`%s'",image->filename);
@@ -778,7 +784,8 @@ MagickExport MagickBooleanType GetMultilineTypeMetrics(Image *image,
           break;
         if (extent.width > metrics->width)
           *metrics=extent;
-        if (AcquireMagickResource(WidthResource,extent.width) == MagickFalse)
+        size=(MagickSizeType) fabs(extent.width);
+        if (AcquireMagickResource(WidthResource,size) == MagickFalse)
           {
             (void) ThrowMagickException(exception,GetMagickModule(),ImageError,
               "WidthOrHeightExceedsLimit","`%s'",image->filename);
@@ -1316,7 +1323,8 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
 
   FT_UInt
     first_glyph_id,
-    last_glyph_id;
+    last_glyph_id,
+    missing_glyph_id;
 
   FT_Vector
     origin;
@@ -1566,6 +1574,7 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
   grapheme=(GraphemeInfo *) NULL;
   length=ComplexTextLayout(image,draw_info,p,strlen(p),face,flags,&grapheme,
     exception);
+  missing_glyph_id=FT_Get_Char_Index(face,' ');
   code=0;
   for (i=0; i < (ssize_t) length; i++)
   {
@@ -1576,6 +1585,8 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
       Render UTF-8 sequence.
     */
     glyph.id=(FT_UInt) grapheme[i].index;
+    if (glyph.id == 0)
+      glyph.id=missing_glyph_id;
     if ((glyph.id != 0) && (last_glyph_id != 0))
       origin.x+=(FT_Pos) (64.0*draw_info->kerning);
     glyph.origin=origin;
@@ -1702,11 +1713,13 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
                   q+=GetPixelChannels(image);
                 continue;
               }
-            if (bitmap->bitmap.pixel_mode != ft_pixel_mode_mono)
+            fill_opacity=1.0;
+            if (bitmap->bitmap.pixel_mode == ft_pixel_mode_grays)
               fill_opacity=(double) (r[n])/(bitmap->bitmap.num_grays-1);
             else
-              fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
-                (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
+              if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
+                fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
+                  (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
             if (draw_info->text_antialias == MagickFalse)
               fill_opacity=fill_opacity >= 0.5 ? 1.0 : 0.0;
             if (active == MagickFalse)

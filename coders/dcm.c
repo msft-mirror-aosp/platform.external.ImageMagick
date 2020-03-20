@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -3600,7 +3600,7 @@ static Image *ReadDCMImage(const ImageInfo *image_info,ExceptionInfo *exception)
               */
               if (data == (unsigned char *) NULL)
                 break;
-              colors=(size_t) (length/2);
+              colors=(size_t) (length/info.bytes_per_pixel);
               datum=(int) colors;
               if (redmap != (int *) NULL)
                 redmap=(int *) RelinquishMagickMemory(redmap);
@@ -3632,7 +3632,7 @@ static Image *ReadDCMImage(const ImageInfo *image_info,ExceptionInfo *exception)
               */
               if (data == (unsigned char *) NULL)
                 break;
-              colors=(size_t) (length/2);
+              colors=(size_t) (length/info.bytes_per_pixel);
               datum=(int) colors;
               if (greenmap != (int *) NULL)
                 greenmap=(int *) RelinquishMagickMemory(greenmap);
@@ -3664,7 +3664,7 @@ static Image *ReadDCMImage(const ImageInfo *image_info,ExceptionInfo *exception)
               */
               if (data == (unsigned char *) NULL)
                 break;
-              colors=(size_t) (length/2);
+              colors=(size_t) (length/info.bytes_per_pixel);
               datum=(int) colors;
               if (bluemap != (int *) NULL)
                 bluemap=(int *) RelinquishMagickMemory(bluemap);
@@ -3859,18 +3859,17 @@ static Image *ReadDCMImage(const ImageInfo *image_info,ExceptionInfo *exception)
           tag=((unsigned int) ReadBlobLSBShort(image) << 16) |
             ReadBlobLSBShort(image);
           length=(size_t) ReadBlobLSBLong(image);
-          if (length > (size_t) GetBlobSize(image))
+          if (EOFBlob(image) != MagickFalse)
             {
-              read_info=DestroyImageInfo(read_info);
-              ThrowDCMException(CorruptImageError,
-                "InsufficientImageDataInFile");
+              status=MagickFalse;
+              break;
             }
           if (tag == 0xFFFEE0DD)
             break; /* sequence delimiter tag */
           if (tag != 0xFFFEE000)
             {
-              read_info=DestroyImageInfo(read_info);
-              ThrowDCMException(CorruptImageError,"ImproperImageHeader");
+              status=MagickFalse;
+              break;
             }
           file=(FILE *) NULL;
           unique_file=AcquireUniqueFileResource(filename);

@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -947,7 +947,7 @@ static MagickBooleanType LoadOpenCLBenchmarks(MagickCLEnv clEnv)
     We don't run the benchmark when we can not write out a device profile. The
     first GPU device will be used.
   */
-#if !defined(MAGICKCORE_ZERO_CONFIGURATION_SUPPORT)
+#if !MAGICKCORE_ZERO_CONFIGURATION_SUPPORT
   if (CanWriteProfileToFile(filename) == MagickFalse)
 #endif
     {
@@ -2645,7 +2645,7 @@ MagickPrivate MagickBooleanType OpenCLThrowMagickException(
   assert(device != (MagickCLDevice) NULL);
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
-
+  (void) exception;
   status=MagickTrue;
   if (severity != 0)
   {

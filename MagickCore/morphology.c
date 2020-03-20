@@ -17,7 +17,7 @@
 %                               January 2010                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -3059,8 +3059,8 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                   {
                     if (*k > 0.7)
                       {
-                        if ((double) pixels[i] < minimum)
-                          minimum=(double) pixels[i];
+                        if ((double) pixels[i] < pixel)
+                          pixel=(double) pixels[i];
                       }
                     else
                       if (*k < 0.3)
@@ -3075,14 +3075,13 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
               }
               pixels+=(image->columns-1)*GetPixelChannels(image);
             }
-            minimum-=maximum;
-            if (minimum < 0.0)
-              minimum=0.0;
-            pixel=minimum;
-            if (method ==  ThinningMorphology)
+            pixel-=maximum;
+            if (pixel < 0.0)
+              pixel=0.0;
+            if (method == ThinningMorphology)
               pixel=(double) p[center+i]-pixel;
             else
-              if (method ==  ThickenMorphology)
+              if (method == ThickenMorphology)
                 pixel+=(double) p[center+i]+pixel;
             break;
           }
@@ -3153,7 +3152,7 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                shape.  Essentually white values are decreased to the smallest
                'distance from edge' it can find.
 
-               It works by adding kernel values to the neighbourhood, and and
+               It works by adding kernel values to the neighbourhood, and
                select the minimum value found. The kernel is rotated before
                use, so kernel distances match resulting distances, when a user
                provided asymmetric kernel is applied.
@@ -3167,7 +3166,7 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                GrayErode:  Kernel values subtracted and minimum value found No
                kernel rotation used.
 
-               Note the the Iterative Distance method is essentially a
+               Note the Iterative Distance method is essentially a
                GrayErode, but with negative kernel values, and kernel rotation
                applied.
             */

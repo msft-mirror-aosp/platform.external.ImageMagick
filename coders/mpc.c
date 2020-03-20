@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -1172,7 +1172,10 @@ static MagickBooleanType WriteMPCImage(const ImageInfo *image_info,Image *image,
   {
     /*
       Write persistent cache meta-information.
+
+      SetImageStorageClass() required to sync pixel cache.
     */
+    (void) SetImageStorageClass(image,image->storage_class,exception);
     depth=GetImageQuantumDepth(image,MagickTrue);
     if ((image->storage_class == PseudoClass) &&
         (image->colors > (size_t) (GetQuantumRange(image->depth)+1)))

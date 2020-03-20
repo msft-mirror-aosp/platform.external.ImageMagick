@@ -17,7 +17,7 @@
 %                               September 2011                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -55,6 +55,7 @@
 #include "MagickWand/wand.h"
 #include "MagickWand/wandcli.h"
 #include "MagickWand/wandcli-private.h"
+#include "MagickCore/color-private.h"
 #include "MagickCore/composite-private.h"
 #include "MagickCore/image-private.h"
 #include "MagickCore/monitor-private.h"
@@ -2065,6 +2066,22 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
                     _exception);
           break;
         }
+      if (LocaleCompare("color-threshold",option+1) == 0)
+        {
+          PixelInfo
+            start,
+            stop;
+
+          /*
+            Color threshold image.
+          */
+          if (*option == '+')
+            (void) GetColorRange("white-black",&start,&stop,_exception);
+          else
+            (void) GetColorRange(arg1,&start,&stop,_exception);
+          (void) ColorThresholdImage(_image,&start,&stop,_exception);
+          break;
+        }
       if (LocaleCompare("connected-components",option+1) == 0)
         {
           if (IsGeometry(arg1) == MagickFalse)
@@ -2094,7 +2111,8 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
           black_point=geometry_info.rho;
           white_point=(flags & SigmaValue) != 0 ? geometry_info.sigma :
             black_point;
-          if ((flags & PercentValue) != 0) {
+          if ((flags & PercentValue) != 0)
+            {
               black_point*=(double) _image->columns*_image->rows/100.0;
               white_point*=(double) _image->columns*_image->rows/100.0;
             }
@@ -2541,6 +2559,22 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
     }
     case 'k':
     {
+      if (LocaleCompare("kmeans",option+1) == 0)
+        {
+          /*
+            K-means clustering.
+          */
+          flags=ParseGeometry(arg1,&geometry_info);
+          if ((flags & (RhoValue|SigmaValue)) == 0)
+            CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,arg1);
+          if ((flags & SigmaValue) == 0)
+            geometry_info.sigma=100.0;
+          if ((flags & XiValue) == 0)
+            geometry_info.xi=0.01;
+          (void) KmeansImage(_image,(size_t) geometry_info.rho,(size_t)
+           geometry_info.sigma,geometry_info.xi,_exception);
+          break;
+        }
       if (LocaleCompare("kuwahara",option+1) == 0)
         {
           /*

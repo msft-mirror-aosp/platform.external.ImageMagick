@@ -17,7 +17,7 @@
 %                                  July 1992                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -3032,10 +3032,6 @@ MagickPrivate void XGetPixelInfo(Display *display,
   Colormap
     colormap;
 
-  extern const char
-    BorderColor[],
-    ForegroundColor[];
-
   register ssize_t
     i;
 
@@ -3455,10 +3451,6 @@ MagickExport void XGetResourceInfo(const ImageInfo *image_info,
   char
     *directory,
     *resource_value;
-
-  extern const char
-    BorderColor[],
-    ForegroundColor[];
 
   /*
     Initialize resource info fields.
