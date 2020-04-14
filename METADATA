@@ -9,10 +9,10 @@ third_party {
     type: GIT
     value: "https://github.com/ImageMagick/ImageMagick.git"
   }
-  version: "a429d15fb81877e627d2b83519f4c8142271eec7"
+  version: "f88232217ed62050573e689c5eb69d2ea1a32ec2"
   last_upgrade_date {
     year: 2020
-    month: 3
-    day: 9
+    month: 4
+    day: 13
   }
 }
