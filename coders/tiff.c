@@ -743,6 +743,7 @@ static MagickBooleanType TIFFGetProperties(TIFF *tiff,Image *image,
     count,
     type;
 
+  text=(char *) NULL;
   status=MagickTrue;
   if ((TIFFGetField(tiff,TIFFTAG_ARTIST,&text) == 1) &&
       (text != (char *) NULL))
@@ -1825,7 +1826,7 @@ RestoreMSCWarning
     quantum_type=RGBQuantum;
     if (TIFFScanlineSize(tiff) <= 0)
       ThrowTIFFException(ResourceLimitError,"MemoryAllocationFailed");
-    if ((1.0*TIFFScanlineSize(tiff)) > (2.1*GetBlobSize(image)))
+    if ((1.0*TIFFScanlineSize(tiff)) > (2.53*GetBlobSize(image)))
       ThrowTIFFException(CorruptImageError,"InsufficientImageDataInFile");
     number_pixels=MagickMax(TIFFScanlineSize(tiff),MagickMax((ssize_t)
       image->columns*samples_per_pixel*pow(2.0,ceil(log(bits_per_sample)/
@@ -2217,12 +2218,12 @@ RestoreMSCWarning
       }
   } while ((status != MagickFalse) && (more_frames != MagickFalse));
   TIFFClose(tiff);
-  TIFFReadPhotoshopLayers(image_info,image,exception);
   if ((image_info->number_scenes != 0) &&
       (image_info->scene >= GetImageListLength(image)))
     status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
+  TIFFReadPhotoshopLayers(image_info,image,exception);
   return(GetFirstImageInList(image));
 }
 #endif
@@ -2608,11 +2609,13 @@ static MagickBooleanType WriteGROUP4Image(const ImageInfo *image_info,
     }
   (void) FormatLocaleString(huffman_image->filename,MagickPathExtent,"tiff:%s",
     filename);
-  (void) SetImageType(huffman_image,BilevelType,exception);
+  if (IsImageMonochrome(image) == MagickFalse)
+    (void) SetImageType(huffman_image,BilevelType,exception);
   write_info=CloneImageInfo((ImageInfo *) NULL);
   SetImageInfoFile(write_info,file);
+  if (IsImageMonochrome(image) == MagickFalse)
+      (void) SetImageType(image,BilevelType,exception);
   (void) SetImageDepth(image,1,exception);
-  (void) SetImageType(image,BilevelType,exception);
   write_info->compression=Group4Compression;
   write_info->type=BilevelType;
   status=WriteTIFFImage(write_info,huffman_image,exception);
@@ -3486,7 +3489,8 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       case FaxCompression:
       case Group4Compression:
       {
-        (void) SetImageType(image,BilevelType,exception);
+        if (IsImageMonochrome(image) == MagickFalse)
+          (void) SetImageType(image,BilevelType,exception);
         (void) SetImageDepth(image,1,exception);
         break;
       }
