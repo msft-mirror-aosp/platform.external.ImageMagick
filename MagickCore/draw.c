@@ -4694,7 +4694,7 @@ static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
           else
             {
               alpha=PerceptibleReciprocal(alpha);
-              beta=delta.x*(y-q->y)-delta.y*(x-q->x);
+              beta=delta.x*(y-q->y)-delta.y*(x-q->x)+MagickEpsilon;
               distance=alpha*beta*beta;
             }
         }
@@ -7179,7 +7179,10 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
     return((PrimitiveInfo *) NULL);
   (void) memcpy(polygon_primitive,primitive_info,(size_t) number_vertices*
     sizeof(*polygon_primitive));
-  closed_path=primitive_info[0].closed_subpath;
+  offset.x=primitive_info[number_vertices-1].point.x-primitive_info[0].point.x;
+  offset.y=primitive_info[number_vertices-1].point.y-primitive_info[0].point.y;
+  closed_path=(fabs(offset.x) < MagickEpsilon) &&
+    (fabs(offset.y) < MagickEpsilon) ?  MagickTrue : MagickFalse;
   if (((draw_info->linejoin == RoundJoin) ||
        (draw_info->linejoin == MiterJoin)) && (closed_path != MagickFalse))
     {
