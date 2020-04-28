@@ -44,7 +44,7 @@ extern "C" {
 #endif
 
 MagickExport MagickBooleanType 
-  HeapOverflowSanityCheck(const size_t,const size_t);
+  HeapOverflowSanityCheck(const size_t,const size_t) magick_alloc_sizes(1,2);
 
 MagickExport size_t
   GetMaxMemoryRequest(void);

@@ -2236,7 +2236,7 @@ namespace Magick
   template<class InputIterator >
   void combineImages(Image *combinedImage_,InputIterator first_,
     InputIterator last_,const ChannelType channel_,
-    const ColorspaceType colorspace_ = MagickCore::sRGBColorspace)
+    const ColorspaceType colorspace_)
   {
     MagickCore::Image
       *image;

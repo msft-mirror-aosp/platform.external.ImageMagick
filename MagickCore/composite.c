@@ -611,9 +611,6 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
         break;
       if ((y_offset+(ssize_t) source_image->rows) > (ssize_t) image->rows)
         break;
-      if ((source_image->alpha_trait == UndefinedPixelTrait) &&
-          (image->alpha_trait != UndefinedPixelTrait))
-        (void) SetImageAlphaChannel(source_image,OpaqueAlphaChannel,exception);
       status=MagickTrue;
       source_view=AcquireVirtualCacheView(source_image,exception);
       image_view=AcquireAuthenticCacheView(image,exception);
@@ -657,16 +654,18 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
               q+=GetPixelChannels(image);
               continue;
             }
-          for (i=0; i < (ssize_t) GetPixelChannels(source_image); i++)
+          for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
           {
-            PixelChannel channel = GetPixelChannelChannel(source_image,i);
-            PixelTrait source_traits = GetPixelChannelTraits(source_image,
-              channel);
+            PixelChannel channel = GetPixelChannelChannel(image,i);
             PixelTrait traits = GetPixelChannelTraits(image,channel);
-            if ((source_traits == UndefinedPixelTrait) ||
-                (traits == UndefinedPixelTrait))
+            PixelTrait source_traits=GetPixelChannelTraits(source_image,
+              channel);
+            if (traits == UndefinedPixelTrait)
               continue;
-            SetPixelChannel(image,channel,p[i],q);
+            if (source_traits != UndefinedPixelTrait)
+              SetPixelChannel(image,channel,p[i],q);
+            else if (channel == AlphaPixelChannel)
+              SetPixelChannel(image,channel,OpaqueAlpha,q);
           }
           p+=GetPixelChannels(source_image);
           q+=GetPixelChannels(image);
@@ -1423,6 +1422,8 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
         case MathematicsCompositeOp:
         case MinusDstCompositeOp:
         case MinusSrcCompositeOp:
+        case ModulusAddCompositeOp:
+        case ModulusSubtractCompositeOp:
         case MultiplyCompositeOp:
         case OverlayCompositeOp:
         case PegtopLightCompositeOp:
@@ -1475,26 +1476,6 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
         case XorCompositeOp:
         {
           alpha=Sa+Da-2.0*Sa*Da;
-          break;
-        }
-        case ModulusAddCompositeOp:
-        {
-          if ((Sa+Da) <= 1.0)
-            {
-              alpha=(Sa+Da);
-              break;
-            }
-          alpha=((Sa+Da)-1.0);
-          break;
-        }
-        case ModulusSubtractCompositeOp:
-        {
-          if ((Sa-Da) >= 0.0)
-            {
-              alpha=(Sa-Da);
-              break;
-            }
-          alpha=((Sa-Da)+1.0);
           break;
         }
         default:
@@ -1814,7 +1795,8 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
           case CopyBlackCompositeOp:
           {
             if (channel == BlackPixelChannel)
-              pixel=(MagickRealType) GetPixelBlack(source_image,p);
+              pixel=(MagickRealType) (QuantumRange-
+                GetPixelBlack(source_image,p));
             break;
           }
           case CopyBlueCompositeOp:
@@ -2130,22 +2112,22 @@ MagickExport MagickBooleanType CompositeImage(Image *image,
           }
           case ModulusAddCompositeOp:
           {
-            if ((Sca+Dca) <= 1.0)
-              {
-                pixel=QuantumRange*(Sca+Dca);
-                break;
-              }
-            pixel=QuantumRange*((Sca+Dca)-1.0);
+            pixel=Sc+Dc;
+            while (pixel > QuantumRange)
+              pixel-=QuantumRange;
+            while (pixel < 0.0)
+              pixel+=QuantumRange;
+            pixel=(Sa*Da*pixel+Sa*Sc*(1.0-Da)+Da*Dc*(1.0-Sa));
             break;
           }
           case ModulusSubtractCompositeOp:
           {
-            if ((Sca-Dca) >= 0.0)
-              {
-                pixel=QuantumRange*(Sca-Dca);
-                break;
-              }
-            pixel=QuantumRange*((Sca-Dca)+1.0);
+            pixel=Sc-Dc;
+            while (pixel > QuantumRange)
+              pixel-=QuantumRange;
+            while (pixel < 0.0)
+              pixel+=QuantumRange;
+            pixel=(Sa*Da*pixel+Sa*Sc*(1.0-Da)+Da*Dc*(1.0-Sa));
             break;
           }
           case MultiplyCompositeOp:

@@ -129,7 +129,7 @@ static Image *ReadDOTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   image=AcquireImage(image_info,exception);
   status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
   if (status == MagickFalse)
-    return(DestroyImageList(image));
+    return((Image *) NULL);
   read_info=CloneImageInfo(image_info);
   SetImageInfoBlob(read_info,(void *) NULL,0);
   (void) CopyMagickString(read_info->magick,"SVG",MagickPathExtent);
@@ -144,7 +144,7 @@ static Image *ReadDOTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (graph == (graph_t *) NULL)
     {
       (void) RelinquishUniqueFileResource(read_info->filename);
-      return(DestroyImageList(image));
+      return ((Image *) NULL);
     }
   option=GetImageOption(image_info,"dot:layout-engine");
   if (option == (const char *) NULL)
@@ -154,7 +154,6 @@ static Image *ReadDOTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   gvRenderFilename(graphic_context,graph,(char *) "svg",read_info->filename);
   gvFreeLayout(graphic_context,graph);
   agclose(graph);
-  image=DestroyImageList(image);
   /*
     Read SVG graph.
   */

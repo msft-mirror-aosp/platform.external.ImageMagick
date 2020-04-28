@@ -4398,10 +4398,10 @@ MagickExport void InitializePixelChannelMap(Image *image)
 %
 %  The format of the InterpolatePixelChannel method is:
 %
-%      MagickBooleanType InterpolatePixelChannel(
-%        const Image *magick_restrict image,const CacheView *image_view,
-%        const PixelChannel channel,const PixelInterpolateMethod method,
-%        const double x,const double y,double *pixel,ExceptionInfo *exception)
+%      MagickBooleanType InterpolatePixelChannel(const Image *image,
+%        const CacheView *image_view,const PixelChannel channel,
+%        const PixelInterpolateMethod method,const double x,const double y,
+%        double *pixel,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -4483,10 +4483,10 @@ static inline ssize_t NearestNeighbor(const double x)
 }
 */
 
-MagickExport MagickBooleanType InterpolatePixelChannel(
-  const Image *magick_restrict image,const CacheView_ *image_view,
-  const PixelChannel channel,const PixelInterpolateMethod method,
-  const double x,const double y,double *pixel,ExceptionInfo *exception)
+MagickExport MagickBooleanType InterpolatePixelChannel(const Image *image,
+  const CacheView_ *image_view,const PixelChannel channel,
+  const PixelInterpolateMethod method,const double x,const double y,
+  double *pixel,ExceptionInfo *exception)
 {
   double
     alpha[16],
@@ -4503,7 +4503,7 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
     traits;
 
   register const Quantum
-    *magick_restrict p;
+    *p;
 
   register ssize_t
     i;
@@ -4885,9 +4885,8 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
 %
 %  The format of the InterpolatePixelChannels method is:
 %
-%      MagickBooleanType InterpolatePixelChannels(
-%        const Image *magick_restrict source,const CacheView *source_view,
-%        const Image *magick_restrict destination,
+%      MagickBooleanType InterpolatePixelChannels(const Image *source,
+%        const CacheView *source_view,const Image *destination,
 %        const PixelInterpolateMethod method,const double x,const double y,
 %        Quantum *pixel,ExceptionInfo *exception)
 %
@@ -4908,10 +4907,10 @@ MagickExport MagickBooleanType InterpolatePixelChannel(
 %    o exception: return any errors or warnings in this structure.
 %
 */
-MagickExport MagickBooleanType InterpolatePixelChannels(
-  const Image *magick_restrict source,const CacheView_ *source_view,
-  const Image *magick_restrict destination,const PixelInterpolateMethod method,
-  const double x,const double y,Quantum *pixel,ExceptionInfo *exception)
+MagickExport MagickBooleanType InterpolatePixelChannels(const Image *source,
+  const CacheView_ *source_view,const Image *destination,
+  const PixelInterpolateMethod method,const double x,const double y,
+  Quantum *pixel,ExceptionInfo *exception)
 {
   MagickBooleanType
     status;
@@ -4922,7 +4921,7 @@ MagickExport MagickBooleanType InterpolatePixelChannels(
     pixels[16];
 
   register const Quantum
-    *magick_restrict p;
+    *p;
 
   register ssize_t
     i;

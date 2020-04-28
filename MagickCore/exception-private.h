@@ -90,11 +90,7 @@ extern "C" {
 }
 
 extern MagickPrivate void
-  ExceptionComponentTerminus(void),
   InitializeExceptionInfo(ExceptionInfo *);
-
-extern MagickPrivate MagickBooleanType
-  ExceptionComponentGenesis(void);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

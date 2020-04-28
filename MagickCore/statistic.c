@@ -137,30 +137,21 @@ typedef struct _PixelChannels
     channel[CompositePixelChannel];
 } PixelChannels;
 
-static PixelChannels **DestroyPixelThreadSet(const Image *images,
-  PixelChannels **pixels)
+static PixelChannels **DestroyPixelThreadSet(PixelChannels **pixels)
 {
   register ssize_t
     i;
 
-  size_t
-    rows;
-
   assert(pixels != (PixelChannels **) NULL);
-  rows=MagickMax(GetImageListLength(images),
-    (size_t) GetMagickResourceLimit(ThreadResource));
-  for (i=0; i < (ssize_t) rows; i++)
+  for (i=0; i < (ssize_t) GetMagickResourceLimit(ThreadResource); i++)
     if (pixels[i] != (PixelChannels *) NULL)
       pixels[i]=(PixelChannels *) RelinquishMagickMemory(pixels[i]);
   pixels=(PixelChannels **) RelinquishMagickMemory(pixels);
   return(pixels);
 }
 
-static PixelChannels **AcquirePixelThreadSet(const Image *images)
+static PixelChannels **AcquirePixelThreadSet(const Image *image)
 {
-  const Image
-    *next;
-
   PixelChannels
     **pixels;
 
@@ -168,27 +159,24 @@ static PixelChannels **AcquirePixelThreadSet(const Image *images)
     i;
 
   size_t
-    columns,
-    rows;
+    number_threads;
 
-  rows=MagickMax(GetImageListLength(images),
-    (size_t) GetMagickResourceLimit(ThreadResource));
-  pixels=(PixelChannels **) AcquireQuantumMemory(rows,sizeof(*pixels));
+  number_threads=(size_t) GetMagickResourceLimit(ThreadResource);
+  pixels=(PixelChannels **) AcquireQuantumMemory(number_threads,
+    sizeof(*pixels));
   if (pixels == (PixelChannels **) NULL)
     return((PixelChannels **) NULL);
-  (void) memset(pixels,0,rows*sizeof(*pixels));
-  columns=MagickMax(GetImageListLength(images),MaxPixelChannels);
-  for (next=images; next != (Image *) NULL; next=next->next)
-    columns=MagickMax(next->columns,columns);
-  for (i=0; i < (ssize_t) rows; i++)
+  (void) memset(pixels,0,number_threads*sizeof(*pixels));
+  for (i=0; i < (ssize_t) number_threads; i++)
   {
     register ssize_t
       j;
 
-    pixels[i]=(PixelChannels *) AcquireQuantumMemory(columns,sizeof(**pixels));
+    pixels[i]=(PixelChannels *) AcquireQuantumMemory(image->columns,
+      sizeof(**pixels));
     if (pixels[i] == (PixelChannels *) NULL)
-      return(DestroyPixelThreadSet(images,pixels));
-    for (j=0; j < (ssize_t) columns; j++)
+      return(DestroyPixelThreadSet(pixels));
+    for (j=0; j < (ssize_t) image->columns; j++)
     {
       register ssize_t
         k;
@@ -582,15 +570,15 @@ MagickExport Image *EvaluateImages(const Image *images,
             for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
             {
               PixelChannel channel = GetPixelChannelChannel(image,i);
+              PixelTrait evaluate_traits=GetPixelChannelTraits(image,channel);
               PixelTrait traits = GetPixelChannelTraits(next,channel);
-              PixelTrait evaluate_traits = GetPixelChannelTraits(image,channel);
               if ((traits == UndefinedPixelTrait) ||
                   (evaluate_traits == UndefinedPixelTrait))
                 continue;
               if ((traits & UpdatePixelTrait) == 0)
                 continue;
               evaluate_pixel[j].channel[i]=ApplyEvaluateOperator(
-                random_info[id],GetPixelChannel(next,channel,p),op,
+                random_info[id],GetPixelChannel(image,channel,p),op,
                 evaluate_pixel[j].channel[i]);
             }
             image_view=DestroyCacheView(image_view);
@@ -687,14 +675,14 @@ MagickExport Image *EvaluateImages(const Image *images,
             {
               PixelChannel channel = GetPixelChannelChannel(image,i);
               PixelTrait traits = GetPixelChannelTraits(next,channel);
-              PixelTrait evaluate_traits = GetPixelChannelTraits(image,channel);
+              PixelTrait evaluate_traits=GetPixelChannelTraits(image,channel);
               if ((traits == UndefinedPixelTrait) ||
                   (evaluate_traits == UndefinedPixelTrait))
                 continue;
               if ((traits & UpdatePixelTrait) == 0)
                 continue;
               evaluate_pixel[x].channel[i]=ApplyEvaluateOperator(
-                random_info[id],GetPixelChannel(next,channel,p),j == 0 ?
+                random_info[id],GetPixelChannel(image,channel,p),j == 0 ?
                 AddEvaluateOperator : op,evaluate_pixel[x].channel[i]);
             }
             p+=GetPixelChannels(next);
@@ -774,7 +762,7 @@ MagickExport Image *EvaluateImages(const Image *images,
       }
     }
   evaluate_view=DestroyCacheView(evaluate_view);
-  evaluate_pixels=DestroyPixelThreadSet(images,evaluate_pixels);
+  evaluate_pixels=DestroyPixelThreadSet(evaluate_pixels);
   random_info=DestroyRandomInfoThreadSet(random_info);
   if (status == MagickFalse)
     image=DestroyImage(image);
@@ -2180,6 +2168,7 @@ MagickExport ChannelStatistics *GetImageStatistics(const Image *image,
 %    o exception: return any errors or warnings in this structure.
 %
 */
+
 MagickExport Image *PolynomialImage(const Image *images,
   const size_t number_terms,const double *terms,ExceptionInfo *exception)
 {
@@ -2355,7 +2344,7 @@ MagickExport Image *PolynomialImage(const Image *images,
       }
   }
   polynomial_view=DestroyCacheView(polynomial_view);
-  polynomial_pixels=DestroyPixelThreadSet(images,polynomial_pixels);
+  polynomial_pixels=DestroyPixelThreadSet(polynomial_pixels);
   if (status == MagickFalse)
     image=DestroyImage(image);
   return(image);

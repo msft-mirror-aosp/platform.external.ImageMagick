@@ -6,7 +6,7 @@
   obtain a copy of the License at
 
     https://imagemagick.org/script/license.php
-
+ 
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -181,7 +181,7 @@ typedef enum
 #  define IsNaN(a) ((a) != (a))
 #endif
 #if !defined(INFINITY)
-#  define INFINITY ((double) -logf(0f))
+#  define INFINITY (-logf(0f))
 #endif
 
 typedef struct _BlobInfo BlobInfo;

@@ -141,15 +141,17 @@ static MagickBooleanType IsMETA(const unsigned char *magick,const size_t length)
 %
 */
 
-static const struct
+typedef struct _html_code
 {
-  const unsigned char
+  const short int
     len;
 
   const char
-    code[7],
+    *code,
     val;
-} html_codes[] = {
+} html_code;
+
+static const html_code html_codes[] = {
 #ifdef HANDLE_GT_LT
   { 4,"&lt;",'<' },
   { 4,"&gt;",'>' },
@@ -229,7 +231,7 @@ static size_t convertHTMLcodes(char *s)
       *s=value;
       return(o);
     }
-  for (i=0; i < (ssize_t) (sizeof(html_codes)/sizeof(html_codes[0])); i++)
+  for (i=0; i < (ssize_t) (sizeof(html_codes)/sizeof(html_code)); i++)
   {
     if (html_codes[i].len <= (ssize_t) length)
       if (stringnicmp(s,html_codes[i].code,(size_t) (html_codes[i].len)) == 0)
@@ -1390,7 +1392,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
-      (void) SetImageProfile(image,"iptc",profile,exception);
+      (void) SetImageProfile(image,"8bim",profile,exception);
       profile=DestroyStringInfo(profile);
       blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
@@ -1909,7 +1911,7 @@ static int formatIPTC(Image *ifile, Image *ofile)
 
   int
     i,
-    tagcount = (int) (sizeof(tags) / sizeof(tags[0]));
+    tagcount = (int) (sizeof(tags) / sizeof(tag_spec));
 
   int
     c;
@@ -2049,7 +2051,7 @@ static int formatIPTCfromBuffer(Image *ofile, char *s, ssize_t len)
 
   int
     i,
-    tagcount = (int) (sizeof(tags) / sizeof(tags[0]));
+    tagcount = (int) (sizeof(tags) / sizeof(tag_spec));
 
   int
     c;

@@ -652,11 +652,6 @@ static Image *ComputeBlurImage(const Image* image,MagickCLEnv clEnv,
   blurColumnKernel=NULL;
   outputReady=MagickFalse;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   device=RequestOpenCLDevice(clEnv);
   queue=AcquireOpenCLCommandQueue(device);
   filteredImage=cloneImage(image,exception);
@@ -789,8 +784,6 @@ MagickPrivate Image* AccelerateBlurImage(const Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if (checkAccelerateCondition(image) == MagickFalse)
     return((Image *) NULL);
@@ -843,11 +836,6 @@ static MagickBooleanType ComputeContrastImage(Image *image,MagickCLEnv clEnv,
   size_t
     gsize[2],
     i;
-
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   contrastKernel=NULL;
   imageBuffer=NULL;
@@ -912,8 +900,6 @@ MagickPrivate MagickBooleanType AccelerateContrastImage(Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if (checkAccelerateCondition(image) == MagickFalse)
     return(MagickFalse);
@@ -1002,11 +988,6 @@ static MagickBooleanType ComputeContrastStretchImage(Image *image,
     *hostPtr,
     *inputPixels;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   histogram=NULL;
   stretch_map=NULL;
   inputPixels = NULL;
@@ -1017,6 +998,12 @@ static MagickBooleanType ComputeContrastStretchImage(Image *image,
   stretchKernel = NULL;
   queue = NULL;
   outputReady = MagickFalse;
+
+
+  assert(image != (Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
+  if (image->debug != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   /* exception=(&image->exception); */
 
@@ -1475,8 +1462,6 @@ MagickPrivate MagickBooleanType AccelerateContrastStretchImage(
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if ((checkAccelerateConditionRGBA(image) == MagickFalse) ||
       (checkHistogramCondition(image,image->intensity) == MagickFalse))
@@ -2323,11 +2308,6 @@ static MagickBooleanType ComputeEqualizeImage(Image *image,MagickCLEnv clEnv,
     *hostPtr,
     *inputPixels;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   map=NULL;
   histogram=NULL;
   equalize_map=NULL;
@@ -2339,6 +2319,11 @@ static MagickBooleanType ComputeEqualizeImage(Image *image,MagickCLEnv clEnv,
   equalizeKernel = NULL;
   queue = NULL;
   outputReady = MagickFalse;
+
+  assert(image != (Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
+  if (image->debug != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   /*
    * initialize opencl env
@@ -2684,8 +2669,6 @@ MagickPrivate MagickBooleanType AccelerateEqualizeImage(Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if ((checkAccelerateConditionRGBA(image) == MagickFalse) ||
       (checkHistogramCondition(image,image->intensity) == MagickFalse))
@@ -2745,12 +2728,8 @@ static MagickBooleanType ComputeFunctionImage(Image *image,MagickCLEnv clEnv,
     gsize[2],
     i;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   outputReady=MagickFalse;
+
   imageBuffer=NULL;
   functionKernel=NULL;
   parametersBuffer=NULL;
@@ -2836,8 +2815,6 @@ MagickPrivate MagickBooleanType AccelerateFunctionImage(Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if (checkAccelerateCondition(image) == MagickFalse)
     return(MagickFalse);
@@ -2893,15 +2870,12 @@ static MagickBooleanType ComputeGrayscaleImage(Image *image,MagickCLEnv clEnv,
     gsize[2],
     i;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   outputReady=MagickFalse;
   imageBuffer=NULL;
   grayscaleKernel=NULL;
 
+  assert(image != (Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
   device=RequestOpenCLDevice(clEnv);
   queue=AcquireOpenCLCommandQueue(device);
   imageBuffer=GetAuthenticOpenCLBuffer(image,device,exception);
@@ -2963,8 +2937,6 @@ MagickPrivate MagickBooleanType AccelerateGrayscaleImage(Image* image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if ((checkAccelerateCondition(image) == MagickFalse) ||
       (checkPixelIntensity(image,method) == MagickFalse))
@@ -3396,14 +3368,14 @@ static MagickBooleanType ComputeModulateImage(Image *image,MagickCLEnv clEnv,
   void
     *inputPixels;
 
+  inputPixels = NULL;
+  imageBuffer = NULL;
+  modulateKernel = NULL;
+
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
-  inputPixels = NULL;
-  imageBuffer = NULL;
-  modulateKernel = NULL;
 
   /*
    * initialize opencl env
@@ -3532,8 +3504,6 @@ MagickPrivate MagickBooleanType AccelerateModulateImage(Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if (checkAccelerateConditionRGBA(image) == MagickFalse)
     return(MagickFalse);
@@ -3632,11 +3602,6 @@ static Image* ComputeMotionBlurImage(const Image *image,MagickCLEnv clEnv,
     *filteredPixels,
     *hostPtr;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   outputReady = MagickFalse;
   filteredImage = NULL;
   filteredImage_view = NULL;
@@ -3651,8 +3616,7 @@ static Image* ComputeMotionBlurImage(const Image *image,MagickCLEnv clEnv,
   /* Create and initialize OpenCL buffers. */
 
   image_view=AcquireAuthenticCacheView(image,exception);
-  inputPixels=GetCacheViewAuthenticPixels(image_view,0,0,image->columns,
-    image->rows,exception);
+  inputPixels=GetCacheViewAuthenticPixels(image_view,0,0,image->columns,image->rows,exception);
   if (inputPixels == (const void *) NULL)
   {
     (void) ThrowMagickException(exception,GetMagickModule(),CacheError,
@@ -4571,11 +4535,6 @@ static Image* ComputeRotationalBlurImage(const Image *image,MagickCLEnv clEnv,
     gsize[2],
     i;
 
-  assert(image != (Image *) NULL);
-  assert(image->signature == MagickCoreSignature);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
-
   filteredImage=NULL;
   imageBuffer=NULL;
   filteredImageBuffer=NULL;
@@ -4700,8 +4659,6 @@ MagickPrivate Image* AccelerateRotationalBlurImage(const Image *image,
 
   assert(image != NULL);
   assert(exception != (ExceptionInfo *) NULL);
-  if (image->debug != MagickFalse)
-    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
 
   if (checkAccelerateCondition(image) == MagickFalse)
     return((Image *) NULL);

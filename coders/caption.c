@@ -173,7 +173,8 @@ static Image *ReadCAPTIONImage(const ImageInfo *image_info,
   if (image->columns == 0)
     {
       text=AcquireString(caption);
-      i=FormatMagickCaption(image,draw_info,split,&metrics,&text,exception);
+      i=FormatMagickCaption(image,draw_info,split,&metrics,&text,
+        exception);
       (void) CloneString(&draw_info->text,text);
       text=DestroyString(text);
       (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
@@ -181,7 +182,8 @@ static Image *ReadCAPTIONImage(const ImageInfo *image_info,
       if (draw_info->gravity == UndefinedGravity)
         (void) CloneString(&draw_info->geometry,geometry);
       status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
-      image->columns=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
+      width=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
+      image->columns=width;
     }
   if (image->rows == 0)
     {
@@ -225,44 +227,33 @@ static Image *ReadCAPTIONImage(const ImageInfo *image_info,
       /*
         Auto fit text into bounding box.
       */
-      option=GetImageOption(image_info,"caption:max-pointsize");
-      if (option != (const char*) NULL)
-        {
-          high=StringToDouble(option,(char**) NULL);
-          if (high < 1.0)
-            high=1.0;
-          high+=1.0;
-        }
-      else
-        {
-          for (n=0; n < 32; n++, draw_info->pointsize*=2.0)
+      for (n=0; n < 32; n++, draw_info->pointsize*=2.0)
+      {
+        text=AcquireString(caption);
+        i=FormatMagickCaption(image,draw_info,split,&metrics,&text,
+          exception);
+        (void) CloneString(&draw_info->text,text);
+        text=DestroyString(text);
+        (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
+          -metrics.bounds.x1,metrics.ascent);
+        if (draw_info->gravity == UndefinedGravity)
+          (void) CloneString(&draw_info->geometry,geometry);
+        status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
+        if (status == MagickFalse)
+          break;
+        width=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
+        height=(size_t) floor(metrics.height+draw_info->stroke_width+0.5);
+        if ((image->columns != 0) && (image->rows != 0))
           {
-            text=AcquireString(caption);
-            i=FormatMagickCaption(image,draw_info,split,&metrics,&text,
-              exception);
-            (void) CloneString(&draw_info->text,text);
-            text=DestroyString(text);
-            (void) FormatLocaleString(geometry,MagickPathExtent,"%+g%+g",
-              -metrics.bounds.x1,metrics.ascent);
-            if (draw_info->gravity == UndefinedGravity)
-              (void) CloneString(&draw_info->geometry,geometry);
-            status=GetMultilineTypeMetrics(image,draw_info,&metrics,exception);
-            if (status == MagickFalse)
+            if ((width >= image->columns) && (height >= image->rows))
               break;
-            width=(size_t) floor(metrics.width+draw_info->stroke_width+0.5);
-            height=(size_t) floor(metrics.height+draw_info->stroke_width+0.5);
-            if ((image->columns != 0) && (image->rows != 0))
-              {
-                if ((width >= image->columns) && (height >= image->rows))
-                  break;
-              }
-            else
-              if (((image->columns != 0) && (width >= image->columns)) ||
-                  ((image->rows != 0) && (height >= image->rows)))
-                break;
           }
-          high=draw_info->pointsize;
-        }
+        else
+          if (((image->columns != 0) && (width >= image->columns)) ||
+              ((image->rows != 0) && (height >= image->rows)))
+            break;
+      }
+      high=draw_info->pointsize;
       for (low=1.0; (high-low) > 0.5; )
       {
         draw_info->pointsize=(low+high)/2.0;

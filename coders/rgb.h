@@ -20,8 +20,7 @@
 
 #define MagickRGBAliases \
   MagickCoderAlias("RGB", "RGBA") \
-  MagickCoderAlias("RGB", "RGBO") \
-  MagickCoderAlias("RGB", "RGB565")
+  MagickCoderAlias("RGB", "RGBO")
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {

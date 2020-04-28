@@ -124,9 +124,6 @@ typedef struct _NexusInfo
 
   size_t
     signature;
-
-  struct _NexusInfo
-    *virtual_nexus;
 } NexusInfo;
 
 typedef struct _CacheInfo
@@ -229,10 +226,6 @@ typedef struct _CacheInfo
 
   MagickBooleanType
     composite_mask;
-
-  MagickSizeType
-    width_limit,
-    height_limit;
 } CacheInfo;
 
 extern MagickPrivate Cache

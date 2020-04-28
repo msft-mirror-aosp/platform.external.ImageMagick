@@ -27,9 +27,6 @@ typedef struct _PSDInfo
   char
     signature[4];
 
-  MagickBooleanType
-    has_merged_image;
-
   size_t
     rows,
     columns;

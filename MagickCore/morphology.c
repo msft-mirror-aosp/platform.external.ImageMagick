@@ -298,9 +298,9 @@ static KernelInfo *ParseKernelArray(const char *kernel_string)
         p++;  /* ignore "'" chars for convolve filter usage - Cristy */
       for (i=0; p < end; i++)
       {
-        (void) GetNextToken(p,&p,MagickPathExtent,token);
+        GetNextToken(p,&p,MagickPathExtent,token);
         if (*token == ',')
-          (void) GetNextToken(p,&p,MagickPathExtent,token);
+          GetNextToken(p,&p,MagickPathExtent,token);
       }
       /* set the size of the kernel - old sized square */
       kernel->width = kernel->height= (size_t) sqrt((double) i+1.0);
@@ -320,9 +320,9 @@ static KernelInfo *ParseKernelArray(const char *kernel_string)
   kernel->negative_range = kernel->positive_range = 0.0;
   for (i=0; (i < (ssize_t) (kernel->width*kernel->height)) && (p < end); i++)
   {
-    (void) GetNextToken(p,&p,MagickPathExtent,token);
+    GetNextToken(p,&p,MagickPathExtent,token);
     if (*token == ',')
-      (void) GetNextToken(p,&p,MagickPathExtent,token);
+      GetNextToken(p,&p,MagickPathExtent,token);
     if (    LocaleCompare("nan",token) == 0
         || LocaleCompare("-",token) == 0 ) {
       kernel->values[i] = nan; /* this value is not part of neighbourhood */
@@ -338,7 +338,7 @@ static KernelInfo *ParseKernelArray(const char *kernel_string)
   }
 
   /* sanity check -- no more values in kernel definition */
-  (void) GetNextToken(p,&p,MagickPathExtent,token);
+  GetNextToken(p,&p,MagickPathExtent,token);
   if ( *token != '\0' && *token != ';' && *token != '\'' )
     return(DestroyKernelInfo(kernel));
 
@@ -393,7 +393,7 @@ static KernelInfo *ParseKernelName(const char *kernel_string,
     type;
 
   /* Parse special 'named' kernel */
-  (void) GetNextToken(kernel_string,&p,MagickPathExtent,token);
+  GetNextToken(kernel_string,&p,MagickPathExtent,token);
   type=ParseCommandOption(MagickKernelOptions,MagickFalse,token);
   if ( type < 0 || type == UserDefinedKernel )
     return((KernelInfo *) NULL);  /* not a valid named kernel */
@@ -2417,13 +2417,12 @@ static MagickBooleanType SameKernelInfo(const KernelInfo *kernel1,
   return MagickTrue;
 }
 
-static void ExpandRotateKernelInfo(KernelInfo *kernel,const double angle)
+static void ExpandRotateKernelInfo(KernelInfo *kernel, const double angle)
 {
   KernelInfo
     *clone_info,
     *last;
 
-  clone_info=(KernelInfo *) NULL;
   last=kernel;
 DisableMSCWarning(4127)
   while (1) {
@@ -2731,8 +2730,7 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
             pixel=bias;
             gamma=0.0;
             count=0;
-            if (((image->alpha_trait & BlendPixelTrait) == 0) ||
-                ((morphology_traits & BlendPixelTrait) == 0))
+            if ((morphology_traits & BlendPixelTrait) == 0)
               for (v=0; v < (ssize_t) kernel->height; v++)
               {
                 if (!IsNaN(*k))
@@ -2855,8 +2853,7 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
           *magick_restrict k;
 
         register const Quantum
-          *magick_restrict pixels,
-          *magick_restrict quantum_pixels;
+          *magick_restrict pixels;
 
         register ssize_t
           u;
@@ -2879,7 +2876,6 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
             continue;
           }
         pixels=p;
-        quantum_pixels=(const Quantum *) NULL;
         maximum=0.0;
         minimum=(double) QuantumRange;
         switch (method)
@@ -2933,8 +2929,7 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                  http://www.cs.umd.edu/~djacobs/CMSC426/Convolution.pdf
             */
             k=(&kernel->values[kernel->width*kernel->height-1]);
-            if (((image->alpha_trait & BlendPixelTrait) == 0) ||
-                ((morphology_traits & BlendPixelTrait) == 0))
+            if ((morphology_traits & BlendPixelTrait) == 0)
               {
                 /*
                   No alpha blending.
@@ -3059,8 +3054,8 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                   {
                     if (*k > 0.7)
                       {
-                        if ((double) pixels[i] < minimum)
-                          minimum=(double) pixels[i];
+                        if ((double) pixels[i] < pixel)
+                          pixel=(double) pixels[i];
                       }
                     else
                       if (*k < 0.3)
@@ -3075,10 +3070,9 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
               }
               pixels+=(image->columns-1)*GetPixelChannels(image);
             }
-            minimum-=maximum;
-            if (minimum < 0.0)
-              minimum=0.0;
-            pixel=minimum;
+            pixel-=maximum;
+            if (pixel < 0.0)
+              pixel=0.0;
             if (method ==  ThinningMorphology)
               pixel=(double) p[center+i]-pixel;
             else
@@ -3103,7 +3097,6 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                     intensity=(double) GetPixelIntensity(image,pixels);
                     if (intensity < minimum)
                       {
-                        quantum_pixels=pixels;
                         pixel=(double) pixels[i];
                         minimum=intensity;
                       }
@@ -3134,7 +3127,6 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
                     if (intensity > maximum)
                       {
                         pixel=(double) pixels[i];
-                        quantum_pixels=pixels;
                         maximum=intensity;
                       }
                     count++;
@@ -3195,11 +3187,6 @@ static ssize_t MorphologyPrimitive(const Image *image,Image *morphology_image,
         }
         if (fabs(pixel-p[center+i]) > MagickEpsilon)
           changes[id]++;
-        if (quantum_pixels != (const Quantum *) NULL)
-          {
-            SetPixelChannel(morphology_image,channel,quantum_pixels[i],q);
-            continue;
-          }
         gamma=PerceptibleReciprocal(gamma);
         if (count != 0)
           gamma*=(double) kernel->height*kernel->width/count;

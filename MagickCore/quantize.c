@@ -1950,7 +1950,8 @@ static MagickBooleanType DitherImage(Image *image,CubeInfo *cube_info,
   /*
     Distribute quantization error along a Hilbert curve.
   */
-  (void) memset(cube_info->error,0,ErrorQueueLength*sizeof(*cube_info->error));
+  (void) memset(cube_info->error,0,ErrorQueueLength*
+    sizeof(*cube_info->error));
   cube_info->x=0;
   cube_info->y=0;
   i=MagickMax((ssize_t) image->columns,(ssize_t) image->rows);
@@ -2052,7 +2053,8 @@ static CubeInfo *GetCubeInfo(const QuantizeInfo *quantize_info,
   /*
     Initialize color cache.
   */
-  (void) memset(cube_info->cache,(-1),sizeof(*cube_info->cache)*length);
+  (void) memset(cube_info->cache,(-1),sizeof(*cube_info->cache)*
+    length);
   /*
     Distribute weights along a curve of exponential decay.
   */
@@ -2199,8 +2201,10 @@ MagickExport MagickBooleanType GetImageQuantizeError(Image *image,
     mean_error,
     mean_error_per_pixel;
 
+  size_t
+    index;
+
   ssize_t
-    index,
     y;
 
   assert(image != (Image *) NULL);
@@ -2231,7 +2235,7 @@ MagickExport MagickBooleanType GetImageQuantizeError(Image *image,
       break;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      index=(ssize_t) GetPixelIndex(image,p);
+      index=GetPixelIndex(image,p);
       if (image->alpha_trait == BlendPixelTrait)
         {
           alpha=(double) (QuantumScale*GetPixelAlpha(image,p));
@@ -2672,8 +2676,7 @@ MagickExport MagickBooleanType QuantizeImage(const QuantizeInfo *quantize_info,
       if (SetImageGray(image,exception) != MagickFalse)
         (void) SetGrayscaleImage(image,exception);
     }
-  if ((quantize_info->dither_method == NoDitherMethod) &&
-      (image->storage_class == PseudoClass) &&
+  if ((image->storage_class == PseudoClass) &&
       (image->colors <= maximum_colors))
     {
       if ((quantize_info->colorspace != UndefinedColorspace) &&
@@ -3315,9 +3318,6 @@ static MagickBooleanType SetGrayscaleImage(Image *image,
   register ssize_t
     i;
 
-  size_t
-    extent;
-
   ssize_t
     *colormap_index,
     j,
@@ -3327,15 +3327,19 @@ static MagickBooleanType SetGrayscaleImage(Image *image,
   assert(image->signature == MagickCoreSignature);
   if (image->type != GrayscaleType)
     (void) TransformImageColorspace(image,GRAYColorspace,exception);
-  extent=MagickMax(image->colors+1,MagickMax(MaxColormapSize,MaxMap+1));
-  colormap_index=(ssize_t *) AcquireQuantumMemory(extent,
-    sizeof(*colormap_index));
+  if (image->storage_class == PseudoClass)
+    colormap_index=(ssize_t *) AcquireQuantumMemory(image->colors+1,
+      sizeof(*colormap_index));
+  else
+    colormap_index=(ssize_t *) AcquireQuantumMemory(MaxColormapSize+1,
+      sizeof(*colormap_index));
   if (colormap_index == (ssize_t *) NULL)
     ThrowBinaryException(ResourceLimitError,"MemoryAllocationFailed",
       image->filename);
   if (image->storage_class != PseudoClass)
     {
-      (void) memset(colormap_index,(-1),extent*sizeof(*colormap_index));
+      (void) memset(colormap_index,(-1),MaxColormapSize*
+        sizeof(*colormap_index));
       if (AcquireImageColormap(image,MaxColormapSize,exception) == MagickFalse)
         {
           colormap_index=(ssize_t *) RelinquishMagickMemory(colormap_index);
@@ -3397,7 +3401,6 @@ static MagickBooleanType SetGrayscaleImage(Image *image,
       }
       image_view=DestroyCacheView(image_view);
     }
-  (void) memset(colormap_index,0,extent*sizeof(*colormap_index));
   for (i=0; i < (ssize_t) image->colors; i++)
     image->colormap[i].alpha=(double) i;
   qsort((void *) image->colormap,image->colors,sizeof(PixelInfo),

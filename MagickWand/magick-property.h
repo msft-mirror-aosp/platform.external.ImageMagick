@@ -136,9 +136,6 @@ extern WandExport unsigned char
   *MagickGetImageProfile(MagickWand *,const char *,size_t *),
   *MagickRemoveImageProfile(MagickWand *,const char *,size_t *);
 
-extern WandExport void
-  MagickSetSeed(const unsigned long);
-
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif

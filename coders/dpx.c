@@ -65,7 +65,6 @@
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
 #include "MagickCore/string-private.h"
-#include "MagickCore/timer-private.h"
 
 /*
   Define declaration.
@@ -736,10 +735,16 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     (void) FormatImageProperty(image,"dpx:file.ditto.key","%u",
       dpx.file.ditto_key);
   dpx.file.generic_size=ReadBlobLong(image);
+  if (0 && dpx.file.generic_size > GetBlobSize(image))
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   offset+=4;
   dpx.file.industry_size=ReadBlobLong(image);
+  if (dpx.file.industry_size > GetBlobSize(image))
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   offset+=4;
   dpx.file.user_size=ReadBlobLong(image);
+  if (0 && dpx.file.user_size > GetBlobSize(image))
+    ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   offset+=4;
   offset+=ReadBlob(image,sizeof(dpx.file.filename),(unsigned char *)
     dpx.file.filename);
@@ -846,6 +851,8 @@ static Image *ReadDPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
     dpx.image.image_element[i].bit_size=(unsigned char) ReadBlobByte(image);
     offset++;
     dpx.image.image_element[i].packing=ReadBlobShort(image);
+    if (dpx.image.image_element[i].packing > 2)
+      ThrowReaderException(CorruptImageError,"ImproperImageHeader");
     offset+=2;
     dpx.image.image_element[i].encoding=ReadBlobShort(image);
     offset+=2;
@@ -1454,6 +1461,9 @@ static inline const char *GetDPXProperty(const Image *image,
 static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
   ExceptionInfo *exception)
 {
+  char
+    *url;
+
   const char
     *value;
 
@@ -1580,13 +1590,14 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
     (void) strncpy(dpx.file.filename,value,sizeof(dpx.file.filename)-1);
   offset+=WriteBlob(image,sizeof(dpx.file.filename),(unsigned char *)
     dpx.file.filename);
-  seconds=GetMagickTime();
+  seconds=time((time_t *) NULL);
   (void) FormatMagickTime(seconds,sizeof(dpx.file.timestamp),
     dpx.file.timestamp);
   offset+=WriteBlob(image,sizeof(dpx.file.timestamp),(unsigned char *)
     dpx.file.timestamp);
-  (void) strncpy(dpx.file.creator,MagickAuthoritativeURL,
-    sizeof(dpx.file.creator)-1);
+  url=GetMagickHomeURL();
+  (void) strncpy(dpx.file.creator,url,sizeof(dpx.file.creator)-1);
+  url=DestroyString(url);
   value=GetDPXProperty(image,"dpx:file.creator",exception);
   if (value != (const char *) NULL)
     (void) strncpy(dpx.file.creator,value,sizeof(dpx.file.creator)-1);
@@ -2007,16 +2018,11 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
   pixels=(unsigned char *) GetQuantumPixels(quantum_info);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    size_t
-      length;
-
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
     if (p == (const Quantum *) NULL)
       break;
-    length=ExportQuantumPixels(image,(CacheView *) NULL,quantum_info,
+    (void) ExportQuantumPixels(image,(CacheView *) NULL,quantum_info,
       quantum_type,pixels,exception);
-    if (length == 0)
-      break;
     count=WriteBlob(image,extent,pixels);
     if (count != (ssize_t) extent)
       break;
@@ -2026,8 +2032,6 @@ static MagickBooleanType WriteDPXImage(const ImageInfo *image_info,Image *image,
       break;
   }
   quantum_info=DestroyQuantumInfo(quantum_info);
-  if (y < (ssize_t) image->rows)
-    ThrowWriterException(CorruptImageError,"UnableToWriteImageData");
   (void) CloseBlob(image);
   return(status);
 }

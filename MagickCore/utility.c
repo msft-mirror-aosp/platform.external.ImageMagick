@@ -813,7 +813,7 @@ MagickExport MagickBooleanType ExpandFilenames(int *number_arguments,
       continue;
     if ((IsGlob(filename) == MagickFalse) && (*option != '@'))
       continue;
-    if ((*option != '@') && (IsPathAccessible(option) == MagickFalse))
+    if (*option != '@')
       {
         /*
           Generate file list from wildcard filename (e.g. *.jpg).
@@ -1238,25 +1238,23 @@ MagickExport void GetPathComponent(const char *path,PathType type,
   if (type != SubcanonicalPath)
     {
       p=component+strlen(component)-1;
-      if ((strlen(component) > 2) && (*p == ']'))
+      q=strrchr(component,'[');
+      if ((strlen(component) > 2) && (*p == ']') && (q != (char *) NULL) &&
+          ((q == component) || (*(q-1) != ']')) &&
+          (IsPathAccessible(path) == MagickFalse))
         {
-          q=strrchr(component,'[');
-          if ((q != (char *) NULL) && ((q == component) || (*(q-1) != ']')) &&
-              (IsPathAccessible(path) == MagickFalse))
+          /*
+            Look for scene specification (e.g. img0001.pcd[4]).
+          */
+          *p='\0';
+          if ((IsSceneGeometry(q+1,MagickFalse) == MagickFalse) &&
+              (IsGeometry(q+1) == MagickFalse))
+            *p=']';
+          else
             {
-              /*
-                Look for scene specification (e.g. img0001.pcd[4]).
-              */
-              *p='\0';
-              if ((IsSceneGeometry(q+1,MagickFalse) == MagickFalse) &&
-                  (IsGeometry(q+1) == MagickFalse))
-                *p=']';
-              else
-                {
-                  subimage_length=(size_t) (p-q);
-                  subimage_offset=(size_t) (q-component+1);
-                  *q='\0';
-                }
+              subimage_length=(size_t) (p-q);
+              subimage_offset=(size_t) (q-component+1);
+              *q='\0';
             }
         }
     }
@@ -1740,15 +1738,7 @@ MagickExport void MagickDelay(const MagickSizeType milliseconds)
 #elif defined(__BEOS__)
   snooze(1000*milliseconds);
 #else
-  {
-    clock_t
-      time_end;
-
-    time_end=clock()+milliseconds*CLOCKS_PER_SEC/1000;
-    while (clock() < time_end)
-    {
-    }
-  }
+# error "Time delay method not defined."
 #endif
 }
 

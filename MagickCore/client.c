@@ -41,7 +41,6 @@
 */
 #include "MagickCore/studio.h"
 #include "MagickCore/client.h"
-#include "MagickCore/log.h"
 #include "MagickCore/string_.h"
 
 /*
@@ -115,14 +114,11 @@ MagickExport const char *GetClientPath(void)
 MagickExport const char *SetClientName(const char *name)
 {
   static char
-    client_name[256] = "";
+    client_name[MagickPathExtent] = "Magick";
 
   if ((name != (char *) NULL) && (*name != '\0'))
-    {
-      (void) CopyMagickString(client_name,name,sizeof(client_name));
-      (void) LogMagickEvent(ConfigureEvent,GetMagickModule(),"%s",client_name);
-    }
-  return(*client_name == '\0' ? "Magick" : client_name);
+    (void) CopyMagickString(client_name,name,MagickPathExtent);
+  return(client_name);
 }
 
 /*
@@ -155,9 +151,6 @@ MagickExport const char *SetClientPath(const char *path)
     client_path[MagickPathExtent] = "";
 
   if ((path != (char *) NULL) && (*path != '\0'))
-    {
-      (void) CopyMagickString(client_path,path,MagickPathExtent);
-      (void) LogMagickEvent(ConfigureEvent,GetMagickModule(),"%s",path);
-    }
+    (void) CopyMagickString(client_path,path,MagickPathExtent);
   return(client_path);
 }

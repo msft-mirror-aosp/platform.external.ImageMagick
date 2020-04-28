@@ -164,12 +164,11 @@ static MagickBooleanType
 %
 %  The format of the AcquireMagickInfo method is:
 %
-%      MagickInfo *AcquireMagickInfo(const char *magick_module,
-%        const char *name,const char *description)
+%      MagickInfo *AcquireMagickInfo(const char *module, const char *name,)
 %
 %  A description of each parameter follows:
 %
-%    o magick_module: a character string that represents the module associated
+%    o module: a character string that represents the module associated
 %      with the MagickInfo structure.
 %
 %    o name: a character string that represents the image format associated
@@ -179,19 +178,19 @@ static MagickBooleanType
 %      associated with the MagickInfo structure.
 %
 */
-MagickExport MagickInfo *AcquireMagickInfo(const char *magick_module,
-  const char *name,const char *description)
+MagickExport MagickInfo *AcquireMagickInfo(const char *module,const char *name,
+  const char *description)
 {
   MagickInfo
     *magick_info;
 
-  assert(magick_module != (const char *) NULL);
+  assert(module != (const char *) NULL);
   assert(name != (const char *) NULL);
   assert(description != (const char *) NULL);
   (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",name);
   magick_info=(MagickInfo *) AcquireCriticalMemory(sizeof(*magick_info));
   (void) memset(magick_info,0,sizeof(*magick_info));
-  magick_info->magick_module=ConstantString(magick_module);
+  magick_info->module=ConstantString(module);
   magick_info->name=ConstantString(name);
   magick_info->description=ConstantString(description);
   magick_info->flags=CoderAdjoinFlag | CoderBlobSupportFlag |
@@ -870,64 +869,6 @@ MagickExport const char *GetMagickMimeType(const MagickInfo *magick_info)
 %                                                                             %
 %                                                                             %
 %                                                                             %
-+   G e t M a g i c k M o d u l e N a m e                                     %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  GetMagickModuleName() returns the magick module name.
-%
-%  The format of the GetMagickModuleName method is:
-%
-%      const char *GetMagickModuleName(const MagickInfo *magick_info)
-%
-%  A description of each parameter follows:
-%
-%    o magick_info:  The magick info.
-%
-*/
-MagickExport const char *GetMagickModuleName(const MagickInfo *magick_info)
-{
-  assert(magick_info != (MagickInfo *) NULL);
-  assert(magick_info->signature == MagickCoreSignature);
-  return(magick_info->magick_module);
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-+   G e t M a g i c k N a m e                                                 %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  GetMagickName() returns the magick name.
-%
-%  The format of the GetMagickName method is:
-%
-%      const char *GetMagickName(const MagickInfo *magick_info)
-%
-%  A description of each parameter follows:
-%
-%    o magick_info:  The magick info.
-%
-*/
-MagickExport const char *GetMagickName(const MagickInfo *magick_info)
-{
-  assert(magick_info != (MagickInfo *) NULL);
-  assert(magick_info->signature == MagickCoreSignature);
-  return(magick_info->name);
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
 %   G e t M a g i c k P r e c i s i o n                                       %
 %                                                                             %
 %                                                                             %
@@ -1074,8 +1015,8 @@ static void *DestroyMagickNode(void *magick_info)
     *p;
 
   p=(MagickInfo *) magick_info;
-  if (p->magick_module != (char *) NULL)
-    p->magick_module=DestroyString(p->magick_module);
+  if (p->module != (char *) NULL)
+    p->module=DestroyString(p->module);
   if (p->note != (char *) NULL)
     p->note=DestroyString(p->note);
   if (p->mime_type != (char *) NULL)
@@ -1212,16 +1153,14 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
 #if defined(MAGICKCORE_MODULES_SUPPORT)
     {
       char
-        magick_module[MagickPathExtent];
+        module[MagickPathExtent];
 
-      *magick_module='\0';
-      if (magick_info[i]->magick_module != (char *) NULL)
-        (void) CopyMagickString(magick_module,magick_info[i]->magick_module,
-          MagickPathExtent);
-      (void) ConcatenateMagickString(magick_module,"          ",
-        MagickPathExtent);
-      magick_module[9]='\0';
-      (void) FormatLocaleFile(file,"%9s ",magick_module);
+      *module='\0';
+      if (magick_info[i]->module != (char *) NULL)
+        (void) CopyMagickString(module,magick_info[i]->module,MagickPathExtent);
+      (void) ConcatenateMagickString(module,"          ",MagickPathExtent);
+      module[9]='\0';
+      (void) FormatLocaleFile(file,"%9s ",module);
     }
 #endif
     (void) FormatLocaleFile(file,"%c%c%c ",magick_info[i]->decoder ? 'r' : '-',
@@ -1496,7 +1435,6 @@ MagickExport void MagickCoreGenesis(const char *path,
       return;
     }
   (void) SemaphoreComponentGenesis();
-  (void) ExceptionComponentGenesis();
   (void) LogComponentGenesis();
   (void) LocaleComponentGenesis();
   (void) RandomComponentGenesis();
@@ -1663,7 +1601,6 @@ MagickExport void MagickCoreTerminus(void)
   RandomComponentTerminus();
   LocaleComponentTerminus();
   LogComponentTerminus();
-  ExceptionComponentTerminus();
   instantiate_magickcore=MagickFalse;
   UnlockMagickMutex();
   SemaphoreComponentTerminus();

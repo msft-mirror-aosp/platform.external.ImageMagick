@@ -7,9 +7,9 @@
 <head>
   <meta charset="utf-8"  />
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,shrink-to-fit=no"  />
-  <title>ImageMagick - Format and Print Image Properties</title>
+  <title>Format and Print Image Properties @ ImageMagick</title>
   <meta name="application-name" content="ImageMagick" />
-  <meta name="description" content="ImageMagick® creates, edits, composes, and converts bitmap images. Resize an image, crop it, change its shades and colors, add captions, and more." />
+  <meta name="description" content="Use ImageMagick® to create, edit, compose, or convert bitmap images. You can resize your image, crop it, change its shades and colors, add captions, among other operations." />
   <meta name="application-url" content="https://imagemagick.org" />
   <meta name="generator" content="PHP" />
   <meta name="keywords" content="format, print, image, properties, ImageMagick, PerlMagick, image processing, image, photo, software, Magick++, OpenMP, convert" />
@@ -22,12 +22,6 @@
   <meta name="copyright" content="Copyright (c) 1999-2019 ImageMagick Studio LLC" />
   <meta name="distribution" content="Global" />
   <meta name="magick-serial" content="P131-S030410-R485315270133-P82224-A6668-G1245-1" />
-  <meta property='og:url' content='../' />
-  <meta property='og:title' content='ImageMagick' />
-  <meta property='og:image' content='../images/logo.png' />
-  <meta property='og:type' content='website' />
-  <meta property='og:site_name' content='ImageMagick' />
-  <meta property='og:description' content="Convert, Edit, or Compose Bitmap Images" />
   <meta name="google-site-verification" content="_bMOCDpkx9ZAzBwb2kF3PRHbfUUdFj2uO8Jd1AXArz4" />
   <link href="escape.html" rel="canonical" />
   <link href="../images/wand.png" rel="icon" />
@@ -37,7 +31,7 @@
 <body>
   <header>
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <a class="navbar-brand" href="../index.html"><img class="d-block" id="icon" alt="ImageMagick" width="32" height="32" src="../images/wand.ico"/></a>
+    <a class="navbar-brand" href="../"><img class="d-block" id="icon" alt="ImageMagick" width="32" height="32" src="../images/wand.ico"/></a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsMagick" aria-controls="navbarsMagick" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -45,22 +39,22 @@
     <div class="navbar-collapse collapse" id="navbarsMagick" style="">
     <ul class="navbar-nav mr-auto">
       <li class="nav-item ">
-        <a class="nav-link" href="../index.html">Home <span class="sr-only">(current)</span></a>
+        <a class="nav-link" href="api/quantize.html">Home <span class="sr-only">(current)</span></a>
       </li>
       <li class="nav-item ">
-        <a class="nav-link" href="download.html">Download</a>
+        <a class="nav-link" href="../www/download.html">Download</a>
       </li>
       <li class="nav-item ">
-        <a class="nav-link" href="command-line-tools.html">Tools</a>
+        <a class="nav-link" href="../www/command-line-tools.html">Tools</a>
       </li>
       <li class="nav-item ">
-        <a class="nav-link" href="command-line-processing.html">Command-line</a>
+        <a class="nav-link" href="../www/command-line-processing.html">Command-line</a>
       </li>
       <li class="nav-item ">
-        <a class="nav-link" href="resources.html">Resources</a>
+        <a class="nav-link" href="../www/resources.html">Resources</a>
       </li>
       <li class="nav-item ">
-        <a class="nav-link" href="develop.html">Develop</a>
+        <a class="nav-link" href="../www/develop.html">Develop</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" target="_blank" href="https://imagemagick.org/discourse-server/">Community</a>
@@ -77,8 +71,7 @@
          style="display:block"
          data-ad-client="ca-pub-3129977114552745"
          data-ad-slot="6345125851"
-         data-full-width-responsive="true"
-         data-ad-format="horizontal"></ins>
+         data-ad-format="auto"></ins>
     <script>
       (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
@@ -90,7 +83,7 @@
 <div class="magick-header">
 <p class="lead magick-description">There are copious amounts of extra data associated with images (metadata), beyond the actual image pixels. This metadata can be useful, either for display, or for various calculations, or in modifying the behavior of later image processing operations.  You can utilize percent escapes in a number of options, for example in <a href="../www/command-line-options.html#format_identify_">-format</a> or in montage <a href="../www/command-line-options.html#label" >-label</a>, to print various properties and other settings associated with an image.</p>
 
-<div class="table-responsive"  style="font-size:87.5% !important;">
+<div class="table-responsive">
 <table class="table table-striped">
 <tr>
     <td><b>Profile Data</b></td>
@@ -153,7 +146,7 @@ found...</p>
 <p>Remember, all long name forms of percent escapes are handled in a is case
 insensitive manner. </p>
 
-<p>You can now access the Artifact and Option
+<p><b>As of IM v6.8.0-5</b> you can now access the Artifact and Option
 free-form string tables directly, allowing you to override the above sequence,
 and avoid accessing an attribute or property of the same name.</p>
 
@@ -161,7 +154,6 @@ and avoid accessing an attribute or property of the same name.</p>
 %[option:<var>setting</var>]
 </code></pre>
 
-<p>Escape handling requires access to an image container.  If none are available, a blank image is created to ensure the expression can be processed and a value returned.  For example, <code>magick -print "%[fx:.8765/3.14]" null: null:</code>.</p>
 
 <h3>Single Letter Attribute Percent Escapes</h3>
 
@@ -169,7 +161,7 @@ and avoid accessing an attribute or property of the same name.</p>
 common attributes and properties of an image, such as: the image filename
 filename, type, width, height. </p>
 
-<div class="table-responsive"  style="font-size:87.5% !important;">
+<div class="table-responsive">
 <table class="table table-sm table-striped">
   <tr>
     <td>\n</td>
@@ -390,7 +382,7 @@ especially for large images.</p>
 <p>In addition to the above specific and calculated attributes are recognized
 when enclosed in braces (long form):</p>
 
-<div class="table-responsive"  style="font-size:87.5% !important;">
+<div class="table-responsive">
 <table class="table table-sm table-striped">
   <tr>
     <td>%[basename]</td>
@@ -661,7 +653,12 @@ a 'viewport' has been provided to it. </p>
 <p>How Global Options are used when a library function requests an Artifact is
 one of the key differences between IMv6 and IMv7.</p>
 
-<p>Sets a link back to the global options
+<p>In <b>ImageMagick version 6</b>... before each operator, any global Options
+are copied to per-image Artifacts, for every image in the current image list.
+This allows various operators to find its operational 'defines' or Artifacts.
+</p>
+
+<p>In <b>ImageMagick version 7</b>... sets a link back to the global options
 data, so that if a specific per-image Artifact is not found , then it will
 look for a equivalent global Option for that image list.  directly.  This
 saves coping these free-form options into artifacts repeatally, and means you
@@ -911,17 +908,16 @@ Post ObjectData Descriptor Record
     </div>
   </main><!-- /.container -->
   <footer class="magick-footer">
-    <p><a href="security-policy.html">Security</a> •
-    <a href="architecture.html">Architecture</a>
-     
+    <p><a href="../www/security-policy.html">Security</a> •
+    <a href="../www/architecture.html">Architecture</a> •
+    <a href="../www/links.html">Related</a> •
+     <a href="../www/sitemap.html">Sitemap</a>
+       
     <a href="escape.html#"><img class="d-inline" id="wand" alt="And Now a Touch of Magick" width="16" height="16" src="../images/wand.ico"/></a>
-     
-    <a href="links.html">Related</a> •
-     <a href="sitemap.html">Sitemap</a>
-    <br/>
-    <a href="support.html">Donate</a> •
+       
     <a href="http://pgp.mit.edu/pks/lookup?op=get&amp;search=0x89AB63D48277377A">Public Key</a> •
-    <a href="https://imagemagick.org/script/contact.php">Contact Us</a> 
+    <a href="../www/support.html">Donate</a> •
+    <a href="../www/https://imagemagick.org/script/contact.php">Contact Us</a>
     <br/>
     <small>© 1999-2019 ImageMagick Studio LLC</small></p>
   </footer>
@@ -931,4 +927,3 @@ Post ObjectData Descriptor Record
   <script>window.jQuery || document.write('<script src="https://localhost/ajax/libs/jquery/3.3.1/jquery.min.js"><\/script>')</script>
 </body>
 </html>
-<!-- Magick Cache 2nd September 2019 14:26 -->

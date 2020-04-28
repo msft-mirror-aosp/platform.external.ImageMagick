@@ -65,15 +65,15 @@
 /*
   Typedef declaractions.
 */
-typedef struct _EXRWindowInfo
+typedef struct _ExrWindow
 {
   int
     max_x,
     max_y,
     min_x,
     min_y;
-} EXRWindowInfo;
-
+} ExrWindow;
+
 /*
   Forward declarations.
 */
@@ -144,15 +144,18 @@ static MagickBooleanType IsEXR(const unsigned char *magick,const size_t length)
 */
 static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
-  const ImfHeader
-    *hdr_info;
-
-  EXRWindowInfo
+  ExrWindow
     data_window,
     display_window;
 
+  const ImfHeader
+    *hdr_info;
+
   Image
     *image;
+
+  ImageInfo
+    *read_info;
 
   ImfInputFile
     *file;
@@ -160,19 +163,17 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
   ImfRgba
     *scanline;
 
-  int
-    compression;
-
   MagickBooleanType
     status;
+
+  register ssize_t
+    x;
 
   register Quantum
     *q;
 
-  size_t
-    columns;
-
   ssize_t
+    columns,
     y;
 
   /*
@@ -192,53 +193,37 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
-  file=ImfOpenInputFile(image->filename);
+  read_info=CloneImageInfo(image_info);
+  if (IsPathAccessible(read_info->filename) == MagickFalse)
+    {
+      (void) AcquireUniqueFilename(read_info->filename);
+      (void) ImageToFile(image,read_info->filename,exception);
+    }
+  file=ImfOpenInputFile(read_info->filename);
   if (file == (ImfInputFile *) NULL)
     {
       ThrowFileException(exception,BlobError,"UnableToOpenBlob",
         ImfErrorMessage());
+      if (LocaleCompare(image_info->filename,read_info->filename) != 0)
+        (void) RelinquishUniqueFileResource(read_info->filename);
+      read_info=DestroyImageInfo(read_info);
       image=DestroyImageList(image);
       return((Image *) NULL);
     }
   hdr_info=ImfInputHeader(file);
   ImfHeaderDisplayWindow(hdr_info,&display_window.min_x,&display_window.min_y,
     &display_window.max_x,&display_window.max_y);
-  image->columns=((size_t) display_window.max_x-display_window.min_x+1UL);
-  image->rows=((size_t) display_window.max_y-display_window.min_y+1UL);
+  image->columns=display_window.max_x-display_window.min_x+1UL;
+  image->rows=display_window.max_y-display_window.min_y+1UL;
   image->alpha_trait=BlendPixelTrait;
-  (void) SetImageColorspace(image,RGBColorspace,exception);
+  SetImageColorspace(image,RGBColorspace,exception);
   image->gamma=1.0;
-  image->compression=NoCompression;
-  compression=ImfHeaderCompression(hdr_info);
-  if (compression == IMF_RLE_COMPRESSION)
-    image->compression=RLECompression;
-  if (compression == IMF_ZIPS_COMPRESSION)
-    image->compression=ZipSCompression;
-  if (compression == IMF_ZIP_COMPRESSION)
-    image->compression=ZipCompression;
-  if (compression == IMF_PIZ_COMPRESSION)
-    image->compression=PizCompression;
-  if (compression == IMF_PXR24_COMPRESSION)
-    image->compression=Pxr24Compression;
-#if defined(IMF_B44_COMPRESSION)
-  if (compression == IMF_B44_COMPRESSION)
-    image->compression=B44Compression;
-#endif
-#if defined(IMF_B44A_COMPRESSION)
-  if (compression == IMF_B44A_COMPRESSION)
-    image->compression=B44ACompression;
-#endif
-#if defined(IMF_DWAA_COMPRESSION)
-  if (compression == IMF_DWAA_COMPRESSION)
-    image->compression=DWAACompression;
-#endif
-#if defined(IMF_DWAB_COMPRESSION)
-  if (compression == IMF_DWAB_COMPRESSION)
-    image->compression=DWABCompression;
-#endif
   if (image_info->ping != MagickFalse)
     {
       (void) ImfCloseInputFile(file);
+      if (LocaleCompare(image_info->filename,read_info->filename) != 0)
+        (void) RelinquishUniqueFileResource(read_info->filename);
+      read_info=DestroyImageInfo(read_info);
       (void) CloseBlob(image);
       return(GetFirstImageInList(image));
     }
@@ -247,7 +232,7 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
     return(DestroyImageList(image));
   ImfHeaderDataWindow(hdr_info,&data_window.min_x,&data_window.min_y,
     &data_window.max_x,&data_window.max_y);
-  columns=((size_t) data_window.max_x-data_window.min_x+1UL);
+  columns=(ssize_t) data_window.max_x-data_window.min_x+1UL;
   if ((display_window.min_x > data_window.max_x) ||
       (display_window.min_x+(int) image->columns <= data_window.min_x))
     scanline=(ImfRgba *) NULL;
@@ -257,6 +242,9 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
       if (scanline == (ImfRgba *) NULL)
         {
           (void) ImfCloseInputFile(file);
+          if (LocaleCompare(image_info->filename,read_info->filename) != 0)
+            (void) RelinquishUniqueFileResource(read_info->filename);
+          read_info=DestroyImageInfo(read_info);
           image=DestroyImageList(image);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
@@ -266,13 +254,10 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
     int
       yy;
 
-    register ssize_t
-      x;
-
     q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);
     if (q == (Quantum *) NULL)
       break;
-    yy=(int) (display_window.min_y+y);
+    yy=display_window.min_y+y;
     if ((yy < data_window.min_y) || (yy > data_window.max_y) ||
         (scanline == (ImfRgba *) NULL))
       {
@@ -281,11 +266,9 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
           SetPixelViaPixelInfo(image,&image->background_color,q);
           q+=GetPixelChannels(image);
         }
-        if (SyncAuthenticPixels(image,exception) == MagickFalse)
-          break;
         continue;
       }
-    (void) memset(scanline,0,columns*sizeof(*scanline));
+    memset(scanline,0,columns*sizeof(*scanline));
     ImfInputSetFrameBuffer(file,scanline-data_window.min_x-columns*yy,1,
       columns);
     ImfInputReadPixels(file,yy,yy);
@@ -294,7 +277,7 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
       int
         xx;
 
-      xx=(int) (display_window.min_x+x-data_window.min_x);
+      xx=display_window.min_x+((int) x-data_window.min_x);
       if ((xx < 0) || (display_window.min_x+(int) x > data_window.max_x))
         SetPixelViaPixelInfo(image,&image->background_color,q);
       else
@@ -315,6 +298,9 @@ static Image *ReadEXRImage(const ImageInfo *image_info,ExceptionInfo *exception)
   }
   scanline=(ImfRgba *) RelinquishMagickMemory(scanline);
   (void) ImfCloseInputFile(file);
+  if (LocaleCompare(image_info->filename,read_info->filename) != 0)
+    (void) RelinquishUniqueFileResource(read_info->filename);
+  read_info=DestroyImageInfo(read_info);
   (void) CloseBlob(image);
   return(GetFirstImageInList(image));
 }
@@ -354,7 +340,6 @@ ModuleExport size_t RegisterEXRImage(void)
   entry->encoder=(EncodeImageHandler *) WriteEXRImage;
 #endif
   entry->magick=(IsImageFormatHandler *) IsEXR;
-  entry->flags|=CoderDecoderSeekableStreamFlag;
   entry->flags^=CoderAdjoinFlag;
   entry->flags^=CoderBlobSupportFlag;
   (void) RegisterMagickInfo(entry);
@@ -476,8 +461,6 @@ static MagickBooleanType WriteEXRImage(const ImageInfo *image_info,Image *image,
   ImfHeaderSetDisplayWindow(hdr_info,0,0,(int) image->columns-1,(int)
     image->rows-1);
   compression=IMF_NO_COMPRESSION;
-  if (write_info->compression == RLECompression)
-    compression=IMF_RLE_COMPRESSION;
   if (write_info->compression == ZipSCompression)
     compression=IMF_ZIPS_COMPRESSION;
   if (write_info->compression == ZipCompression)
@@ -486,21 +469,13 @@ static MagickBooleanType WriteEXRImage(const ImageInfo *image_info,Image *image,
     compression=IMF_PIZ_COMPRESSION;
   if (write_info->compression == Pxr24Compression)
     compression=IMF_PXR24_COMPRESSION;
-#if defined(IMF_B44_COMPRESSION)
+#if defined(B44Compression)
   if (write_info->compression == B44Compression)
     compression=IMF_B44_COMPRESSION;
 #endif
-#if defined(IMF_B44A_COMPRESSION)
+#if defined(B44ACompression)
   if (write_info->compression == B44ACompression)
     compression=IMF_B44A_COMPRESSION;
-#endif
-#if defined(IMF_DWAA_COMPRESSION)
-  if (write_info->compression == DWAACompression)
-    compression=IMF_DWAA_COMPRESSION;
-#endif
-#if defined(IMF_DWAB_COMPRESSION)
-  if (write_info->compression == DWABCompression)
-    compression=IMF_DWAB_COMPRESSION;
 #endif
   channels=0;
   value=GetImageOption(image_info,"exr:color-type");

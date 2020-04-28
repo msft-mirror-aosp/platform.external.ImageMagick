@@ -27,7 +27,7 @@ AC_PREREQ(2.69)
 m4_define([magick_major_version], [7])
 m4_define([magick_minor_version], [0])
 m4_define([magick_micro_version], [8])
-m4_define([magick_patchlevel_version], [64])
+m4_define([magick_patchlevel_version], [32])
 m4_define([magick_version],
           [magick_major_version.magick_minor_version.magick_micro_version-magick_patchlevel_version])
 m4_define([magick_git_revision], esyscmd([sh -c "(gitversion.sh .) | awk '{ print \$1 }' | tr -d '\n'"]))
@@ -295,12 +295,9 @@ AC_PROG_MAKE_SET
 AC_PROG_LN_S
 AC_PROG_SED
 AC_PROG_AWK
-AC_PROG_MKDIR_P
 AM_WITH_DMALLOC
 AX_C___ATTRIBUTE__
-AX_GCC_ARCHFLAG([yes], [
-  CFLAGS="$CFLAGS $ax_cv_gcc_archflag"
-  CXXFLAGS="$CXXFLAGS $ax_cv_gcc_archflag"])
+AX_GCC_ARCHFLAG([yes])
 PKG_PROG_PKG_CONFIG([0.20])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -1184,10 +1181,10 @@ AC_TRY_COMPILE([],
    [{ const char *func = __FUNCTION__; return(func != 0 ? 0 : 1); }],
    AC_MSG_RESULT([yes])
    AC_DEFINE(__func__, __FUNCTION__,
-     [Define to appropriate substitute if compiler does not have __func__]),
+     [Define to appropriate substitue if compiler does not have __func__]),
    AC_MSG_RESULT([no])
    AC_DEFINE(__func__, __FILE__,
-     [Define to appropriate substitute if compiler does not have __func__])))
+     [Define to appropriate substitue if compiler does not have __func__])))
 
 ########
 #
@@ -1222,6 +1219,8 @@ AC_SEARCH_LIBS(socket, socket,
   AC_DEFINE([HAVE_SOCKET],[1],[Define to 1 if you have socket support.])
   MAGICK_FEATURES="DPC $MAGICK_FEATURES"
 ])
+
+AC_CHECK_FUNCS([acosh _aligned_malloc asinh atanh atoll atexit cabs carg cimag creal clock clock_getres clock_gettime ctime_r directio erf _exit execvp fchmod floor fork ftime ftruncate getc_unlocked getcwd getpid getexecname getdtablesize getpagesize getrlimit getrusage gettimeofday gmtime_r isnan j0 j1 lltostr localtime_r lstat memmove memset mkstemp munmap nanosleep newlocale _NSGetExecutablePath pclose _pclose poll popen _popen posix_fadvise posix_fallocate posix_madvise posix_memalign posix_spawnp pow pread pwrite qsort_r raise rand_r readlink realpath select seekdir sendfile setlocale socket sqrt setvbuf stat strchr strrchr strcspn strdup strpbrk strspn strstr strtod strtod_l strtol strtoul symlink sysconf sigemptyset sigaction spawnvp strerror strlcat strlcpy strcasecmp strncasecmp telldir tempnam times ulltostr uselocale usleep utime vfprintf vfprintf_l vsprintf vsnprintf vsnprintf_l waitpid _wfopen _wstat])
 
 #
 # Check for clock_gettime().
@@ -2961,10 +2960,6 @@ AC_SUBST(XML_LIBS)
 
 dnl ===========================================================================
 
-# Check for functions
-#
-AC_CHECK_FUNCS([acosh _aligned_malloc asinh atanh atoll atexit cabs carg cimag creal clock clock_getres clock_gettime ctime_r directio erf _exit execvp fchmod floor fork ftime ftruncate getc_unlocked getcwd getpid getexecname getdtablesize getpagesize getrlimit getrusage gettimeofday gmtime_r isnan j0 j1 lltostr localtime_r lstat memmove memset mkstemp munmap nanosleep newlocale _NSGetExecutablePath pclose _pclose poll popen _popen posix_fadvise posix_fallocate posix_madvise posix_memalign posix_spawnp pow pread pwrite qsort_r raise rand_r readlink realpath select seekdir sendfile setlocale socket sqrt setvbuf stat strchr strrchr strcspn strdup strpbrk strspn strstr strtod strtod_l strtol strtoul symlink sysconf sigemptyset sigaction spawnvp strerror strlcat strlcpy strcasecmp strncasecmp telldir tempnam times ulltostr uselocale usleep utime vfprintf vfprintf_l vsprintf vsnprintf vsnprintf_l waitpid _wfopen _wstat])
-
 # Substitute compiler name to build/link PerlMagick
 #
 AC_SUBST([PERLMAINCC])
@@ -3199,7 +3194,6 @@ fi
 RMDelegateDefault='rm'
 RSVGDecodeDelegateDefault='rsvg-convert'
 SVGDecodeDelegateDefault='inkscape'
-TraceEncodeDelegateDefault='potrace'
 UniconvertorDelegateDefault='uniconvertor'
 WebPDecodeDelegateDefault='dwebp'
 WebPEncodeDelegateDefault='cwebp'
@@ -3246,7 +3240,6 @@ AC_PATH_PROGS(PSDelegate, gsx gsc "$PSDelegateDefault", "$PSDelegateDefault")
 AC_PATH_PROG(RMDelegate, "$RMDelegateDefault", "$RMDelegateDefault")
 AC_PATH_PROG(RSVGDecodeDelegate, "$RSVGDecodeDelegateDefault", "$RSVGDecodeDelegateDefault")
 AC_PATH_PROG(SVGDecodeDelegate, "$SVGDecodeDelegateDefault", "$SVGDecodeDelegateDefault")
-AC_PATH_PROG(TraceEncodeDelegate, "$TraceEncodeDelegateDefault", "$TraceEncodeDelegateDefault")
 AC_PATH_PROG(UniconvertorDelegate, "$UniconvertorDelegateDefault", "$UniconvertorDelegateDefault")
 AC_PATH_PROG(WebPDecodeDelegate, "$WebPDecodeDelegateDefault", "$WebPDecodeDelegateDefault")
 AC_PATH_PROG(WebPEncodeDelegate, "$WebPEncodeDelegateDefault", "$WebPEncodeDelegateDefault")
@@ -3446,7 +3439,6 @@ if test "$with_frozenpaths" != 'yes'; then
   RSVGDecodeDelegate="$RSVGDecodeDelegateDefault"
   SVGDecodeDelegate="$SVGDecodeDelegateDefault"
   ShowImageDelegate="$ShowImageDelegateDefault"
-  TraceEncodeDelegate="$TraceEncodeDelegateDefault"
   UniconvertorDelegate="$UniconvertorDelegateDefault"
   WebPDecodeDelegate="$WebPDecodeDelegateDefault"
   WebPEncodeDelegate="$WebPEncodeDelegateDefault"
@@ -3479,7 +3471,6 @@ AC_SUBST(MrSIDDecodeDelegate)
 AC_SUBST(PCLDelegate)
 AC_SUBST(PSDelegate)
 AC_SUBST(ShowImageDelegate)
-AC_SUBST(TraceEncodeDelegate)
 AC_SUBST(UniconvertorDelegate)
 AC_SUBST(WebPDecodeDelegate)
 AC_SUBST(WebPEncodeDelegate)

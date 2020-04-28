@@ -878,7 +878,8 @@ MagickExport Image *MatrixToImage(const MatrixInfo *matrix_info,
   double
     max_value,
     min_value,
-    scale_factor;
+    scale_factor,
+    value;
 
   Image
     *image;
@@ -898,8 +899,9 @@ MagickExport Image *MatrixToImage(const MatrixInfo *matrix_info,
   /*
     Determine range of matrix.
   */
-  (void) GetMatrixElement(matrix_info,0,0,&min_value);
-  max_value=min_value;
+  (void) GetMatrixElement(matrix_info,0,0,&value);
+  min_value=value;
+  max_value=value;
   for (y=0; y < (ssize_t) matrix_info->rows; y++)
   {
     register ssize_t
@@ -907,9 +909,6 @@ MagickExport Image *MatrixToImage(const MatrixInfo *matrix_info,
 
     for (x=0; x < (ssize_t) matrix_info->columns; x++)
     {
-      double
-        value;
-
       if (GetMatrixElement(matrix_info,x,y,&value) == MagickFalse)
         continue;
       if (value < min_value)

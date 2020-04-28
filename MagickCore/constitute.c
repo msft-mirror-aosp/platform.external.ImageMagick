@@ -143,9 +143,6 @@ MagickExport Image *ConstituteImage(const size_t columns,const size_t rows,
   register ssize_t
     i;
 
-  size_t
-    length;
-
   /*
     Allocate image structure.
   */
@@ -157,8 +154,7 @@ MagickExport Image *ConstituteImage(const size_t columns,const size_t rows,
   image=AcquireImage((ImageInfo *) NULL,exception);
   if (image == (Image *) NULL)
     return((Image *) NULL);
-  length=strlen(map);
-  for (i=0; i < (ssize_t) length; i++)
+  for (i=0; i < (ssize_t) strlen(map); i++)
   {
     switch (map[i])
     {
@@ -190,7 +186,7 @@ MagickExport Image *ConstituteImage(const size_t columns,const size_t rows,
       }
       default:
       {
-        if (length == 1)
+        if (strlen(map) == 1)
           image->colorspace=GRAYColorspace;
         break;
       }

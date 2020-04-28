@@ -70,13 +70,13 @@
 typedef struct _MagicMapInfo
 {
   const char
-    name[10];
+    *name;
 
   const MagickOffsetType
     offset;
 
   const unsigned char
-    *const magic;
+    *magic;
 
   const size_t
     length;

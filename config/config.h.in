@@ -109,7 +109,7 @@
 /* Define to 1 if you have the `clock_getres' function. */
 #undef HAVE_CLOCK_GETRES
 
-/* Define to 1 if you have the `clock_gettime' function. */
+/* Define to 1 if you have clock_gettime. */
 #undef HAVE_CLOCK_GETTIME
 
 /* Define to 1 if clock_gettime supports CLOCK_REALTIME. */
@@ -1077,7 +1077,7 @@
 # undef __CHAR_UNSIGNED__
 #endif
 
-/* Define to appropriate substitute if compiler does not have __func__ */
+/* Define to appropriate substitue if compiler does not have __func__ */
 #undef __func__
 
 /* Define to empty if `const' does not conform to ANSI C. */

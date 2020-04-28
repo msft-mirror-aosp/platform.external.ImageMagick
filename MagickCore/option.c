@@ -1225,8 +1225,6 @@ static const OptionInfo
     { "B44A", B44ACompression, UndefinedOptionFlag, MagickFalse },
     { "B44", B44Compression, UndefinedOptionFlag, MagickFalse },
     { "BZip", BZipCompression, UndefinedOptionFlag, MagickFalse },
-    { "DWAA", DWAACompression, UndefinedOptionFlag, MagickFalse },
-    { "DWAB", DWABCompression, UndefinedOptionFlag, MagickFalse },
     { "DXT1", DXT1Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT3", DXT3Compression, UndefinedOptionFlag, MagickFalse },
     { "DXT5", DXT5Compression, UndefinedOptionFlag, MagickFalse },
@@ -1481,6 +1479,7 @@ static const OptionInfo
     { "Nearest", NearestInterpolatePixel, UndefinedOptionFlag, MagickFalse },
     { "NearestNeighbor", NearestInterpolatePixel, UndefinedOptionFlag, MagickTrue },
     { "Spline", SplineInterpolatePixel, UndefinedOptionFlag, MagickFalse },
+/*  { "Filter", FilterInterpolatePixel, UndefinedOptionFlag, MagickFalse }, */
     { (char *) NULL, UndefinedInterpolatePixel, UndefinedOptionFlag, MagickFalse }
   },
   KernelOptions[] =
@@ -2850,9 +2849,6 @@ MagickExport ssize_t ParseChannelOption(const char *channels)
   register ssize_t
     i;
 
-  size_t
-    length;
-
   ssize_t
     channel;
 
@@ -2860,8 +2856,7 @@ MagickExport ssize_t ParseChannelOption(const char *channels)
   if (channel >= 0)
     return(channel);
   channel=0;
-  length=strlen(channels);
-  for (i=0; i < (ssize_t) length; i++)
+  for (i=0; i < (ssize_t) strlen(channels); i++)
   {
     switch (channels[i])
     {
@@ -3084,7 +3079,7 @@ MagickExport ssize_t ParsePixelChannelOption(const char *channels)
   ssize_t
     channel;
 
-  (void) GetNextToken(channels,(const char **) NULL,MagickPathExtent,token);
+  GetNextToken(channels,(const char **) NULL,MagickPathExtent,token);
   if ((*token == ';') || (*token == '|'))
     return(RedPixelChannel);
   channel=ParseCommandOption(MagickPixelChannelOptions,MagickTrue,token);

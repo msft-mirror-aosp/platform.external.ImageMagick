@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  MagickCore private policy methods.
+  MagickCore private image color methods.
 */
 #ifndef MAGICKCORE_POLICY_PRIVATE_H
 #define MAGICKCORE_POLICY_PRIVATE_H

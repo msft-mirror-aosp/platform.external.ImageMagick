@@ -172,7 +172,7 @@ static Image *ReadTTFImage(const ImageInfo *image_info,ExceptionInfo *exception)
     *text;
 
   const char
-    Text[] =
+    *Text = (char *)
       "abcdefghijklmnopqrstuvwxyz\n"
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
       "0123456789.:,;(*!?}^)#${%^&-+@\n";

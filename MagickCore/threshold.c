@@ -212,8 +212,6 @@ MagickExport Image *AdaptiveThresholdImage(const Image *image,
   threshold_image=CloneImage(image,0,0,MagickTrue,exception);
   if (threshold_image == (Image *) NULL)
     return((Image *) NULL);
-  if ((width == 0) || (height == 0))
-    return(threshold_image);
   status=SetImageStorageClass(threshold_image,DirectClass,exception);
   if (status == MagickFalse)
     {
@@ -368,8 +366,9 @@ MagickExport Image *AdaptiveThresholdImage(const Image *image,
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  AutoThresholdImage()  automatically performs image thresholding
-%  dependent on which method you specify.
+%  AutoThresholdImage() automatically selects a threshold and replaces each
+%  pixel in the image with a black pixel if the image intentsity is less than
+%  the selected threshold otherwise white.
 %
 %  The format of the AutoThresholdImage method is:
 %
@@ -564,7 +563,8 @@ static double OTSUThreshold(const Image *image,const double *histogram,
   return(100.0*threshold/MaxIntensity);
 }
 
-static double TriangleThreshold(const double *histogram)
+static double TriangleThreshold(const double *histogram,
+  ExceptionInfo *exception)
 {
   double
     a,
@@ -592,6 +592,7 @@ static double TriangleThreshold(const double *histogram)
   /*
     Compute optimal threshold with triangle algorithm.
   */
+  (void) exception;
   start=0;  /* find start bin, first bin not zero count */
   for (i=0; i <= (ssize_t) MaxIntensity; i++)
     if (histogram[i] > 0.0)
@@ -739,7 +740,7 @@ MagickExport MagickBooleanType AutoThresholdImage(Image *image,
     }
     case TriangleThresholdMethod:
     {
-      threshold=TriangleThreshold(histogram);
+      threshold=TriangleThreshold(histogram,exception);
       break;
     }
   }
@@ -820,7 +821,7 @@ MagickExport MagickBooleanType BilevelImage(Image *image,const double threshold,
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
     return(MagickFalse);
-  if (IsGrayColorspace(image->colorspace) == MagickFalse)
+  if (IsGrayColorspace(image->colorspace) != MagickFalse)
     (void) SetImageColorspace(image,sRGBColorspace,exception);
   /*
     Bilevel threshold image.
@@ -1736,14 +1737,14 @@ MagickExport MagickBooleanType OrderedDitherImage(Image *image,
   p=strchr((char *) threshold_map,',');
   if ((p != (char *) NULL) && (isdigit((int) ((unsigned char) *(++p))) != 0))
     {
-      (void) GetNextToken(p,&p,MagickPathExtent,token);
+      GetNextToken(p,&p,MagickPathExtent,token);
       for (i=0; (i < MaxPixelChannels); i++)
         levels[i]=StringToDouble(token,(char **) NULL);
       for (i=0; (*p != '\0') && (i < MaxPixelChannels); i++)
       {
-        (void) GetNextToken(p,&p,MagickPathExtent,token);
+        GetNextToken(p,&p,MagickPathExtent,token);
         if (*token == ',')
-          (void) GetNextToken(p,&p,MagickPathExtent,token);
+          GetNextToken(p,&p,MagickPathExtent,token);
         levels[i]=StringToDouble(token,(char **) NULL);
       }
     }
@@ -2147,13 +2148,13 @@ MagickExport MagickBooleanType RandomThresholdImage(Image *image,
 %
 %    o image: the image.
 %
-%    o low_black: Define the minimum black threshold value.
+%    o low_black: Define the minimum threshold value.
 %
-%    o low_white: Define the minimum white threshold value.
+%    o low_white: Define the maximum threshold value.
 %
-%    o high_white: Define the maximum white threshold value.
+%    o high_white: Define the minimum threshold value.
 %
-%    o high_black: Define the maximum black threshold value.
+%    o low_white: Define the maximum threshold value.
 %
 %    o exception: return any errors or warnings in this structure.
 %

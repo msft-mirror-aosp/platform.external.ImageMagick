@@ -6157,8 +6157,8 @@ static void MSLStartElement(void *context,const xmlChar *tag,
             {
               if (LocaleCompare(keyword, "opacity") == 0)
                 {
-                  Quantum  opac = OpaqueAlpha;
-                  ssize_t len = (ssize_t) strlen( value );
+                  ssize_t  opac = OpaqueAlpha,
+                  len = (ssize_t) strlen( value );
 
                   if (value[len-1] == '%') {
                     char  tmp[100];
@@ -7862,7 +7862,6 @@ static MagickBooleanType ProcessMSLScript(const ImageInfo *image_info,
   *msl_info.image=msl_image;
   if (*image != (Image *) NULL)
     MSLPushImage(&msl_info,*image);
-  xmlInitParser();
   (void) xmlSubstituteEntitiesDefault(1);
   (void) memset(&sax_modules,0,sizeof(sax_modules));
   sax_modules.internalSubset=MSLInternalSubset;
@@ -7988,6 +7987,9 @@ ModuleExport size_t RegisterMSLImage(void)
   MagickInfo
     *entry;
 
+#if defined(MAGICKCORE_XML_DELEGATE)
+  xmlInitParser();
+#endif
   entry=AcquireMagickInfo("MSL","MSL","Magick Scripting Language");
 #if defined(MAGICKCORE_XML_DELEGATE)
   entry->decoder=(DecodeImageHandler *) ReadMSLImage;

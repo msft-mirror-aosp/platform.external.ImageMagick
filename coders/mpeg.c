@@ -268,12 +268,6 @@ ModuleExport size_t RegisterMPEGImage(void)
   entry->magick=(IsImageFormatHandler *) IsAVI;
   entry->flags^=CoderBlobSupportFlag;
   (void) RegisterMagickInfo(entry);
-  entry=AcquireMagickInfo("MPEG","FLV","Flash Video Stream");
-  entry->decoder=(DecodeImageHandler *) ReadMPEGImage;
-  entry->encoder=(EncodeImageHandler *) WriteMPEGImage;
-  entry->magick=(IsImageFormatHandler *) IsMPEG;
-  entry->flags^=CoderBlobSupportFlag;
-  (void) RegisterMagickInfo(entry);
   entry=AcquireMagickInfo("MPEG","MKV","Multimedia Container");
   entry->decoder=(DecodeImageHandler *) ReadMPEGImage;
   entry->encoder=(EncodeImageHandler *) WriteMPEGImage;

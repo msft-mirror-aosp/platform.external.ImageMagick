@@ -716,14 +716,8 @@ static MagickBooleanType load_level(Image *image,XCFDocInfo *inDocInfo,
     and we can simply return.
   */
   offset=GetXCFOffset(image,inDocInfo);
-  if (EOFBlob(image) != MagickFalse)
-    ThrowBinaryException(CorruptImageError,"UnexpectedEndOfFile",
-      image->filename);
   if (offset == 0)
-    {
-      (void) SetImageBackgroundColor(image,exception);
-      return(MagickTrue);
-    }
+    return(MagickTrue);
   /*
     Initialise the reference for the in-memory tile-compression
   */
@@ -1061,8 +1055,8 @@ static MagickBooleanType ReadOneLayer(const ImageInfo *image_info,Image* image,
   /* read in the hierarchy */
   offset=SeekBlob(image, hierarchy_offset, SEEK_SET);
   if (offset != hierarchy_offset)
-    ThrowBinaryException(CorruptImageError,"InvalidImageHeader",
-      image->filename);
+    (void) ThrowMagickException(exception,GetMagickModule(),
+      CorruptImageError,"InvalidImageHeader","`%s'",image->filename);
   if (load_hierarchy (image, inDocInfo, outLayer, exception) == 0)
     return(MagickFalse);
 

@@ -179,9 +179,6 @@ MagickExport const char *GetMagickDelegates(void)
     defined(MAGICKCORE_WINDOWS_SUPPORT)
   "ps "
 #endif
-#if defined(MAGICKCORE_RAQM_DELEGATE)
-  "raqm "
-#endif
 #if defined(MAGICKCORE_RAW_R_DELEGATE)
   "raw "
 #endif
@@ -251,26 +248,7 @@ MagickExport const char *GetMagickFeatures(void)
   "OpenCL "
 #endif
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  "OpenMP"
-#if _OPENMP == 199810
-  "(1.0) "
-#elif _OPENMP == 200203
-  "(2.0) "
-#elif _OPENMP == 200505
-  "(2.5) "
-#elif _OPENMP == 200805
-  "(3.0) "
-#elif _OPENMP == 201107
-  "(3.1) "
-#elif _OPENMP == 201307
-  "(4.0) "
-#elif _OPENMP == 201511
-  "(4.5) "
-#elif _OPENMP == 201811
-  "(5.0) "
-#else
-  " "
-#endif
+  "OpenMP "
 #endif
 #if defined(ZERO_CONFIGURATION_SUPPORT)
   "Zero-configuration "

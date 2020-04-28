@@ -80,10 +80,10 @@
 /*
   Typedef declarations.
 */
-typedef struct _ColormapInfo
+typedef struct _ColorMapInfo
 {
   const char
-    name[21];
+    *name;
 
   const unsigned char
     red,
@@ -95,13 +95,13 @@ typedef struct _ColormapInfo
 
   const ssize_t
     compliance;
-} ColormapInfo;
+} ColorMapInfo;
 
 /*
   Static declarations.
 */
-static const ColormapInfo
-  Colormap[] =
+static const ColorMapInfo
+  ColorMap[] =
   {
     { "none", 0, 0, 0, 0, SVGCompliance | XPMCompliance },
     { "black", 0, 0, 0, 1, SVGCompliance | X11Compliance | XPMCompliance },
@@ -865,15 +865,15 @@ static LinkedListInfo *AcquireColorCache(const char *filename,
   /*
     Load built-in color map.
   */
-  for (i=0; i < (ssize_t) (sizeof(Colormap)/sizeof(*Colormap)); i++)
+  for (i=0; i < (ssize_t) (sizeof(ColorMap)/sizeof(*ColorMap)); i++)
   {
     ColorInfo
       *color_info;
 
-    register const ColormapInfo
+    register const ColorMapInfo
       *p;
 
-    p=Colormap+i;
+    p=ColorMap+i;
     color_info=(ColorInfo *) AcquireMagickMemory(sizeof(*color_info));
     if (color_info == (ColorInfo *) NULL)
       {
@@ -2030,7 +2030,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
     /*
       Interpret XML.
     */
-    (void) GetNextToken(q,&q,extent,token);
+    GetNextToken(q,&q,extent,token);
     if (*token == '\0')
       break;
     (void) CopyMagickString(keyword,token,MagickPathExtent);
@@ -2040,7 +2040,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
           Doctype element.
         */
         while ((LocaleNCompare(q,"]>",2) != 0) && (*q != '\0'))
-          (void) GetNextToken(q,&q,extent,token);
+          GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleNCompare(keyword,"<!--",4) == 0)
@@ -2049,7 +2049,7 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
           Comment element.
         */
         while ((LocaleNCompare(q,"->",2) != 0) && (*q != '\0'))
-          (void) GetNextToken(q,&q,extent,token);
+          GetNextToken(q,&q,extent,token);
         continue;
       }
     if (LocaleCompare(keyword,"<include") == 0)
@@ -2060,10 +2060,10 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
         while (((*token != '/') && (*(token+1) != '>')) && (*q != '\0'))
         {
           (void) CopyMagickString(keyword,token,MagickPathExtent);
-          (void) GetNextToken(q,&q,extent,token);
+          GetNextToken(q,&q,extent,token);
           if (*token != '=')
             continue;
-          (void) GetNextToken(q,&q,extent,token);
+          GetNextToken(q,&q,extent,token);
           if (LocaleCompare(keyword,"file") == 0)
             {
               if (depth > MagickMaxRecursionDepth)
@@ -2120,11 +2120,11 @@ static MagickBooleanType LoadColorCache(LinkedListInfo *cache,const char *xml,
         color_info=(ColorInfo *) NULL;
         continue;
       }
-    (void) GetNextToken(q,(const char **) NULL,extent,token);
+    GetNextToken(q,(const char **) NULL,extent,token);
     if (*token != '=')
       continue;
-    (void) GetNextToken(q,&q,extent,token);
-    (void) GetNextToken(q,&q,extent,token);
+    GetNextToken(q,&q,extent,token);
+    GetNextToken(q,&q,extent,token);
     switch (*keyword)
     {
       case 'C':
@@ -2466,8 +2466,7 @@ MagickExport MagickBooleanType QueryColorCompliance(const char *name,
             color->blue=(MagickRealType) ClampToQuantum((MagickRealType)
               (scale*geometry_info.xi+(QuantumRange+1)/2.0));
         }
-      if ((LocaleCompare(colorspace,"gray") == 0) ||
-          (LocaleCompare(colorspace,"lineargray") == 0))
+      if (LocaleCompare(colorspace,"gray") == 0)
         {
           color->green=color->red;
           color->blue=color->red;
