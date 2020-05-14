@@ -1121,7 +1121,9 @@
 #endif
 
 /* Define if you have LZMA library */
-/* #undef LZMA_DELEGATE */
+#ifndef MAGICKCORE_LZMA_DELEGATE
+#define MAGICKCORE_LZMA_DELEGATE 1
+#endif
 
 /* Define to prepend to default font search path. */
 /* #undef MAGICK_FONT_PATH */
@@ -1178,7 +1180,7 @@
 
 /* Define to the full name and version of this package. */
 #ifndef MAGICKCORE_PACKAGE_STRING
-#define MAGICKCORE_PACKAGE_STRING "ImageMagick 7.0.10-1"
+#define MAGICKCORE_PACKAGE_STRING "ImageMagick 7.0.10-12"
 #endif
 
 /* Define to the one symbol short name of this package. */
@@ -1193,7 +1195,7 @@
 
 /* Define to the version of this package. */
 #ifndef MAGICKCORE_PACKAGE_VERSION
-#define MAGICKCORE_PACKAGE_VERSION "7.0.10-1"
+#define MAGICKCORE_PACKAGE_VERSION "7.0.10-12"
 #endif
 
 /* Define if you have PANGOCAIRO library */
@@ -1206,7 +1208,9 @@
 /* #undef PIPES_SUPPORT */
 
 /* Define if you have PNG library */
-/* #undef PNG_DELEGATE */
+#ifndef MAGICKCORE_PNG_DELEGATE
+#define MAGICKCORE_PNG_DELEGATE 1
+#endif
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -1351,7 +1355,7 @@
 
 /* Version number of package */
 #ifndef MAGICKCORE_VERSION
-#define MAGICKCORE_VERSION "7.0.10-1"
+#define MAGICKCORE_VERSION "7.0.10-12"
 #endif
 
 /* Define if you have WEBPMUX library */
