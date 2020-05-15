@@ -198,6 +198,9 @@ static double GetEdgeBackgroundCensus(const Image *image,
     }
   }
   GetPixelInfoPixel(image,p,&background);
+  artifact=GetImageArtifact(image,"background");
+  if (artifact != (const char *) NULL)
+    (void) QueryColorCompliance(artifact,AllCompliance,&background,exception);
   artifact=GetImageArtifact(image,"trim:background-color");
   if (artifact != (const char *) NULL)
     (void) QueryColorCompliance(artifact,AllCompliance,&background,exception);
@@ -571,6 +574,8 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
     Most dominant color of edges/corners is the background color of the image.
   */
   artifact=GetImageArtifact(image,"convex-hull:background-color");
+  if (artifact == (const char *) NULL)
+    artifact=GetImageArtifact(image,"background");
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static)
 #endif
@@ -1099,31 +1104,15 @@ typedef struct _CaliperInfo
     v;
 } CaliperInfo;
 
-static double getAngle(PointInfo *p,PointInfo *q)
+static inline double getAngle(PointInfo *p,PointInfo *q)
 {
-  double
-    angle;
-
   /*
     Get the angle between line (p,q) and horizontal axis, in degrees.
   */
-  if (fabs(q->x-p->x) < MagickEpsilon)
-    {
-      if (q->y > p->y)
-        return(90.0);
-      return(270.0);
-    }
-  angle=RadiansToDegrees(atan2(fabs(q->y-p->y),fabs(q->x-p->x)));
-  if ((p->x < q->x) && (p->y <= q->y))
-    return(angle);
-  if ((p->x > q->x) && (p->y < q->y))
-    return(angle+90.0);
-  if ((p->x > q->x) && (p->y >= q->y))
-    return(angle+180.0);
-  return(360.0-angle);
+  return(RadiansToDegrees(atan2(q->y-p->y,q->x-p->x)));
 }
 
-static double getDistance(PointInfo *p,PointInfo *q)
+static inline double getDistance(PointInfo *p,PointInfo *q)
 {
   double
     distance;
@@ -1132,7 +1121,7 @@ static double getDistance(PointInfo *p,PointInfo *q)
   return(distance*distance);
 }
 
-static double getProjection(PointInfo *p,PointInfo *q,PointInfo *v)
+static inline double getProjection(PointInfo *p,PointInfo *q,PointInfo *v)
 {
   double
     distance;
@@ -1146,7 +1135,7 @@ static double getProjection(PointInfo *p,PointInfo *q,PointInfo *v)
   return((q->x-p->x)*(v->x-p->x)+(v->y-p->y)*(q->y-p->y))/sqrt(distance);
 }
 
-static double getFeretDiameter(PointInfo *p,PointInfo *q,PointInfo *v)
+static inline double getFeretDiameter(PointInfo *p,PointInfo *q,PointInfo *v)
 {
   double
     distance;
@@ -1166,9 +1155,13 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
   CaliperInfo
     caliper_info;
 
+  const char
+    *artifact;
+
   double
     angle,
-    diameter;
+    diameter,
+    distance;
 
   PointInfo
     *bounding_box,
@@ -1273,12 +1266,18 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
     caliper_info.projection;
   bounding_box[0].y=vertices[caliper_info.p].y+sin(angle)*
     caliper_info.projection;
-  bounding_box[1].x=bounding_box[0].x+cos(angle+MagickPI/2.0)*diameter;
-  bounding_box[1].y=bounding_box[0].y+sin(angle+MagickPI/2.0)*diameter;
-  bounding_box[2].x=bounding_box[1].x+cos(angle)*(-caliper_info.height);
-  bounding_box[2].y=bounding_box[1].y+sin(angle)*(-caliper_info.height);
-  bounding_box[3].x=bounding_box[2].x+cos(angle+MagickPI/2.0)*(-diameter);
-  bounding_box[3].y=bounding_box[2].y+sin(angle+MagickPI/2.0)*(-diameter);
+  bounding_box[1].x=floor(bounding_box[0].x+cos(angle+MagickPI/2.0)*diameter+
+    0.5);
+  bounding_box[1].y=floor(bounding_box[0].y+sin(angle+MagickPI/2.0)*diameter+
+    0.5);
+  bounding_box[2].x=floor(bounding_box[1].x+cos(angle)*(-caliper_info.height)+
+    0.5);
+  bounding_box[2].y=floor(bounding_box[1].y+sin(angle)*(-caliper_info.height)+
+    0.5);
+  bounding_box[3].x=floor(bounding_box[2].x+cos(angle+MagickPI/2.0)*(-diameter)+
+    0.5);
+  bounding_box[3].y=floor(bounding_box[2].y+sin(angle+MagickPI/2.0)*(-diameter)+
+    0.5);
   /*
     Export minimum bounding box properties.
   */
@@ -1288,11 +1287,6 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
     GetMagickPrecision(),caliper_info.width);
   (void) FormatImageProperty(image,"minimum-bounding-box:height","%.*g",
     GetMagickPrecision(),caliper_info.height);
-  (void) FormatImageProperty(image,"minimum-bounding-box:angle","%.*g",
-    GetMagickPrecision(),RadiansToDegrees(angle));
-  (void) FormatImageProperty(image,"minimum-bounding-box:unrotate","%.*g",
-    GetMagickPrecision(),getAngle(&vertices[caliper_info.p],
-    &vertices[caliper_info.q]));
   (void) FormatImageProperty(image,"minimum-bounding-box:_p","%.*g,%.*g",
     GetMagickPrecision(),vertices[caliper_info.p].x,
     GetMagickPrecision(),vertices[caliper_info.p].y);
@@ -1302,6 +1296,89 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
   (void) FormatImageProperty(image,"minimum-bounding-box:_v","%.*g,%.*g",
     GetMagickPrecision(),vertices[caliper_info.v].x,
     GetMagickPrecision(),vertices[caliper_info.v].y);
+  /*
+    Find smallest angle to origin.
+  */
+  distance=hypot(bounding_box[0].x,bounding_box[0].y);
+  angle=getAngle(&bounding_box[0],&bounding_box[1]);
+  for (i=1; i < 4; i++)
+  {
+    double d = hypot(bounding_box[i].x,bounding_box[i].y);
+    if (d < distance)
+      {
+        distance=d;
+        angle=getAngle(&bounding_box[i],&bounding_box[(i+1) % 4]);
+      }
+  }
+  artifact=GetImageArtifact(image,"minimum-bounding-box:orientation");
+  if (artifact != (const char *) NULL)
+    {
+      double
+        length,
+        q_length,
+        p_length;
+
+      PointInfo
+        delta,
+        point;
+
+      /*
+        Find smallest perpendicular distance from edge to origin.
+      */
+      point=bounding_box[0];
+      for (i=1; i < 4; i++)
+      {
+        if (bounding_box[i].x < point.x)
+          point.x=bounding_box[i].x;
+        if (bounding_box[i].y < point.y)
+          point.y=bounding_box[i].y;
+      }
+      for (i=0; i < 4; i++)
+      {
+        bounding_box[i].x-=point.x;
+        bounding_box[i].y-=point.y;
+      }
+      for (i=0; i < 4; i++)
+      {
+        double
+          d,
+          intercept,
+          slope;
+
+        delta.x=bounding_box[(i+1) % 4].x-bounding_box[i].x;
+        delta.y=bounding_box[(i+1) % 4].y-bounding_box[i].y;
+        slope=delta.y*PerceptibleReciprocal(delta.x);
+        intercept=bounding_box[(i+1) % 4].y-slope*bounding_box[i].x;
+        d=fabs((slope*bounding_box[i].x-bounding_box[i].y+intercept)*
+          PerceptibleReciprocal(sqrt(slope*slope+1.0)));
+        if ((i == 0) || (d < distance))
+          {
+            distance=d;
+            point=delta;
+          }
+      }
+      angle=RadiansToDegrees(atan(point.y*PerceptibleReciprocal(point.x)));
+      length=hypot(point.x,point.y);
+      p_length=fabs((double) MagickMax(caliper_info.width,caliper_info.height)-
+        length);
+      q_length=fabs(length-(double) MagickMin(caliper_info.width,
+        caliper_info.height));
+      if (LocaleCompare(artifact,"landscape") == 0)
+        {
+          if (p_length > q_length)
+            angle+=(angle < 0.0) ? 90.0 : -90.0;
+        }
+      else
+        if (LocaleCompare(artifact,"portrait") == 0)
+          {
+            if (p_length < q_length)
+              angle+=(angle >= 0.0) ? 90.0 : -90.0;
+          }
+    }
+  (void) FormatImageProperty(image,"minimum-bounding-box:angle","%.*g",
+    GetMagickPrecision(),angle);
+  (void) FormatImageProperty(image,"minimum-bounding-box:unrotate","%.*g",
+    GetMagickPrecision(),-angle);
   vertices=(PointInfo *) RelinquishMagickMemory(vertices);
   return(bounding_box);
 }

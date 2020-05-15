@@ -258,15 +258,13 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   Image *image,struct heif_context *heif_context,heif_item_id image_id,
   ExceptionInfo *exception)
 {
-  const char
-    *option;
-
   int
     stride_y,
     stride_cb,
     stride_cr;
 
   MagickBooleanType
+    preserve_orientation,
     status;
 
   ssize_t
@@ -308,6 +306,10 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   image->depth=8;
   image->columns=(size_t) heif_image_handle_get_width(image_handle);
   image->rows=(size_t) heif_image_handle_get_height(image_handle);
+  preserve_orientation=IsStringTrue(GetImageOption(image_info,
+    "heic:preserve-orientation"));
+  if (preserve_orientation == MagickFalse)
+    (void) SetImageProperty(image,"exif:Orientation","1",exception);
   if (image_info->ping != MagickFalse)
     {
       image->colorspace=YCbCrColorspace;
@@ -330,14 +332,11 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   */
   (void) SetImageColorspace(image,YCbCrColorspace,exception);
   decode_options=(struct heif_decoding_options *) NULL;
-  option=GetImageOption(image_info,"heic:preserve-orientation");
-  if (IsStringTrue(option) == MagickTrue)
+  if (preserve_orientation == MagickTrue)
     {
       decode_options=heif_decoding_options_alloc();
       decode_options->ignore_transformations=1;
     }
-  else
-    (void) SetImageProperty(image,"exif:Orientation","1",exception);
   error=heif_decode_image(image_handle,&heif_image,heif_colorspace_YCbCr,
     heif_chroma_420,decode_options);
   if (decode_options != (struct heif_decoding_options *) NULL)
@@ -619,6 +618,22 @@ ModuleExport size_t RegisterHEICImage(void)
 #endif
   entry->flags|=CoderDecoderSeekableStreamFlag;
   (void) RegisterMagickInfo(entry);
+#if LIBHEIF_NUMERIC_VERSION > 0x01060200
+  entry=AcquireMagickInfo("HEIC","AVIF","AV1 Image File Format");
+#if defined(MAGICKCORE_HEIC_DELEGATE)
+  entry->decoder=(DecodeImageHandler *) ReadHEICImage;
+#if !defined(MAGICKCORE_WINDOWS_SUPPORT)
+  entry->encoder=(EncodeImageHandler *) WriteHEICImage;
+#endif
+#endif
+  entry->magick=(IsImageFormatHandler *) IsHEIC;
+  entry->mime_type=ConstantString("image/x-heic");
+#if defined(LIBHEIF_VERSION)
+  entry->version=ConstantString(LIBHEIF_VERSION);
+#endif
+  entry->flags|=CoderDecoderSeekableStreamFlag;
+  (void) RegisterMagickInfo(entry);
+#endif
   return(MagickImageCoderSignature);
 }
 
@@ -924,6 +939,11 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
     */
     error=heif_context_get_encoder_for_format(heif_context,
       heif_compression_HEVC,&heif_encoder);
+#if LIBHEIF_NUMERIC_VERSION > 0x01060200
+    if (LocaleCompare(image_info->magick,"AVIF") == 0)
+      error=heif_context_get_encoder_for_format(heif_context,
+        heif_compression_AVIF,&heif_encoder);
+#endif
     status=IsHeifSuccess(&error,image,exception);
     if (status == MagickFalse)
       break;

@@ -1,9 +1,53 @@
-2020-04-07  7.0.10-7 Cristy  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.10-7, GIT revision 17...
+2020-05-12  7.0.10-12 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-12, GIT revision 17...
+
+2020-05-12  7.0.10-12 Cristy  <quetzlzacatenango@image...>
+  * Black artefacts during quantization (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/2007#discussioncomment-13546).
+
+2020-05-08  7.0.10-11 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-11, GIT revision 17230:088df0e:20200508.
+
+2020-04-28  7.0.10-11 Cristy  <quetzlzacatenango@image...>
+  * Disable "random" OpenCL kernel.  Previously the work load was distributed
+    but each started with the same random seed.
+  * Finished implementation of -distort rigid-affine.
+  * Enable threaded PNG coder.
+
+2020-04-27  7.0.10-10 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-10, GIT revision 17205:9b0340e:20200427
+
+2020-04-27  7.0.10-10 Cristy  <quetzlzacatenango@image...>
+  * Correction to allocate a colormap of the maximum colors when color
+    reducing an image sequence.
+  * Write to stdout for mp4:-.
+
+2020-04-25  7.0.10-9 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-9, GIT revision 17190:13fdcd1:20200426.
+
+2020-04-25  7.0.10-9 Cristy  <quetzlzacatenango@image...>
+  * Allocate a colormap of the maximum colors when color reducing an image
+    sequence.
+  * Label was not centered properly (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1879).
+
+2020-04-24  7.0.10-8 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-8, GIT revision 17175:481b85f:20200424.
+
+2020-04-23  7.0.10-8 Cristy  <quetzlzacatenango@image...>
+  * Some configure --with-method-prefix methods were missing (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1912).
+
+2020-04-19  7.0.10-7 Cristy  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-7, GIT revision 17170:c635e88:20200419.
 
 2020-04-07  7.0.10-7 Cristy  <quetzlzacatenango@image...>
- * Fix erroneous "insufficient image data" exception (reference
-   https://github.com/ImageMagick/ImageMagick/issues/1883).
+  * Fix erroneous "insufficient image data" exception (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1883).
+  * Fix an unconditional jump for the XPM coder (reference
+    https://github.com/ImageMagick/ImageMagick/issues/1895).
+  * Improve unrotate value returned by the minimum bounding box (thanks
+    to Fred Weinhaus).
 
     https://github.com/ImageMagick/ImageMagick/discussions/1880).
 2020-04-06  7.0.10-6 Cristy  <quetzlzacatenango@image...>
