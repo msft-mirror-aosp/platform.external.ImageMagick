@@ -1304,6 +1304,7 @@ static const OptionInfo
   DistortOptions[] =
   {
     { "Affine", AffineDistortion, UndefinedOptionFlag, MagickFalse },
+    { "RigidAffine", RigidAffineDistortion, UndefinedOptionFlag, MagickFalse },
     { "AffineProjection", AffineProjectionDistortion, UndefinedOptionFlag, MagickFalse },
     { "ScaleRotateTranslate", ScaleRotateTranslateDistortion, UndefinedOptionFlag, MagickFalse },
     { "SRT", ScaleRotateTranslateDistortion, UndefinedOptionFlag, MagickFalse },
