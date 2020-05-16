@@ -418,6 +418,7 @@ static double *GenerateCoefficients(const Image *image,
   number_coeff=0;
   switch (*method) {
     case AffineDistortion:
+    case RigidAffineDistortion:
     /* also BarycentricColorInterpolate: */
       number_coeff=3*number_values;
       break;
@@ -604,6 +605,86 @@ static double *GenerateCoefficients(const Image *image,
           return((double *) NULL);
         }
       }
+      return(coeff);
+    }
+    case RigidAffineDistortion:
+    {
+      double
+        inverse[6],
+        **matrix,
+        terms[5],
+        *vectors[1];
+
+      MagickBooleanType
+        status;
+
+      /*
+        Rigid affine (also known as a Euclidean transform), restricts affine
+        coefficients to 4 (S, R, Tx, Ty) with Sy=Sx and Ry = -Rx so that one has
+        only scale, rotation and translation. No skew.
+      */
+      if (((number_arguments % cp_size) != 0) || (number_arguments < cp_size))
+        {
+          (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+            "InvalidArgument", "%s : 'require at least %.20g CPs'",
+            CommandOptionToMnemonic(MagickDistortOptions,*method),2.0);
+          coeff=(double *) RelinquishMagickMemory(coeff);
+          return((double *) NULL);
+        }
+      /*
+        Rigid affine requires a 4x4 least-squares matrix (zeroed).
+      */
+      matrix=AcquireMagickMatrix(4UL,4UL);
+      if (matrix == (double **) NULL)
+        {
+          coeff=(double *) RelinquishMagickMemory(coeff);
+          (void) ThrowMagickException(exception,GetMagickModule(),
+            ResourceLimitError,"MemoryAllocationFailed","%s",
+            CommandOptionToMnemonic(MagickDistortOptions,*method));
+          return((double *) NULL);
+        }
+      /*
+        Add control points for least squares solving.
+      */
+      vectors[0]=(&(coeff[0]));
+      for (i=0; i < number_arguments; i+=4)
+      {
+        terms[0]=arguments[i+0];
+        terms[1]=(-arguments[i+1]);
+        terms[2]=1.0;
+        terms[3]=0.0;
+        LeastSquaresAddTerms(matrix,vectors,terms,&(arguments[i+2]),4UL,1UL);
+        terms[0]=arguments[i+1];
+        terms[1]=arguments[i+0];
+        terms[2]=0.0;
+        terms[3]=1.0;
+        LeastSquaresAddTerms(matrix,vectors,terms,&(arguments[i+3]),4UL,1UL);
+      }
+      /*
+        Solve for least-squares coefficients.
+      */
+      status=GaussJordanElimination(matrix,vectors,4UL,1UL);
+      matrix=RelinquishMagickMatrix(matrix,4UL);
+      if (status == MagickFalse)
+        {
+          coeff=(double *) RelinquishMagickMemory(coeff);
+          (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
+            "InvalidArgument","%s : 'Unsolvable Matrix'",
+            CommandOptionToMnemonic(MagickDistortOptions,*method));
+          return((double *) NULL);
+        }
+      /*
+        Convert (S, R, Tx, Ty) to an affine projection.
+      */
+      inverse[0]=coeff[0];
+      inverse[1]=coeff[1];
+      inverse[2]=(-coeff[1]);
+      inverse[3]=coeff[0];
+      inverse[4]=coeff[2];
+      inverse[5]=coeff[3];
+      AffineArgsToCoefficients(inverse);
+      InvertAffineCoefficients(inverse,coeff);
+      *method=AffineDistortion;
       return(coeff);
     }
     case AffineProjectionDistortion:
@@ -1774,6 +1855,7 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
     switch (method)
     {
       case AffineDistortion:
+      case RigidAffineDistortion:
       { double inverse[6];
         InvertAffineCoefficients(coeff, inverse);
         s.x = (double) image->page.x;
@@ -1986,6 +2068,7 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
     switch (method)
     {
       case AffineDistortion:
+      case RigidAffineDistortion:
       {
         double
           *inverse;
@@ -2417,6 +2500,7 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
       switch (method)
       {
         case AffineDistortion:
+        case RigidAffineDistortion:
           ScaleFilter( resample_filter[id],
             coeff[0], coeff[1],
             coeff[3], coeff[4] );
@@ -2441,6 +2525,7 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
         switch (method)
         {
           case AffineDistortion:
+          case RigidAffineDistortion:
           {
             s.x=coeff[0]*d.x+coeff[1]*d.y+coeff[2];
             s.y=coeff[3]*d.x+coeff[4]*d.y+coeff[5];
