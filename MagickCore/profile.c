@@ -536,7 +536,7 @@ static void TransformDoublePixels(const int id,const Image* image,
   register ssize_t
     x;
 
-  p=source_info->pixels[id];
+  p=(double *) source_info->pixels[id];
   for (x=0; x < (ssize_t) image->columns; x++)
   {
     *p++=GetLCMSPixel(source_info,GetPixelRed(image,q));
@@ -551,7 +551,7 @@ static void TransformDoublePixels(const int id,const Image* image,
   }
   cmsDoTransform(transform[id],source_info->pixels[id],
     target_info->pixels[id],(unsigned int) image->columns);
-  p=target_info->pixels[id];
+  p=(double *) target_info->pixels[id];
   q-=GetPixelChannels(image)*image->columns;
   for (x=0; x < (ssize_t) image->columns; x++)
   {
@@ -586,7 +586,7 @@ static void TransformQuantumPixels(const int id,const Image* image,
   register ssize_t
     x;
 
-  p=source_info->pixels[id];
+  p=(Quantum *) source_info->pixels[id];
   for (x=0; x < (ssize_t) image->columns; x++)
   {
     *p++=GetPixelRed(image,q);
@@ -601,7 +601,7 @@ static void TransformQuantumPixels(const int id,const Image* image,
   }
   cmsDoTransform(transform[id],source_info->pixels[id],
     target_info->pixels[id],(unsigned int) image->columns);
-  p=target_info->pixels[id];
+  p=(Quantum *) target_info->pixels[id];
   q-=GetPixelChannels(image)*image->columns;
   for (x=0; x < (ssize_t) image->columns; x++)
   {
@@ -1081,11 +1081,8 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
             if (IsStringFalse(artifact) != MagickFalse)
               highres=MagickFalse;
 #endif
-            if (highres != MagickFalse)
-              {
-                source_info.scale=1.0;
-                source_info.translate=0.0;
-              }
+            source_info.scale=1.0;
+            source_info.translate=0.0;
             source_info.colorspace=sRGBColorspace;
             source_info.channels=3;
             switch (cmsGetColorSpace(source_info.profile))
@@ -1181,11 +1178,8 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
             signature=cmsGetPCS(source_info.profile);
             if (target_info.profile != (cmsHPROFILE) NULL)
               signature=cmsGetColorSpace(target_info.profile);
-            if (highres != MagickFalse)
-              {
-                target_info.scale=1.0;
-                target_info.translate=0.0;
-              }
+            target_info.scale=1.0;
+            target_info.translate=0.0;
             target_info.channels=3;
             switch (signature)
             {

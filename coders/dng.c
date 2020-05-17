@@ -64,6 +64,7 @@
 #include "MagickCore/resource_.h"
 #include "MagickCore/static.h"
 #include "MagickCore/string_.h"
+#include "MagickCore/string-private.h"
 #include "MagickCore/module.h"
 #include "MagickCore/transform.h"
 #include "MagickCore/utility.h"
@@ -310,6 +311,41 @@ static Image *InvokeDNGDelegate(const ImageInfo *image_info,Image *image,
   return(image);
 }
 
+#if defined(MAGICKCORE_RAW_R_DELEGATE)
+static void SetLibRawParams(const ImageInfo *image_info,Image *image,
+  libraw_data_t *raw_info)
+{
+  const char
+    *option;
+
+  raw_info->params.output_bps=16;
+  option=GetImageOption(image_info,"dng:use-camera-wb");
+  if (option == (const char *) NULL)
+    option=GetImageOption(image_info,"dng:use_camera_wb");
+  if (option != (const char *) NULL)
+    raw_info->params.use_camera_wb=IsStringTrue(option);
+  option=GetImageOption(image_info,"dng:use-auto-wb");
+  if (option == (const char *) NULL)
+    option=GetImageOption(image_info,"dng:use_auto_wb");
+  if (option != (const char *) NULL)
+    raw_info->params.use_auto_wb=IsStringTrue(option);
+  option=GetImageOption(image_info,"dng:no-auto-bright");
+  if (option == (const char *) NULL)
+    option=GetImageOption(image_info,"dng:no_auto_bright");
+  if (option != (const char *) NULL)
+    raw_info->params.no_auto_bright=IsStringTrue(option);
+  option=GetImageOption(image_info,"dng:output-color");
+  if (option == (const char *) NULL)
+    option=GetImageOption(image_info,"dng:output_color");
+  if (option != (const char *) NULL)
+    {
+      raw_info->params.output_color=StringToInteger(option);
+      if (raw_info->params.output_color == 5)
+        image->colorspace=XYZColorspace;
+    }
+}
+#endif
+
 static Image *ReadDNGImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
   Image
@@ -367,8 +403,6 @@ static Image *ReadDNGImage(const ImageInfo *image_info,ExceptionInfo *exception)
         libraw_close(raw_info);
         return(DestroyImageList(image));
       }
-    raw_info->params.use_camera_wb=IsStringTrue(GetImageOption(image_info,
-      "dng:use_camera_wb"));
 #if defined(MAGICKCORE_WINDOWS_SUPPORT) && defined(_MSC_VER) && (_MSC_VER > 1310)
     {
       wchar_t
@@ -413,7 +447,7 @@ static Image *ReadDNGImage(const ImageInfo *image_info,ExceptionInfo *exception)
         libraw_close(raw_info);
         return(DestroyImageList(image));
       }
-    raw_info->params.output_bps=16;
+    SetLibRawParams(image_info,image,raw_info);
     errcode=libraw_dcraw_process(raw_info);
     if (errcode != LIBRAW_SUCCESS)
       {
