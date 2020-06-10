@@ -1643,7 +1643,7 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
     bitmap=(FT_BitmapGlyph) glyph.image;
     point.x=offset->x+bitmap->left;
     if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
-      point.x=offset->x+(origin.x >> 6);
+      point.x=origin.x >> 6;
     point.y=offset->y-bitmap->top;
     if (draw_info->render != MagickFalse)
       {
@@ -1781,15 +1781,11 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
         (IsUTFSpace(GetUTFCode(p+grapheme[i].cluster)) != MagickFalse) &&
         (IsUTFSpace(code) == MagickFalse))
       origin.x+=(FT_Pos) (64.0*draw_info->interword_spacing);
-    else if (i == last_character)
-      {
-        if (bounds.xMax == 0)
-          origin.x+=(FT_Pos) grapheme[i].x_advance;
-        else
-          origin.x+=(FT_Pos) bounds.xMax;
-      }
     else
-      origin.x+=(FT_Pos) grapheme[i].x_advance;
+      if (i == last_character)
+        origin.x+=MagickMax((FT_Pos) grapheme[i].x_advance,bounds.xMax);
+      else
+        origin.x+=(FT_Pos) grapheme[i].x_advance;
     metrics->origin.x=(double) origin.x;
     metrics->origin.y=(double) origin.y;
     if (metrics->origin.x > metrics->width)
