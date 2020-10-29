@@ -1835,6 +1835,8 @@ static Image *ReadDDSImage(const ImageInfo *image_info,ExceptionInfo *exception)
     if (status == MagickFalse)
       {
         (void) CloseBlob(image);
+        if (n == 0)
+          return(DestroyImageList(image));
         return(GetFirstImageInList(image));
       }
   }
