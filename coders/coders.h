@@ -21,6 +21,7 @@
 */
 #include "coders/aai.h"
 #include "coders/art.h"
+#include "coders/ashlar.h"
 #include "coders/avs.h"
 #include "coders/bgr.h"
 #include "coders/bmp.h"
@@ -95,6 +96,7 @@
 #if defined(MAGICKCORE_JXL_DELEGATE)
   #include "coders/jxl.h"
 #endif
+#include "coders/kernel.h"
 #include "coders/label.h"
 #include "coders/mac.h"
 #include "coders/magick.h"
@@ -106,12 +108,12 @@
 #include "coders/miff.h"
 #include "coders/mono.h"
 #include "coders/mpc.h"
-#include "coders/mpeg.h"
 #include "coders/mpr.h"
 #include "coders/msl.h"
 #include "coders/mtv.h"
 #include "coders/mvg.h"
 #include "coders/null.h"
+#include "coders/ora.h"
 #include "coders/otb.h"
 #include "coders/palm.h"
 #include "coders/pango.h"
@@ -166,6 +168,7 @@
 #include "coders/uyvy.h"
 #include "coders/vicar.h"
 #include "coders/vid.h"
+#include "coders/video.h"
 #include "coders/viff.h"
 #include "coders/vips.h"
 #include "coders/wbmp.h"

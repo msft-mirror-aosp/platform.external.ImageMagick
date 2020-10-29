@@ -1419,7 +1419,7 @@ ModuleExport size_t RegisterPNMImage(void)
   entry=AcquireMagickInfo("PNM","PAM","Common 2-dimensional bitmap format");
   entry->decoder=(DecodeImageHandler *) ReadPNMImage;
   entry->encoder=(EncodeImageHandler *) WritePNMImage;
-  entry->mime_type=ConstantString("image/x-portable-pixmap");
+  entry->mime_type=ConstantString("image/x-portable-anymap");
   entry->flags|=CoderDecoderSeekableStreamFlag;
   (void) RegisterMagickInfo(entry);
   entry=AcquireMagickInfo("PNM","PBM",
@@ -1826,7 +1826,7 @@ static MagickBooleanType WritePNMImage(const ImageInfo *image_info,Image *image,
                 (void) WriteBlob(image,q-pixels,pixels);
                 q=pixels;
               }
-            (void) strncpy((char *) q,buffer,extent);
+            (void) memcpy((char *) q,buffer,extent);
             q+=extent;
             p+=GetPixelChannels(image);
           }
@@ -1901,7 +1901,7 @@ static MagickBooleanType WritePNMImage(const ImageInfo *image_info,Image *image,
                 (void) WriteBlob(image,q-pixels,pixels);
                 q=pixels;
               }
-            (void) strncpy((char *) q,buffer,extent);
+            (void) memcpy((char *) q,buffer,extent);
             q+=extent;
             p+=GetPixelChannels(image);
           }

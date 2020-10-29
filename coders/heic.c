@@ -93,13 +93,11 @@
 static const char
   xmp_namespace[] = "http://ns.adobe.com/xap/1.0/ ";
 
-#if !defined(MAGICKCORE_WINDOWS_SUPPORT)
 /*
   Forward declarations.
 */
 static MagickBooleanType
   WriteHEICImage(const ImageInfo *,Image *,ExceptionInfo *);
-#endif
 
 /*x
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -261,7 +259,8 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   int
     stride_y,
     stride_cb,
-    stride_cr;
+    stride_cr,
+    stride_a;
 
   MagickBooleanType
     preserve_orientation,
@@ -285,7 +284,8 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   const uint8_t
     *p_y,
     *p_cb,
-    *p_cr;
+    *p_cr,
+    *p_a;
 
   error=heif_context_get_image_handle(heif_context,image_id,&image_handle);
   if (IsHeifSuccess(&error,image,exception) == MagickFalse)
@@ -303,9 +303,15 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   /*
     Set image size.
   */
-  image->depth=8;
   image->columns=(size_t) heif_image_handle_get_width(image_handle);
   image->rows=(size_t) heif_image_handle_get_height(image_handle);
+#if LIBHEIF_NUMERIC_VERSION > 0x01040000
+  image->depth=(size_t) heif_image_handle_get_luma_bits_per_pixel(image_handle);
+#else
+  image->depth=8;
+#endif
+  if (heif_image_handle_has_alpha_channel(image_handle))
+    image->alpha_trait=BlendPixelTrait;
   preserve_orientation=IsStringTrue(GetImageOption(image_info,
     "heic:preserve-orientation"));
   if (preserve_orientation == MagickFalse)
@@ -331,16 +337,15 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
     Copy HEIF image into ImageMagick data structures.
   */
   (void) SetImageColorspace(image,YCbCrColorspace,exception);
-  decode_options=(struct heif_decoding_options *) NULL;
+  decode_options=heif_decoding_options_alloc();
+#if LIBHEIF_NUMERIC_VERSION > 0x01070000
+  decode_options->convert_hdr_to_8bit=1;
+#endif
   if (preserve_orientation == MagickTrue)
-    {
-      decode_options=heif_decoding_options_alloc();
-      decode_options->ignore_transformations=1;
-    }
+    decode_options->ignore_transformations=1;
   error=heif_decode_image(image_handle,&heif_image,heif_colorspace_YCbCr,
     heif_chroma_420,decode_options);
-  if (decode_options != (struct heif_decoding_options *) NULL)
-    heif_decoding_options_free(decode_options);
+  heif_decoding_options_free(decode_options);
   if (IsHeifSuccess(&error,image,exception) == MagickFalse)
     {
       heif_image_handle_release(image_handle);
@@ -361,6 +366,10 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
   p_y=heif_image_get_plane_readonly(heif_image,heif_channel_Y,&stride_y);
   p_cb=heif_image_get_plane_readonly(heif_image,heif_channel_Cb,&stride_cb);
   p_cr=heif_image_get_plane_readonly(heif_image,heif_channel_Cr,&stride_cr);
+  p_a=(const uint8_t *) NULL;
+  stride_a=0;
+  if (image->alpha_trait != UndefinedPixelTrait)
+    p_a=heif_image_get_plane_readonly(heif_image,heif_channel_Alpha,&stride_a);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     Quantum
@@ -380,6 +389,9 @@ static MagickBooleanType ReadHEICImageByID(const ImageInfo *image_info,
         stride_cb+x/2]),q);
       SetPixelBlue(image,ScaleCharToQuantum((unsigned char) p_cr[(y/2)*
         stride_cr+x/2]),q);
+      if (p_a != (const uint8_t *) NULL)
+        SetPixelAlpha(image,ScaleCharToQuantum((unsigned char) p_a[y*
+          stride_a+x]),q);
       q+=GetPixelChannels(image);
     }
     if (SyncAuthenticPixels(image,exception) == MagickFalse)
@@ -567,7 +579,9 @@ static MagickBooleanType IsHEIC(const unsigned char *magick,const size_t length)
   if (length < 12)
     return(MagickFalse);
   if (LocaleNCompare((const char *) magick+4,"ftyp",4) != 0)
-  return(MagickFalse);
+    return(MagickFalse);
+  if (LocaleNCompare((const char *) magick+8,"avif",4) == 0)
+    return(MagickTrue);
   if (LocaleNCompare((const char *) magick+8,"heic",4) == 0)
     return(MagickTrue);
   if (LocaleNCompare((const char *) magick+8,"heix",4) == 0)
@@ -607,9 +621,7 @@ ModuleExport size_t RegisterHEICImage(void)
   entry=AcquireMagickInfo("HEIC","HEIC","High Efficiency Image Format");
 #if defined(MAGICKCORE_HEIC_DELEGATE)
   entry->decoder=(DecodeImageHandler *) ReadHEICImage;
-#if !defined(MAGICKCORE_WINDOWS_SUPPORT)
   entry->encoder=(EncodeImageHandler *) WriteHEICImage;
-#endif
 #endif
   entry->magick=(IsImageFormatHandler *) IsHEIC;
   entry->mime_type=ConstantString("image/x-heic");
@@ -621,10 +633,10 @@ ModuleExport size_t RegisterHEICImage(void)
 #if LIBHEIF_NUMERIC_VERSION > 0x01060200
   entry=AcquireMagickInfo("HEIC","AVIF","AV1 Image File Format");
 #if defined(MAGICKCORE_HEIC_DELEGATE)
-  entry->decoder=(DecodeImageHandler *) ReadHEICImage;
-#if !defined(MAGICKCORE_WINDOWS_SUPPORT)
-  entry->encoder=(EncodeImageHandler *) WriteHEICImage;
-#endif
+  if (heif_have_decoder_for_format(heif_compression_AV1))
+    entry->decoder=(DecodeImageHandler *) ReadHEICImage;
+  if (heif_have_encoder_for_format(heif_compression_AV1))
+    entry->encoder=(EncodeImageHandler *) WriteHEICImage;
 #endif
   entry->magick=(IsImageFormatHandler *) IsHEIC;
   entry->mime_type=ConstantString("image/x-heic");
@@ -689,7 +701,7 @@ ModuleExport void UnregisterHEICImage(void)
 %
 */
 
-#if defined(MAGICKCORE_HEIC_DELEGATE) && !defined(MAGICKCORE_WINDOWS_SUPPORT)
+#if defined(MAGICKCORE_HEIC_DELEGATE)
 #if LIBHEIF_NUMERIC_VERSION >= 0x01030000
 static void WriteProfile(struct heif_context *context,Image *image,
   ExceptionInfo *exception)
@@ -738,7 +750,7 @@ static void WriteProfile(struct heif_context *context,Image *image,
             length=65533L;
           }
           (void) heif_context_add_exif_metadata(context,image_handle,
-            (void*) GetStringInfoDatum(profile),length);
+            (void*) GetStringInfoDatum(profile),(int) length);
       }
     if (LocaleCompare(name,"XMP") == 0)
       {
@@ -755,7 +767,7 @@ static void WriteProfile(struct heif_context *context,Image *image,
             {
               length=MagickMin(GetStringInfoLength(xmp_profile)-i,65533L);
               error=heif_context_add_XMP_metadata(context,image_handle,
-                (void*) (GetStringInfoDatum(xmp_profile)+i),length);
+                (void*) (GetStringInfoDatum(xmp_profile)+i),(int) length);
               if (error.code != 0)
                 break;
             }
@@ -789,6 +801,160 @@ static struct heif_error heif_write_func(struct heif_context *context,
   return(error_ok);
 }
 
+static MagickBooleanType WriteHEICImageYCbCr(Image *image,
+  struct heif_image *heif_image,ExceptionInfo *exception)
+{
+  MagickBooleanType
+    status;
+
+  ssize_t
+    y;
+
+  const Quantum
+    *p;
+
+  int
+    p_y,
+    p_cb,
+    p_cr;
+
+  struct heif_error
+    error;
+
+  uint8_t
+    *q_y,
+    *q_cb,
+    *q_cr;
+
+  status=MagickTrue;
+
+  error=heif_image_add_plane(heif_image,heif_channel_Y,(int) image->columns,
+    (int) image->rows,8);
+  status=IsHeifSuccess(&error,image,exception);
+  if (status == MagickFalse)
+    return status;
+  error=heif_image_add_plane(heif_image,heif_channel_Cb,
+    ((int) image->columns+1)/2,((int) image->rows+1)/2,8);
+  status=IsHeifSuccess(&error,image,exception);
+  if (status == MagickFalse)
+    return status;
+  error=heif_image_add_plane(heif_image,heif_channel_Cr,
+    ((int) image->columns+1)/2,((int) image->rows+1)/2,8);
+  status=IsHeifSuccess(&error,image,exception);
+  if (status == MagickFalse)
+    return status;
+  q_y=heif_image_get_plane(heif_image,heif_channel_Y,&p_y);
+  q_cb=heif_image_get_plane(heif_image,heif_channel_Cb,&p_cb);
+  q_cr=heif_image_get_plane(heif_image,heif_channel_Cr,&p_cr);
+  /*
+    Copy image to heif_image
+  */
+  for (y=0; y < (ssize_t) image->rows; y++)
+  {
+    register ssize_t
+      x;
+
+    p=GetVirtualPixels(image,0,y,image->columns,1,exception);
+    if (p == (const Quantum *) NULL)
+      {
+        status=MagickFalse;
+        break;
+      }
+    if ((y & 0x01) == 0)
+      for (x=0; x < (ssize_t) image->columns; x+=2)
+      {
+        q_y[y*p_y+x]=ScaleQuantumToChar(GetPixelRed(image,p));
+        q_cb[y/2*p_cb+x/2]=ScaleQuantumToChar(GetPixelGreen(image,p));
+        q_cr[y/2*p_cr+x/2]=ScaleQuantumToChar(GetPixelBlue(image,p));
+        p+=GetPixelChannels(image);
+        if ((x+1) < (ssize_t) image->columns)
+          {
+            q_y[y*p_y+x+1]=ScaleQuantumToChar(GetPixelRed(image,p));
+            p+=GetPixelChannels(image);
+          }
+      }
+    else
+      for (x=0; x < (ssize_t) image->columns; x++)
+      {
+        q_y[y*p_y+x]=ScaleQuantumToChar(GetPixelRed(image,p));
+        p+=GetPixelChannels(image);
+      }
+    if (image->previous == (Image *) NULL)
+      {
+        status=SetImageProgress(image,SaveImageTag,(MagickOffsetType) y,
+          image->rows);
+        if (status == MagickFalse)
+          break;
+      }
+  }
+  return(status);
+}
+
+static MagickBooleanType WriteHEICImageRGBA(Image *image,
+  struct heif_image *heif_image,ExceptionInfo *exception)
+{
+  MagickBooleanType
+    status;
+
+  ssize_t
+    y;
+
+  const Quantum
+    *p;
+
+  int
+    stride;
+
+  struct heif_error
+    error;
+
+  uint8_t
+    *q,
+    *plane;
+
+  status=MagickTrue;
+  error=heif_image_add_plane(heif_image,heif_channel_interleaved,
+    (int) image->columns,(int) image->rows,8);
+  status=IsHeifSuccess(&error,image,exception);
+  if (status == MagickFalse)
+    return status;
+  plane=heif_image_get_plane(heif_image,heif_channel_interleaved,&stride);
+  /*
+    Copy image to heif_image
+  */
+  for (y=0; y < (ssize_t) image->rows; y++)
+  {
+    register ssize_t
+      x;
+
+    p=GetVirtualPixels(image,0,y,image->columns,1,exception);
+    if (p == (const Quantum *) NULL)
+      {
+        status=MagickFalse;
+        break;
+      }
+    q=plane+(y*stride);
+    for (x=0; x < (ssize_t) image->columns; x++)
+      {
+        *(q++)=ScaleQuantumToChar(GetPixelRed(image,p));
+        *(q++)=ScaleQuantumToChar(GetPixelGreen(image,p));
+        *(q++)=ScaleQuantumToChar(GetPixelBlue(image,p));
+        if (image->alpha_trait != UndefinedPixelTrait)
+          *(q++)=ScaleQuantumToChar(GetPixelAlpha(image,p));
+
+        p+=GetPixelChannels(image);
+      }
+    if (image->previous == (Image *) NULL)
+      {
+        status=SetImageProgress(image,SaveImageTag,(MagickOffsetType) y,
+          image->rows);
+        if (status == MagickFalse)
+          break;
+      }
+  }
+  return(status);
+}
+
 static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
   Image *image,ExceptionInfo *exception)
 {
@@ -797,9 +963,6 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
 
   MagickOffsetType
     scene;
-
-  ssize_t
-    y;
 
   struct heif_context
     *heif_context;
@@ -826,20 +989,13 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
   heif_context=heif_context_alloc();
   heif_image=(struct heif_image*) NULL;
   heif_encoder=(struct heif_encoder*) NULL;
+
   do
   {
-    const Quantum
-      *p;
-
 #if LIBHEIF_NUMERIC_VERSION >= 0x01040000
     const StringInfo
       *profile;
 #endif
-
-    int
-      stride_y,
-      stride_cb,
-      stride_cr;
 
     struct heif_error
       error;
@@ -847,23 +1003,57 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
     struct heif_writer
       writer;
 
-    uint8_t
-      *p_y,
-      *p_cb,
-      *p_cr;
+    enum heif_colorspace 
+      colorspace;
 
+    enum heif_chroma 
+      chroma;
+
+    MagickBooleanType 
+      is_avif;
+
+
+    colorspace=heif_colorspace_YCbCr;
+    chroma=heif_chroma_420;
+    is_avif=MagickFalse;
     /*
-      Transform colorspace to YCbCr.
+      Get encoder for the specified format.
     */
-    if (image->colorspace != YCbCrColorspace)
-      status=TransformImageColorspace(image,YCbCrColorspace,exception);
+#if LIBHEIF_NUMERIC_VERSION > 0x01060200
+    if (LocaleCompare(image_info->magick,"AVIF") == 0)
+      {
+        error=heif_context_get_encoder_for_format(heif_context,
+          heif_compression_AV1,&heif_encoder);
+        is_avif=MagickTrue;
+      }
+    else
+#endif
+      error=heif_context_get_encoder_for_format(heif_context,
+        heif_compression_HEVC,&heif_encoder);
+    status=IsHeifSuccess(&error,image,exception);
     if (status == MagickFalse)
       break;
+    if ((is_avif != MagickFalse) &&
+        (IssRGBCompatibleColorspace(image->colorspace) != MagickFalse))
+      {
+        colorspace=heif_colorspace_RGB;
+        chroma=(image->alpha_trait == UndefinedPixelTrait) ?
+          heif_chroma_interleaved_RGB : heif_chroma_interleaved_RGBA;
+      } 
+    else if (image->colorspace != YCbCrColorspace)
+      {
+        /*
+        Transform colorspace to YCbCr.
+        */
+        status=TransformImageColorspace(image,YCbCrColorspace,exception);
+        if (status == MagickFalse)
+          break;
+      }
     /*
       Initialize HEIF encoder context.
     */
     error=heif_image_create((int) image->columns,(int) image->rows,
-      heif_colorspace_YCbCr,heif_chroma_420,&heif_image);
+      colorspace,chroma,&heif_image);
     status=IsHeifSuccess(&error,image,exception);
     if (status == MagickFalse)
       break;
@@ -873,80 +1063,15 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
       (void) heif_image_set_raw_color_profile(heif_image,"prof",
         GetStringInfoDatum(profile),GetStringInfoLength(profile));
 #endif
-    error=heif_image_add_plane(heif_image,heif_channel_Y,(int) image->columns,
-      (int) image->rows,8);
-    status=IsHeifSuccess(&error,image,exception);
-    if (status == MagickFalse)
-      break;
-    error=heif_image_add_plane(heif_image,heif_channel_Cb,
-      ((int) image->columns+1)/2,((int) image->rows+1)/2,8);
-    status=IsHeifSuccess(&error,image,exception);
-    if (status == MagickFalse)
-      break;
-    error=heif_image_add_plane(heif_image,heif_channel_Cr,
-      ((int) image->columns+1)/2,((int) image->rows+1)/2,8);
-    status=IsHeifSuccess(&error,image,exception);
-    if (status == MagickFalse)
-      break;
-    p_y=heif_image_get_plane(heif_image,heif_channel_Y,&stride_y);
-    p_cb=heif_image_get_plane(heif_image,heif_channel_Cb,&stride_cb);
-    p_cr=heif_image_get_plane(heif_image,heif_channel_Cr,&stride_cr);
-    /*
-      Copy image to heif_image
-    */
-    for (y=0; y < (ssize_t) image->rows; y++)
-    {
-      register ssize_t
-        x;
-
-      p=GetVirtualPixels(image,0,y,image->columns,1,exception);
-      if (p == (const Quantum *) NULL)
-        {
-          status=MagickFalse;
-          break;
-        }
-      if ((y & 0x01) == 0)
-        for (x=0; x < (ssize_t) image->columns; x+=2)
-        {
-          p_y[y*stride_y+x]=ScaleQuantumToChar(GetPixelRed(image,p));
-          p_cb[y/2*stride_cb+x/2]=ScaleQuantumToChar(GetPixelGreen(image,p));
-          p_cr[y/2*stride_cr+x/2]=ScaleQuantumToChar(GetPixelBlue(image,p));
-          p+=GetPixelChannels(image);
-          if ((x+1) < (ssize_t) image->columns)
-            {
-              p_y[y*stride_y+x+1]=ScaleQuantumToChar(GetPixelRed(image,p));
-              p+=GetPixelChannels(image);
-            }
-        }
-      else
-        for (x=0; x < (ssize_t) image->columns; x++)
-        {
-          p_y[y*stride_y+x]=ScaleQuantumToChar(GetPixelRed(image,p));
-          p+=GetPixelChannels(image);
-        }
-      if (image->previous == (Image *) NULL)
-        {
-          status=SetImageProgress(image,SaveImageTag,(MagickOffsetType) y,
-            image->rows);
-          if (status == MagickFalse)
-            break;
-        }
-    }
+    if (colorspace == heif_colorspace_YCbCr)
+      status=WriteHEICImageYCbCr(image,heif_image,exception);
+    else
+      status=WriteHEICImageRGBA(image,heif_image,exception);
     if (status == MagickFalse)
       break;
     /*
       Code and actually write the HEIC image
     */
-    error=heif_context_get_encoder_for_format(heif_context,
-      heif_compression_HEVC,&heif_encoder);
-#if LIBHEIF_NUMERIC_VERSION > 0x01060200
-    if (LocaleCompare(image_info->magick,"AVIF") == 0)
-      error=heif_context_get_encoder_for_format(heif_context,
-        heif_compression_AVIF,&heif_encoder);
-#endif
-    status=IsHeifSuccess(&error,image,exception);
-    if (status == MagickFalse)
-      break;
     if (image_info->quality != UndefinedCompressionQuality)
       {
         error=heif_encoder_set_lossy_quality(heif_encoder,(int)
