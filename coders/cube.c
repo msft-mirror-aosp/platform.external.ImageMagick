@@ -169,11 +169,10 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
     (void) GetNextToken(q,&q,MagickPathExtent,token);
     if ((*token == '#') || (*token == '\0'))
       continue;
-    if ((LocaleCompare(token,"LUT_1D_SIZE") == 0) ||
-        (LocaleCompare(token,"LUT_3D_SIZE") == 0))
+    if (((LocaleCompare(token,"LUT_1D_SIZE") == 0) ||
+         (LocaleCompare(token,"LUT_3D_SIZE") == 0)) &&
+        (cube_info == (MemoryInfo *) NULL))
       {
-        if (cube_info != (MemoryInfo *) NULL)
-          cube_info=RelinquishVirtualMemory(cube_info);
         (void) GetNextToken(q,&q,MagickPathExtent,value);
         cube_level=(size_t) StringToLong(value);
         if (LocaleCompare(token,"LUT_1D_SIZE") == 0)
@@ -203,14 +202,14 @@ static Image *ReadCUBEImage(const ImageInfo *image_info,
         if (cube_level != 0)
           {
             char
-              *q;
+              *r;
 
             if (n >= (ssize_t) (cube_level*cube_level*cube_level))
               break;
-            q=buffer;
-            cube[n].r=StringToDouble(q,&q);
-            cube[n].g=StringToDouble(q,&q);
-            cube[n].b=StringToDouble(q,&q);
+            r=buffer;
+            cube[n].r=StringToDouble(r,&r);
+            cube[n].g=StringToDouble(r,&r);
+            cube[n].b=StringToDouble(r,&r);
             n++;
           }
         else

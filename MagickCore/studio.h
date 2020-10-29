@@ -128,7 +128,9 @@ extern "C" {
 #include <ws2tcpip.h>
 #endif
 #include <windows.h>
+#ifdef _MSC_VER
 #pragma comment (lib, "ws2_32.lib")
+#endif
 #endif
 #if defined(MAGICKCORE_HAVE_SYS_SYSLIMITS_H)
 # include <sys/syslimits.h>
@@ -216,6 +218,12 @@ extern int vsnprintf(char *,size_t,const char *,va_list);
 # endif
 # if defined(MAGICKCORE_HAVE_SYS_SENDFILE_H)
 #  include <sys/sendfile.h>
+# endif
+# if defined(MAGICKCORE_HAVE_SYS_SOCKET_H)
+#  include <sys/socket.h>
+# endif
+# if defined(MAGICKCORE_HAVE_SYS_UIO_H)
+#  include <sys/uio.h>
 # endif
 #endif
 #else

@@ -596,7 +596,7 @@ static void TransformQuantumPixels(const int id,const Image* image,
         *p++=GetPixelBlue(image,q);
       }
     if (source_info->channels > 3)
-      *p++=GetLCMSPixel(source_info,GetPixelBlack(image,q));
+      *p++=GetPixelBlack(image,q);
     q+=GetPixelChannels(image);
   }
   cmsDoTransform(transform[id],source_info->pixels[id],
@@ -923,6 +923,8 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
 #endif
 #define ThrowProfileException(severity,tag,context) \
 { \
+  if (profile != (StringInfo *) NULL) \
+     profile=DestroyStringInfo(profile); \
   if (cms_context != (cmsContext) NULL) \
     cmsDeleteContext(cms_context); \
   if (source_info.profile != (cmsHPROFILE) NULL) \
@@ -1839,7 +1841,8 @@ static void GetProfilesFromResourceBlock(Image *image,
 }
 
 #if defined(MAGICKCORE_XML_DELEGATE)
-static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
+static MagickBooleanType ValidateXMPProfile(Image *image,
+  const StringInfo *profile,ExceptionInfo *exception)
 {
   xmlDocPtr
     document;
@@ -1851,13 +1854,20 @@ static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
     GetStringInfoLength(profile),"xmp.xml",NULL,XML_PARSE_NOERROR |
     XML_PARSE_NOWARNING);
   if (document == (xmlDocPtr) NULL)
-    return(MagickFalse);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),ImageWarning,
+        "CorruptImageProfile","`%s' (XMP)",image->filename);
+      return(MagickFalse);
+    }
   xmlFreeDoc(document);
   return(MagickTrue);
 }
 #else
-static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
+static MagickBooleanType ValidateXMPProfile(Image *image,
+  const StringInfo *profile,ExceptionInfo *exception)
 {
+  (void) ThrowMagickException(exception,GetMagickModule(),MissingDelegateError,
+    "DelegateLibrarySupportNotBuiltIn","'%s' (XML)",image->filename);
   return(MagickFalse);
 }
 #endif
@@ -1877,12 +1887,8 @@ static MagickBooleanType SetImageProfileInternal(Image *image,const char *name,
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
   if ((LocaleCompare(name,"xmp") == 0) &&
-      (ValidateXMPProfile(profile) == MagickFalse))
-    {
-      (void) ThrowMagickException(exception,GetMagickModule(),ImageWarning,
-        "CorruptImageProfile","`%s'",name);
-      return(MagickTrue);
-    }
+      (ValidateXMPProfile(image,profile,exception) == MagickFalse))
+    return(MagickTrue);
   if (image->profiles == (SplayTreeInfo *) NULL)
     image->profiles=NewSplayTree(CompareSplayTreeString,RelinquishMagickMemory,
       DestroyProfile);
@@ -2376,4 +2382,142 @@ MagickPrivate MagickBooleanType SyncImageProfiles(Image *image)
     if (SyncExifProfile(image,profile) == MagickFalse)
       status=MagickFalse;
   return(status);
+}
+
+static void UpdateClipPath(unsigned char *blob,size_t length,
+  const size_t old_columns,const size_t old_rows,
+  const RectangleInfo *new_geometry)
+{
+  register ssize_t
+    i;
+
+  ssize_t
+    knot_count,
+    selector;
+
+  knot_count=0;
+  while (length != 0)
+  {
+    selector=(ssize_t) ReadProfileMSBShort(&blob,&length);
+    switch (selector)
+    {
+      case 0:
+      case 3:
+      {
+        if (knot_count != 0)
+          {
+            blob+=24;
+            length-=MagickMin(24,(ssize_t) length);
+            break;
+          }
+        /*
+          Expected subpath length record.
+        */
+        knot_count=(ssize_t) ReadProfileMSBShort(&blob,&length);
+        blob+=22;
+        length-=MagickMin(22,(ssize_t) length);
+        break;
+      }
+      case 1:
+      case 2:
+      case 4:
+      case 5:
+      {
+        if (knot_count == 0)
+          {
+            /*
+              Unexpected subpath knot.
+            */
+            blob+=24;
+            length-=MagickMin(24,(ssize_t) length);
+            break;
+          }
+        /*
+          Add sub-path knot
+        */
+        for (i=0; i < 3; i++)
+        {
+          double
+            x,
+            y;
+
+          signed int
+            xx,
+            yy;
+
+          y=(double) ReadProfileMSBLong(&blob,&length);
+          y=y*old_rows/4096/4096;
+          y-=new_geometry->y;
+          yy=(signed int) ((y*4096*4096)/new_geometry->height);
+          WriteProfileLong(MSBEndian,(size_t) yy,blob-4);
+          x=(double) ReadProfileMSBLong(&blob,&length);
+          x=x*old_columns/4096/4096;
+          x-=new_geometry->x;
+          xx=(signed int) ((x*4096*4096)/new_geometry->width);
+          WriteProfileLong(MSBEndian,(size_t) xx,blob-4);
+        }
+        knot_count--;
+        break;
+      }
+      case 6:
+      case 7:
+      case 8:
+      default:
+      {
+        blob+=24;
+        length-=MagickMin(24,(ssize_t) length);
+        break;
+      }
+    }
+  }
+}
+
+MagickPrivate void Update8BIMClipPath(const StringInfo *profile,
+  const size_t old_columns,const size_t old_rows,
+  const RectangleInfo *new_geometry)
+{
+  unsigned char
+    *info;
+
+  size_t
+    length;
+
+  ssize_t
+    count,
+    id;
+
+  assert(profile != (StringInfo *) NULL);
+  assert(new_geometry != (RectangleInfo *) NULL);
+  length=GetStringInfoLength(profile);
+  info=GetStringInfoDatum(profile);
+  while (length > 0)
+  {
+    if (ReadProfileByte(&info,&length) != (unsigned char) '8')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'B')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'I')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'M')
+      continue;
+    id=(ssize_t) ReadProfileMSBShort(&info,&length);
+    count=(ssize_t) ReadProfileByte(&info,&length);
+    if ((count != 0) && ((size_t) count <= length))
+      {
+        info+=count;
+        length-=count;
+      }
+    if ((count & 0x01) == 0)
+      (void) ReadProfileByte(&info,&length);
+    count=(ssize_t) ReadProfileMSBLong(&info,&length);
+    if ((count < 0) || ((size_t) count > length))
+      {
+        length=0;
+        continue;
+      }
+    if ((id > 1999) && (id < 2999))
+      UpdateClipPath(info,(size_t) count,old_columns,old_rows,new_geometry);
+    info+=count;
+    length-=MagickMin(count,(ssize_t) length);
+  }
 }
