@@ -401,8 +401,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
 
   MagickBooleanType
     fitPage,
-    status,
-    stop_on_error;
+    status;
 
   MagickStatusType
     flags;
@@ -532,7 +531,6 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
     }
   if (IssRGBCompatibleColorspace(image_info->colorspace) != MagickFalse)
     pdf_info.cmyk=MagickFalse;
-  stop_on_error=IsStringTrue(GetImageOption(image_info,"pdf:stop-on-error"));
   /*
     Create Ghostscript control file.
   */
@@ -580,15 +578,18 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       page.width,(double) page.height);
   if (fitPage != MagickFalse)
     (void) ConcatenateMagickString(options,"-dPSFitPage ",MagickPathExtent);
-  if (pdf_info.cmyk != MagickFalse)
-    (void) ConcatenateMagickString(options,"-dUseCIEColor ",MagickPathExtent);
   if (pdf_info.cropbox != MagickFalse)
     (void) ConcatenateMagickString(options,"-dUseCropBox ",MagickPathExtent);
-  if (stop_on_error != MagickFalse)
-    (void) ConcatenateMagickString(options,"-dPDFSTOPONERROR ",
-      MagickPathExtent);
   if (pdf_info.trimbox != MagickFalse)
     (void) ConcatenateMagickString(options,"-dUseTrimBox ",MagickPathExtent);
+  option=GetImageOption(image_info,"pdf:stop-on-error");
+  if (IsStringTrue(option) != MagickFalse)
+    (void) ConcatenateMagickString(options,"-dPDFSTOPONERROR ",
+      MagickPathExtent);
+  option=GetImageOption(image_info,"pdf:interpolate");
+  if (IsStringTrue(option) != MagickFalse)
+    (void) ConcatenateMagickString(options,"-dInterpolateControl=-1 ",
+      MagickPathExtent);
   option=GetImageOption(image_info,"authenticate");
   if (option != (char *) NULL)
     {
@@ -756,6 +757,7 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->decoder=(DecodeImageHandler *) ReadPDFImage;
   entry->encoder=(EncodeImageHandler *) WritePDFImage;
   entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags|=CoderEncoderSeekableStreamFlag;
   entry->flags^=CoderAdjoinFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
@@ -765,6 +767,7 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->decoder=(DecodeImageHandler *) ReadPDFImage;
   entry->encoder=(EncodeImageHandler *) WritePDFImage;
   entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags|=CoderEncoderSeekableStreamFlag;
   entry->flags^=CoderAdjoinFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
@@ -774,6 +777,7 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->encoder=(EncodeImageHandler *) WritePDFImage;
   entry->magick=(IsImageFormatHandler *) IsPDF;
   entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags|=CoderEncoderSeekableStreamFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
   (void) RegisterMagickInfo(entry);
@@ -782,6 +786,7 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->encoder=(EncodeImageHandler *) WritePDFImage;
   entry->magick=(IsImageFormatHandler *) IsPDF;
   entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags|=CoderEncoderSeekableStreamFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
   (void) RegisterMagickInfo(entry);
@@ -790,6 +795,7 @@ ModuleExport size_t RegisterPDFImage(void)
   entry->encoder=(EncodeImageHandler *) WritePOCKETMODImage;
   entry->format_type=ImplicitFormatType;
   entry->flags|=CoderDecoderSeekableStreamFlag;
+  entry->flags|=CoderEncoderSeekableStreamFlag;
   entry->flags^=CoderBlobSupportFlag;
   entry->mime_type=ConstantString("application/pdf");
   (void) RegisterMagickInfo(entry);
@@ -1147,7 +1153,6 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
   ThrowWriterException((exception),(message)); \
 }
 
-DisableMSCWarning(4310)
   static const char
     XMPProfile[]=
     {
@@ -1188,8 +1193,7 @@ DisableMSCWarning(4310)
       "</x:xmpmeta>\n"
       "<?xpacket end=\"w\"?>\n"
     },
-    XMPProfileMagick[4]= { (char) 0xef, (char) 0xbb, (char) 0xbf, (char) 0x00 };
-RestoreMSCWarning
+    XMPProfileMagick[4]= { (char) -17, (char) -69, (char) -65, (char) 0 };
 
   char
     basename[MagickPathExtent],
@@ -1219,8 +1223,7 @@ RestoreMSCWarning
     geometry_info;
 
   Image
-    *next,
-    *tile_image;
+    *next;
 
   MagickBooleanType
     status;
@@ -1313,9 +1316,19 @@ RestoreMSCWarning
     version=1.5;
   if (LocaleCompare(image_info->magick,"PDFA") == 0)
     version=1.6;
-  profile=GetImageProfile(image,"icc");
-  if (profile != (StringInfo *) NULL)
-    version=1.7;
+  for (next=image; next != (Image *) NULL; next=GetNextImageInList(next))
+  {
+    (void) SetImageGray(next,exception);
+    profile=GetImageProfile(next,"icc");
+    if (profile != (StringInfo *) NULL)
+      {
+        (void) SetImageStorageClass(next,DirectClass,exception);
+        version=1.7;
+      }
+    if ((next->colorspace != CMYKColorspace) &&
+        (IssRGBCompatibleColorspace(next->colorspace) == MagickFalse))
+      (void) TransformImageColorspace(next,sRGBColorspace,exception);
+  }
   option=GetImageOption(image_info,"pdf:version");
   if (option != (const char *) NULL)
     {
@@ -1323,7 +1336,7 @@ RestoreMSCWarning
         preferred_version;
 
       preferred_version=StringToDouble(option,(char**) NULL);
-      version=MagickMax(version,MagickMin(1.7, preferred_version));
+      version=MagickMax(version,MagickMin(1.7,preferred_version));
     }
   (void) FormatLocaleString(buffer,MagickPathExtent,"%%PDF-%.2g \n",version);
   (void) WriteBlobString(image,buffer);
@@ -1456,11 +1469,15 @@ RestoreMSCWarning
   imageListLength=GetImageListLength(image);
   do
   {
+    Image
+      *tile_image;
+
     MagickBooleanType
-      has_icc_profile;
+      has_icc_profile,
+      thumbnail;
 
     profile=GetImageProfile(image,"icc");
-    has_icc_profile=(profile != (StringInfo *) NULL) ? MagickTrue : MagickFalse;
+    has_icc_profile=profile != (StringInfo *) NULL ? MagickTrue : MagickFalse;
     compression=image->compression;
     if (image_info->compression != UndefinedCompression)
       compression=image_info->compression;
@@ -2203,8 +2220,7 @@ RestoreMSCWarning
             device="DeviceRGB";
             channels=3;
           }
-    profile=GetImageProfile(image,"icc");
-    if ((profile == (StringInfo *) NULL) || (channels == 0))
+    if (has_icc_profile == MagickFalse)
       {
         if (channels != 0)
           (void) FormatLocaleString(buffer,MagickPathExtent,"/%s\n",device);
@@ -2261,10 +2277,11 @@ RestoreMSCWarning
     SetGeometry(image,&geometry);
     (void) ParseMetaGeometry("106x106+0+0>",&geometry.x,&geometry.y,
       &geometry.width,&geometry.height);
-    if (IsImageMonochrome(image) != MagickFalse)
-      tile_image=SampleImage(image,geometry.width,geometry.height,exception);
-    else
-      tile_image=ThumbnailImage(image,geometry.width,geometry.height,exception);
+    thumbnail=IsStringTrue(GetImageOption(image_info,"pdf:thumbnail"));
+    if (thumbnail == MagickFalse)
+      (void) ParseMetaGeometry("1x1+0+0>",&geometry.x,&geometry.y,
+        &geometry.width,&geometry.height);
+    tile_image=ThumbnailImage(image,geometry.width,geometry.height,exception);
     if (tile_image == (Image *) NULL)
       return(MagickFalse);
     xref[object++]=TellBlob(image);
@@ -2283,7 +2300,7 @@ RestoreMSCWarning
       case JPEGCompression:
       {
         (void) FormatLocaleString(buffer,MagickPathExtent,CFormat,"DCTDecode");
-        if (image->colorspace != CMYKColorspace)
+        if (tile_image->colorspace != CMYKColorspace)
           break;
         (void) WriteBlobString(image,buffer);
         (void) CopyMagickString(buffer,"/Decode [1 0 1 0 1 0 1 0]\n",
@@ -2293,7 +2310,7 @@ RestoreMSCWarning
       case JPEG2000Compression:
       {
         (void) FormatLocaleString(buffer,MagickPathExtent,CFormat,"JPXDecode");
-        if (image->colorspace != CMYKColorspace)
+        if (tile_image->colorspace != CMYKColorspace)
           break;
         (void) WriteBlobString(image,buffer);
         (void) CopyMagickString(buffer,"/Decode [1 0 1 0 1 0 1 0]\n",
@@ -2317,9 +2334,9 @@ RestoreMSCWarning
         (void) CopyMagickString(buffer,"/Filter [ /CCITTFaxDecode ]\n",
           MagickPathExtent);
         (void) WriteBlobString(image,buffer);
-        (void) FormatLocaleString(buffer,MagickPathExtent,"/DecodeParms [ << "
-          "/K %s /BlackIs1 false /Columns %.20g /Rows %.20g >> ]\n",CCITTParam,
-          (double) tile_image->columns,(double) tile_image->rows);
+        (void) FormatLocaleString(buffer,MagickPathExtent,"/DecodeParms [ "
+          "<< /K %s /BlackIs1 false /Columns %.20g /Rows %.20g >> ]\n",
+          CCITTParam,(double) tile_image->columns,(double) tile_image->rows);
         break;
       }
       default:
@@ -2336,12 +2353,13 @@ RestoreMSCWarning
     (void) FormatLocaleString(buffer,MagickPathExtent,"/Height %.20g\n",(double)
       tile_image->rows);
     (void) WriteBlobString(image,buffer);
-    (void) FormatLocaleString(buffer,MagickPathExtent,"/ColorSpace %.20g 0 R\n",
-      (double) object-(has_icc_profile != MagickFalse ? 3 : 1));
+    (void) FormatLocaleString(buffer,MagickPathExtent,
+      "/ColorSpace %.20g 0 R\n",(double) object-
+      (has_icc_profile != MagickFalse ? 3 : 1));
     (void) WriteBlobString(image,buffer);
-    (void) FormatLocaleString(buffer,MagickPathExtent,"/BitsPerComponent %d\n",
-      (compression == FaxCompression) || (compression == Group4Compression) ?
-      1 : 8);
+    (void) FormatLocaleString(buffer,MagickPathExtent,
+      "/BitsPerComponent %d\n",(compression == FaxCompression) ||
+      (compression == Group4Compression) ? 1 : 8);
     (void) WriteBlobString(image,buffer);
     (void) FormatLocaleString(buffer,MagickPathExtent,"/Length %.20g 0 R\n",
       (double) object+1);
@@ -2421,8 +2439,8 @@ RestoreMSCWarning
                 break;
               for (x=0; x < (ssize_t) tile_image->columns; x++)
               {
-                *q++=ScaleQuantumToChar(ClampToQuantum(GetPixelLuma(
-                  tile_image,p)));
+                *q++=ScaleQuantumToChar(ClampToQuantum(GetPixelLuma(tile_image,
+                  p)));
                 p+=GetPixelChannels(tile_image);
               }
             }
@@ -2656,8 +2674,8 @@ RestoreMSCWarning
                   break;
                 for (x=0; x < (ssize_t) tile_image->columns; x++)
                 {
-                  Ascii85Encode(image,(unsigned char)
-                    ((ssize_t) GetPixelIndex(tile_image,p)));
+                  Ascii85Encode(image,(unsigned char) ((ssize_t)
+                    GetPixelIndex(tile_image,p)));
                   p+=GetPixelChannels(image);
                 }
               }
@@ -2717,11 +2735,11 @@ RestoreMSCWarning
               continue;
             }
           (void) WriteBlobByte(image,ScaleQuantumToChar(
-             ClampToQuantum(image->colormap[i].red)));
+            ClampToQuantum(image->colormap[i].red)));
           (void) WriteBlobByte(image,ScaleQuantumToChar(
-             ClampToQuantum(image->colormap[i].green)));
+            ClampToQuantum(image->colormap[i].green)));
           (void) WriteBlobByte(image,ScaleQuantumToChar(
-             ClampToQuantum(image->colormap[i].blue)));
+            ClampToQuantum(image->colormap[i].blue)));
         }
         if (compression == NoCompression)
           Ascii85Flush(image);

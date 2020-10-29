@@ -728,6 +728,7 @@ MagickExport MagickBooleanType ClipImagePath(Image *image,const char *pathname,
   (void) FormatLocaleString(clip_mask->magick_filename,MagickPathExtent,
     "8BIM:1999,2998:%s\nPS",pathname);
   (void) SetImageMask(image,WritePixelMask,clip_mask,exception);
+  image->mask_trait=UpdatePixelTrait;
   clip_mask=DestroyImage(clip_mask);
   return(MagickTrue);
 }
@@ -2961,6 +2962,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
           (void) CloseBlob(image);
           if (status == MagickFalse)
             {
+              (void) RelinquishUniqueFileResource(component);
               image=DestroyImage(image);
               return(MagickFalse);
             }
@@ -2969,6 +2971,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
           status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
           if (status == MagickFalse)
             {
+              (void) RelinquishUniqueFileResource(component);
               image=DestroyImage(image);
               return(MagickFalse);
             }

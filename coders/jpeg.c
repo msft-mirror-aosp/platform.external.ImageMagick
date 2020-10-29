@@ -278,7 +278,7 @@ static int GetCharacter(j_decompress_ptr jpeg_info)
     {
       (void) (*jpeg_info->src->fill_input_buffer)(jpeg_info);
       if (jpeg_info->err->msg_code == JWRN_JPEG_EOF)
-        return EOF;
+        return(EOF);
     }
   jpeg_info->src->bytes_in_buffer--;
   return((int) GETJOCTET(*jpeg_info->src->next_input_byte++));
@@ -2183,7 +2183,7 @@ static void WriteProfile(j_compress_ptr jpeg_info,Image *image,
         }
       }
    if ((LocaleCompare(name,"XMP") == 0) &&
-       (GetStringInfoLength(profile) <= 65502))
+       (GetStringInfoLength(profile) < (65533 - sizeof(xmp_namespace))))
       {
         StringInfo
           *xmp_profile;
@@ -2194,15 +2194,11 @@ static void WriteProfile(j_compress_ptr jpeg_info,Image *image,
         xmp_profile=StringToStringInfo(xmp_namespace);
         if (xmp_profile != (StringInfo *) NULL)
           {
-            if (profile != (StringInfo *) NULL)
-              ConcatenateStringInfo(xmp_profile,profile);
+            ConcatenateStringInfo(xmp_profile,profile);
             GetStringInfoDatum(xmp_profile)[XmpNamespaceExtent]='\0';
-            for (i=0; i < (ssize_t) GetStringInfoLength(xmp_profile); i+=65533L)
-            {
-              length=MagickMin(GetStringInfoLength(xmp_profile)-i,65533L);
-              jpeg_write_marker(jpeg_info,XML_MARKER,
-                GetStringInfoDatum(xmp_profile)+i,(unsigned int) length);
-            }
+            length=GetStringInfoLength(xmp_profile);
+            jpeg_write_marker(jpeg_info,XML_MARKER,
+              GetStringInfoDatum(xmp_profile),(unsigned int) length);
             xmp_profile=DestroyStringInfo(xmp_profile);
           }
       }
@@ -2487,7 +2483,7 @@ static MagickBooleanType WriteJPEGImage_(const ImageInfo *image_info,
   if (IsStringTrue(option) != MagickFalse)
     {
       jpeg_info->arith_code=TRUE;
-      jpeg_info->optimize_coding=FALSE; // Not supported.
+      jpeg_info->optimize_coding=FALSE;  /* not supported */
     }
 #endif
 #if (JPEG_LIB_VERSION >= 61) && defined(C_PROGRESSIVE_SUPPORTED)
