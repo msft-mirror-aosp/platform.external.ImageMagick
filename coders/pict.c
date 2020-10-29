@@ -465,6 +465,7 @@ static unsigned char *DecodeImage(Image *blob,Image *image,
       return((unsigned char *) NULL);
     }
   (void) memset(scanline,0,2*row_bytes*sizeof(*scanline));
+  (void) memset(unpack_buffer,0,sizeof(unpack_buffer));
   status=MagickTrue;
   if (bytes_per_line < 8)
     {
@@ -1077,18 +1078,21 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
             else
               for (i=0; i < (ssize_t) height; i++)
               {
+                size_t
+                  scanline_length;
+
                 if (EOFBlob(image) != MagickFalse)
                   break;
                 if (length > 200)
-                  {
-                    for (j=0; j < (ssize_t) ReadBlobMSBShort(image); j++)
-                      if (ReadBlobByte(image) == EOF)
-                        break;
-                  }
+                  scanline_length=ReadBlobMSBShort(image);
                 else
-                  for (j=0; j < (ssize_t) ReadBlobByte(image); j++)
-                    if (ReadBlobByte(image) == EOF)
-                      break;
+                  scanline_length=ReadBlobByte(image);
+                if ((MagickSizeType) scanline_length > GetBlobSize(image))
+                  ThrowPICTException(CorruptImageError,
+                    "InsufficientImageDataInFile");
+                for (j=0; j < (ssize_t) scanline_length; j++)
+                  if (ReadBlobByte(image) == EOF)
+                    break;
               }
             break;
           }

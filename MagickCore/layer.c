@@ -289,6 +289,9 @@ MagickExport Image *CoalesceImages(const Image *image,ExceptionInfo *exception)
   next=GetNextImageInList(next);
   for ( ; next != (Image *) NULL; next=GetNextImageInList(next))
   {
+    const char
+      *attribute;
+
     /*
       Determine the bounds that was overlaid in the previous image.
     */
@@ -337,9 +340,16 @@ MagickExport Image *CoalesceImages(const Image *image,ExceptionInfo *exception)
     previous=coalesce_image;
     coalesce_image=GetNextImageInList(coalesce_image);
     coalesce_image->background_color.alpha_trait=BlendPixelTrait;
-    (void) CompositeImage(coalesce_image,next,
-      next->alpha_trait != UndefinedPixelTrait ? OverCompositeOp : CopyCompositeOp,
-      MagickTrue,next->page.x,next->page.y,exception);
+    attribute=GetImageProperty(next,"webp:mux-blend",exception);
+    if (attribute == (const char *) NULL)
+      (void) CompositeImage(coalesce_image,next,
+        next->alpha_trait != UndefinedPixelTrait ? OverCompositeOp :
+        CopyCompositeOp,MagickTrue,next->page.x,next->page.y,exception);
+    else
+      (void) CompositeImage(coalesce_image,next,
+        LocaleCompare(attribute,"AtopBackgroundAlphaBlend") == 0 ?
+        OverCompositeOp : CopyCompositeOp,MagickTrue,next->page.x,next->page.y,
+        exception);
     (void) CloneImageProfiles(coalesce_image,next);
     (void) CloneImageProperties(coalesce_image,next);
     (void) CloneImageArtifacts(coalesce_image,next);
@@ -542,8 +552,7 @@ static MagickBooleanType ComparePixels(const LayerMethod method,
     Any change in pixel values
   */
   if (method == CompareAnyLayer)
-    return((MagickBooleanType)(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse));
-
+    return(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse ? MagickTrue : MagickFalse);
   o1 = (p->alpha_trait != UndefinedPixelTrait) ? p->alpha : OpaqueAlpha;
   o2 = (q->alpha_trait != UndefinedPixelTrait) ? q->alpha : OpaqueAlpha;
   /*
@@ -559,7 +568,8 @@ static MagickBooleanType ComparePixels(const LayerMethod method,
     {
       if (o2 < ((double) QuantumRange/2.0))
         return MagickFalse;
-      return((MagickBooleanType) (IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse));
+      return(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse ? MagickTrue :
+        MagickFalse);
     }
   return(MagickFalse);
 }
@@ -634,7 +644,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -664,7 +674,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -683,7 +693,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -702,7 +712,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -1342,11 +1352,13 @@ static Image *OptimizeLayerFrames(const Image *image,const LayerMethod method,
     if ( disposals[i] == DelDispose ) {
       size_t time = 0;
       while ( disposals[i] == DelDispose ) {
-        time += curr->delay*1000/curr->ticks_per_second;
+        time +=(size_t) (curr->delay*1000*
+          PerceptibleReciprocal((double) curr->ticks_per_second));
         curr=GetNextImageInList(curr);
         i++;
       }
-      time += curr->delay*1000/curr->ticks_per_second;
+      time += (size_t)(curr->delay*1000*
+        PerceptibleReciprocal((double) curr->ticks_per_second));
       prev_image->ticks_per_second = 100L;
       prev_image->delay = time*prev_image->ticks_per_second/1000;
     }
@@ -1633,8 +1645,10 @@ MagickExport void RemoveDuplicateLayers(Image **images,ExceptionInfo *exception)
         size_t
           time;
 
-        time=1000*image->delay*PerceptibleReciprocal(image->ticks_per_second);
-        time+=1000*next->delay*PerceptibleReciprocal(next->ticks_per_second);
+        time=(size_t) (1000.0*image->delay*
+          PerceptibleReciprocal((double) image->ticks_per_second));
+        time+=(size_t) (1000.0*next->delay*
+          PerceptibleReciprocal((double) next->ticks_per_second));
         next->ticks_per_second=100L;
         next->delay=time*image->ticks_per_second/1000;
         next->iterations=image->iterations;

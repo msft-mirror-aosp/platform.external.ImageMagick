@@ -335,8 +335,10 @@ MagickExport MagickBooleanType AnnotateImage(Image *image,
     (void) CloneString(&annotate->text,textlist[i]);
     if ((metrics.width == 0) || (annotate->gravity != NorthWestGravity))
       (void) GetTypeMetrics(image,annotate,&metrics,exception);
-    height=(ssize_t) (metrics.ascent-metrics.descent+
-      draw_info->interline_spacing+0.5);
+    height=(size_t) floor(metrics.ascent-metrics.descent+0.5);
+    if (height == 0)
+      height=draw_info->pointsize;
+    height+=(size_t) floor(draw_info->interline_spacing+0.5);
     switch (annotate->gravity)
     {
       case UndefinedGravity:
@@ -628,11 +630,13 @@ MagickExport ssize_t FormatMagickCaption(Image *image,DrawInfo *draw_info,
       continue;
     if (s != (char *) NULL)
       {
+        for (i=0; i < (ssize_t) GetUTFOctets(s); i++)
+          *(s+i)=' ';
         *s='\n';
         p=s;
       }
     else
-      if (split != MagickFalse)
+      if ((split != MagickFalse) || (GetUTFOctets(p) > 2))
         {
           /*
             No convenient line breaks-- insert newline.
@@ -963,8 +967,9 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
   if ((type_info == (const TypeInfo *) NULL) &&
       (draw_info->family != (const char *) NULL))
     {
-      type_info=GetTypeInfoByFamily(draw_info->family,draw_info->style,
-        draw_info->stretch,draw_info->weight,exception);
+      if (strchr(draw_info->family,',') == (char *) NULL)
+        type_info=GetTypeInfoByFamily(draw_info->family,draw_info->style,
+          draw_info->stretch,draw_info->weight,exception);
       if (type_info == (const TypeInfo *) NULL)
         {
           char
@@ -984,7 +989,8 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
           {
             type_info=GetTypeInfoByFamily(family[i],draw_info->style,
               draw_info->stretch,draw_info->weight,exception);
-            if (type_info != (const TypeInfo *) NULL)
+            if ((type_info != (const TypeInfo *) NULL) &&
+                (LocaleCompare(family[i],type_info->family) == 0))
               break;
           }
           for (i=0; i < (ssize_t) number_families; i++)
@@ -1492,9 +1498,9 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
   metrics->bounds.x2=metrics->ascent+metrics->descent;
   metrics->bounds.y2=metrics->ascent+metrics->descent;
   metrics->underline_position=face->underline_position*
-    (metrics->pixels_per_em.x/face->units_per_EM);
+    (metrics->pixels_per_em.x*PerceptibleReciprocal(face->units_per_EM));
   metrics->underline_thickness=face->underline_thickness*
-    (metrics->pixels_per_em.x/face->units_per_EM);
+    (metrics->pixels_per_em.x*PerceptibleReciprocal(face->units_per_EM));
   first_glyph_id=0;
   FT_Get_First_Char(face,&first_glyph_id);
   if ((draw_info->text == (char *) NULL) || (*draw_info->text == '\0') ||
@@ -1643,7 +1649,7 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
     bitmap=(FT_BitmapGlyph) glyph.image;
     point.x=offset->x+bitmap->left;
     if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
-      point.x=origin.x >> 6;
+      point.x+=(origin.x/64.0);
     point.y=offset->y-bitmap->top;
     if (draw_info->render != MagickFalse)
       {
@@ -1704,11 +1710,10 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
                 bitmap->bitmap.width,1,exception);
               active=q != (Quantum *) NULL ? MagickTrue : MagickFalse;
             }
-          n=y*bitmap->bitmap.pitch-1;
-          for (x=0; x < (ssize_t) bitmap->bitmap.width; x++)
+          n=y*bitmap->bitmap.pitch;
+          for (x=0; x < (ssize_t) bitmap->bitmap.width; x++, n++)
           {
-            n++;
-            x_offset++;
+            x_offset=(ssize_t) ceil(point.x+x-0.5);
             if ((x_offset < 0) || (x_offset >= (ssize_t) image->columns))
               {
                 if (q != (Quantum *) NULL)
@@ -1716,12 +1721,15 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
                 continue;
               }
             fill_opacity=1.0;
-            if (bitmap->bitmap.pixel_mode == ft_pixel_mode_grays)
-              fill_opacity=(double) (r[n])/(bitmap->bitmap.num_grays-1);
-            else
-              if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
-                fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
-                  (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
+            if (bitmap->bitmap.buffer != (unsigned char *) NULL)
+              {
+                if (bitmap->bitmap.pixel_mode == ft_pixel_mode_grays)
+                  fill_opacity=(double) (r[n])/(bitmap->bitmap.num_grays-1);
+                else
+                  if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
+                    fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
+                      (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
+              }
             if (draw_info->text_antialias == MagickFalse)
               fill_opacity=fill_opacity >= 0.5 ? 1.0 : 0.0;
             if (active == MagickFalse)
