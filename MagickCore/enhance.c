@@ -95,7 +95,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %  AutoGammaImage() extract the 'mean' from the image and adjust the image
-%  to try make set its gamma appropriatally.
+%  to try make set its gamma appropriately.
 %
 %  The format of the AutoGammaImage method is:
 %
@@ -426,9 +426,10 @@ static void InterpolateCLAHE(const RectangleInfo *clahe_info,const size_t *Q12,
     for (x=(ssize_t) tile->width; x > 0; x--)
     {
       intensity=lut[*pixels];
-      *pixels++=(unsigned short ) (PerceptibleReciprocal((double) tile->width*
-        tile->height)*(y*(x*Q12[intensity]+(tile->width-x)*Q22[intensity])+
-        (tile->height-y)*(x*Q11[intensity]+(tile->width-x)*Q21[intensity])));
+      *pixels++=(unsigned short) (PerceptibleReciprocal((double) tile->width*
+        tile->height)*(y*((double) x*Q12[intensity]+(tile->width-x)*
+        Q22[intensity])+(tile->height-y)*((double) x*Q11[intensity]+
+        (tile->width-x)*Q21[intensity])));
     }
     pixels+=(clahe_info->width-tile->width);
   }
@@ -3179,7 +3180,7 @@ MagickExport MagickBooleanType LevelizeImage(Image *image,
 %  If the boolean 'invert' is set true the image values will modifyed in the
 %  reverse direction. That is any existing "black" and "white" colors in the
 %  image will become the color values given, with all other values compressed
-%  appropriatally.  This effectivally maps a greyscale gradient into the given
+%  appropriately.  This effectivally maps a greyscale gradient into the given
 %  color gradient.
 %
 %  The format of the LevelImageColors method is:
@@ -4367,5 +4368,178 @@ MagickExport MagickBooleanType SigmoidalContrastImage(Image *image,
       }
   }
   image_view=DestroyCacheView(image_view);
+  return(status);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%     W h i t e B a l a n c e I m a g e                                       %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  WhiteBalanceImage() applies white balancing to an image according to a
+%  grayworld assumption in the LAB colorspace.
+%
+%  The format of the WhiteBalanceImage method is:
+%
+%      MagickBooleanType WhiteBalanceImage(Image *image,
+%        ExceptionInfo *exception)
+%
+%  A description of each parameter follows:
+%
+%    o image: The image to auto-level
+%
+%    o exception: return any errors or warnings in this structure.
+%
+*/
+MagickExport MagickBooleanType WhiteBalanceImage(Image *image,
+  ExceptionInfo *exception)
+{
+#define WhiteBalanceImageTag  "WhiteBalance/Image"
+
+  CacheView
+    *image_view;
+
+  const char
+    *artifact;
+
+  double
+    a_mean,
+    b_mean;
+
+  MagickBooleanType
+    status;
+
+  MagickOffsetType
+    progress;
+
+
+  ssize_t
+    y;
+
+  /*
+    White balance image.
+  */
+  assert(image != (Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
+  if (image->debug != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  if (SetImageStorageClass(image,DirectClass,exception) == MagickFalse)
+    return(MagickFalse);
+  status=TransformImageColorspace(image,LabColorspace,exception);
+  a_mean=0.0;
+  b_mean=0.0;
+  image_view=AcquireAuthenticCacheView(image,exception);
+  for (y=0; y < (ssize_t) image->rows; y++)
+  {
+    register const Quantum
+      *magick_restrict p;
+
+    register ssize_t
+      x;
+
+    if (status == MagickFalse)
+      continue;
+    p=GetCacheViewVirtualPixels(image_view,0,y,image->columns,1,exception);
+    if (p == (Quantum *) NULL)
+      {
+        status=MagickFalse;
+        continue;
+      }
+    for (x=0; x < (ssize_t) image->columns; x++)
+    {
+      a_mean+=QuantumScale*GetPixela(image,p)-0.5;
+      b_mean+=QuantumScale*GetPixelb(image,p)-0.5;
+      p+=GetPixelChannels(image);
+    }
+  }
+  a_mean/=((double) image->columns*image->rows);
+  b_mean/=((double) image->columns*image->rows);
+  progress=0;
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+  #pragma omp parallel for schedule(static) shared(progress,status) \
+    magick_number_threads(image,image,image->rows,1)
+#endif
+  for (y=0; y < (ssize_t) image->rows; y++)
+  {
+    register Quantum
+      *magick_restrict q;
+
+    register ssize_t
+      x;
+
+    if (status == MagickFalse)
+      continue;
+    q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,exception);
+    if (q == (Quantum *) NULL)
+      {
+        status=MagickFalse;
+        continue;
+      }
+    for (x=0; x < (ssize_t) image->columns; x++)
+    {
+      double
+        a,
+        b;
+
+      /*
+        Scale the chroma distance shifted according to amount of luminance.
+      */
+      a=(double) GetPixela(image,q)-1.1*GetPixelL(image,q)*a_mean;
+      b=(double) GetPixelb(image,q)-1.1*GetPixelL(image,q)*b_mean;
+      SetPixela(image,ClampToQuantum(a),q);
+      SetPixelb(image,ClampToQuantum(b),q);
+      q+=GetPixelChannels(image);
+    }
+    if (SyncCacheViewAuthenticPixels(image_view,exception) == MagickFalse)
+      status=MagickFalse;
+    if (image->progress_monitor != (MagickProgressMonitor) NULL)
+      {
+        MagickBooleanType
+          proceed;
+
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+        #pragma omp atomic
+#endif
+        progress++;
+        proceed=SetImageProgress(image,WhiteBalanceImageTag,progress,image->rows);
+        if (proceed == MagickFalse)
+          status=MagickFalse;
+      }
+  }
+  image_view=DestroyCacheView(image_view);
+  artifact=GetImageArtifact(image,"white-balance:vibrance");
+  if (artifact != (const char *) NULL)
+    {
+      ChannelType
+        channel_mask;
+
+      double
+        black_point;
+
+      GeometryInfo
+        geometry_info;
+
+      MagickStatusType
+        flags;
+
+      /*
+        Level the a & b channels.
+      */
+      flags=ParseGeometry(artifact,&geometry_info);
+      black_point=geometry_info.rho;
+      if ((flags & PercentValue) != 0)
+        black_point*=(double) (QuantumRange/100.0);
+      channel_mask=SetImageChannelMask(image,aChannel | bChannel);
+      status&=LevelImage(image,black_point,(double) QuantumRange-black_point,
+        1.0,exception);
+      (void) SetImageChannelMask(image,channel_mask);
+    }
+  status&=TransformImageColorspace(image,sRGBColorspace,exception);
   return(status);
 }

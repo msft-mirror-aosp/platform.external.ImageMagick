@@ -105,6 +105,7 @@ static MagickBooleanType AnimateUsage(void)
       "  -channel mask        set the image channel mask\n"
       "  -colors value        preferred number of colors in the image\n"
       "  -crop geometry       preferred size and location of the cropped image\n"
+      "  -extent geometry     set the image size\n"
       "  -extract geometry    extract area from image\n"
       "  -monochrome          transform image to black and white\n"
       "  -resample geometry   change the resolution of an image\n"
@@ -200,7 +201,7 @@ static MagickBooleanType AnimateUsage(void)
   (void) printf("'-' for standard input or output.\n");
   (void) printf("\nButtons: \n");
   (void) puts(buttons);
-  return(MagickFalse);
+  return(MagickTrue);
 }
 
 WandExport MagickBooleanType AnimateImageCommand(ImageInfo *image_info,
@@ -756,6 +757,17 @@ WandExport MagickBooleanType AnimateImageCommand(ImageInfo *image_info,
       }
       case 'e':
       {
+        if (LocaleCompare("extent",option+1) == 0)
+          {
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowAnimateException(OptionError,"MissingArgument",option);
+            if (IsGeometry(argv[i]) == MagickFalse)
+              ThrowAnimateInvalidArgumentException(option,argv[i]);
+            break;
+          }
         if (LocaleCompare("extract",option+1) == 0)
           {
             if (*option == '+')

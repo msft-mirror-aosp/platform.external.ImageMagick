@@ -9,11 +9,11 @@ third_party {
     type: GIT
     value: "https://github.com/ImageMagick/ImageMagick.git"
   }
-  version: "a38915edd4351c968a09cdf2dabe3144f480d915"
+  version: "2b130be6a108502616cae9973af72b405e4d01f2"
   license_type: NOTICE
   last_upgrade_date {
     year: 2020
-    month: 5
-    day: 13
+    month: 10
+    day: 28
   }
 }

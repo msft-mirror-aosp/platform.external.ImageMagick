@@ -690,13 +690,20 @@ static MagickBooleanType TIFFGetProfiles(TIFF *tiff,Image *image,
       (profile != (unsigned char *) NULL))
     status=ReadProfile(image,"8bim",profile,(ssize_t) length,exception);
 #endif
-#if defined(TIFFTAG_RICHTIFFIPTC)
+#if defined(TIFFTAG_RICHTIFFIPTC) && (TIFFLIB_VERSION >= 20191103)
   if ((TIFFGetField(tiff,TIFFTAG_RICHTIFFIPTC,&length,&profile) == 1) &&
       (profile != (unsigned char *) NULL))
     {
+      const TIFFField
+        *field;
+
       if (TIFFIsByteSwapped(tiff) != 0)
         TIFFSwabArrayOfLong((uint32 *) profile,(size_t) length);
-      status=ReadProfile(image,"iptc",profile,4L*length,exception);
+      field=TIFFFieldWithTag(tiff,TIFFTAG_RICHTIFFIPTC);
+      if (TIFFFieldDataType(field) == TIFF_LONG)
+        status=ReadProfile(image,"iptc",profile,4L*length,exception);
+      else
+        status=ReadProfile(image,"iptc",profile,length,exception);
     }
 #endif
 #if defined(TIFFTAG_XMLPACKET)
@@ -1415,10 +1422,7 @@ static Image *ReadTIFFImage(const ImageInfo *image_info,
   more_frames=MagickTrue;
   do
   {
-DisableMSCWarning(4127)
-    if (0 && (image_info->verbose != MagickFalse))
-      TIFFPrintDirectory(tiff,stdout,MagickFalse);
-RestoreMSCWarning
+    /* TIFFPrintDirectory(tiff,stdout,MagickFalse); */
     photometric=PHOTOMETRIC_RGB;
     if ((TIFFGetField(tiff,TIFFTAG_IMAGEWIDTH,&width) != 1) ||
         (TIFFGetField(tiff,TIFFTAG_IMAGELENGTH,&height) != 1) ||
@@ -1546,11 +1550,11 @@ RestoreMSCWarning
 #endif
     if ((photometric == PHOTOMETRIC_MINISBLACK) ||
         (photometric == PHOTOMETRIC_MINISWHITE))
-      SetImageColorspace(image,GRAYColorspace,exception);
+      image->colorspace=GRAYColorspace;
     if (photometric == PHOTOMETRIC_SEPARATED)
-      SetImageColorspace(image,CMYKColorspace,exception);
+      image->colorspace=CMYKColorspace;
     if (photometric == PHOTOMETRIC_CIELAB)
-      SetImageColorspace(image,LabColorspace,exception);
+     image->colorspace=LabColorspace;
     status=TIFFGetProfiles(tiff,image,exception);
     if (status == MagickFalse)
       {
@@ -1572,7 +1576,7 @@ RestoreMSCWarning
         image->resolution.x=x_resolution;
         image->resolution.y=y_resolution;
       }
-    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_RESOLUTIONUNIT,&units,sans) == 1)
+    if (TIFFGetFieldDefaulted(tiff,TIFFTAG_RESOLUTIONUNIT,&units,sans,sans) == 1)
       {
         if (units == RESUNIT_INCH)
           image->units=PixelsPerInchResolution;
@@ -1589,7 +1593,7 @@ RestoreMSCWarning
       image->orientation=(OrientationType) orientation;
     if (TIFFGetField(tiff,TIFFTAG_WHITEPOINT,&chromaticity) == 1)
       {
-        if (chromaticity != (float *) NULL)
+        if ((chromaticity != (float *) NULL) && (*chromaticity != 0.0))
           {
             image->chromaticity.white_point.x=chromaticity[0];
             image->chromaticity.white_point.y=chromaticity[1];
@@ -1597,7 +1601,7 @@ RestoreMSCWarning
       }
     if (TIFFGetField(tiff,TIFFTAG_PRIMARYCHROMATICITIES,&chromaticity) == 1)
       {
-        if (chromaticity != (float *) NULL)
+        if ((chromaticity != (float *) NULL) && (*chromaticity != 0.0))
           {
             image->chromaticity.red_primary.x=chromaticity[0];
             image->chromaticity.red_primary.y=chromaticity[1];
@@ -1733,7 +1737,8 @@ RestoreMSCWarning
         TIFFClose(tiff);
         return(DestroyImageList(image));
       }
-    status=ResetImagePixels(image,exception);
+    status=SetImageColorspace(image,image->colorspace,exception);
+    status&=ResetImagePixels(image,exception);
     if (status == MagickFalse)
       {
         TIFFClose(tiff);
@@ -1769,6 +1774,7 @@ RestoreMSCWarning
       default:
         break;
     }
+    extra_samples=0;
     tiff_status=TIFFGetFieldDefaulted(tiff,TIFFTAG_EXTRASAMPLES,&extra_samples,
       &sample_info,sans);
     if (tiff_status == 1)
@@ -1800,6 +1806,11 @@ RestoreMSCWarning
       }
     if (image->alpha_trait != UndefinedPixelTrait)
       (void) SetImageAlphaChannel(image,OpaqueAlphaChannel,exception);
+    if (samples_per_pixel > MaxPixelChannels)
+      {
+        TIFFClose(tiff);
+        ThrowReaderException(CorruptImageError,"MaximumChannelsExceeded");
+      }
     method=ReadGenericMethod;
     rows_per_strip=(uint32) image->rows;
     if (TIFFGetField(tiff,TIFFTAG_ROWSPERSTRIP,&rows_per_strip) == 1)
@@ -2140,6 +2151,7 @@ RestoreMSCWarning
         if (HeapOverflowSanityCheck(image->rows,sizeof(*pixels)) != MagickFalse)
           ThrowTIFFException(ResourceLimitError,"MemoryAllocationFailed");
         number_pixels=(MagickSizeType) image->columns*image->rows;
+        number_pixels+=image->columns*sizeof(uint32);
         generic_info=AcquireVirtualMemory(number_pixels,sizeof(uint32));
         if (generic_info == (MemoryInfo *) NULL)
           ThrowTIFFException(ResourceLimitError,"MemoryAllocationFailed");
@@ -2228,12 +2240,13 @@ RestoreMSCWarning
       }
   } while ((status != MagickFalse) && (more_frames != MagickFalse));
   TIFFClose(tiff);
+  if (status != MagickFalse)
+    TIFFReadPhotoshopLayers(image_info,image,exception);
   if ((image_info->number_scenes != 0) &&
       (image_info->scene >= GetImageListLength(image)))
     status=MagickFalse;
   if (status == MagickFalse)
     return(DestroyImageList(image));
-  TIFFReadPhotoshopLayers(image_info,image,exception);
   return(GetFirstImageInList(image));
 }
 #endif
@@ -2624,7 +2637,7 @@ static MagickBooleanType WriteGROUP4Image(const ImageInfo *image_info,
   write_info=CloneImageInfo((ImageInfo *) NULL);
   SetImageInfoFile(write_info,file);
   if (IsImageMonochrome(image) == MagickFalse)
-      (void) SetImageType(image,BilevelType,exception);
+    (void) SetImageType(image,BilevelType,exception);
   (void) SetImageDepth(image,1,exception);
   write_info->compression=Group4Compression;
   write_info->type=BilevelType;
@@ -2801,6 +2814,7 @@ static MagickBooleanType WritePTIFImage(const ImageInfo *image_info,
 #if defined(MAGICKCORE_TIFF_DELEGATE)
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
 %                                                                             %
 %                                                                             %
 %   W r i t e T I F F I m a g e                                               %
@@ -3396,6 +3410,7 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
   MagickBooleanType
     adjoin,
     debug,
+    preserve_compression,
     status;
 
   MagickOffsetType
@@ -3481,27 +3496,33 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
   (void) debug;
   adjoin=image_info->adjoin;
   imageListLength=GetImageListLength(image);
+  option=GetImageOption(image_info,"tiff:preserve-compression");
+  preserve_compression=IsStringTrue(option);
   do
   {
     /*
       Initialize TIFF fields.
     */
+    (void) IsImageMonochrome(image);
     if ((image_info->type != UndefinedType) &&
         (image_info->type != OptimizeType))
       (void) SetImageType(image,image_info->type,exception);
-    compression=UndefinedCompression;
-    if (image->compression != JPEGCompression)
+    compression=image_info->compression;
+    if (preserve_compression != MagickFalse)
       compression=image->compression;
-    if (image_info->compression != UndefinedCompression)
-      compression=image_info->compression;
     switch (compression)
     {
       case FaxCompression:
       case Group4Compression:
       {
         if (IsImageMonochrome(image) == MagickFalse)
-          (void) SetImageType(image,BilevelType,exception);
-        (void) SetImageDepth(image,1,exception);
+          {
+            if (IsImageGray(image) == MagickFalse)
+              (void) SetImageType(image,BilevelType,exception);
+            else
+              (void) SetImageDepth(image,1,exception);
+          }
+        image->depth=1;
         break;
       }
       case JPEGCompression:
@@ -3924,6 +3945,8 @@ static MagickBooleanType WriteTIFFImage(const ImageInfo *image_info,
       default:
         break;
     }
+    if (quantum_info->format == FloatingPointQuantumFormat)
+      predictor=PREDICTOR_FLOATINGPOINT;
     option=GetImageOption(image_info,"tiff:predictor");
     if (option != (const char * ) NULL)
       predictor=(uint16) strtol(option,(char **) NULL,10);
@@ -4274,10 +4297,7 @@ RestoreMSCWarning
     if (image->colorspace == LabColorspace)
       DecodeLabImage(image,exception);
     DestroyTIFFInfo(&tiff_info);
-DisableMSCWarning(4127)
-    if (0 && (image_info->verbose != MagickFalse))
-RestoreMSCWarning
-      TIFFPrintDirectory(tiff,stdout,MagickFalse);
+    /* TIFFPrintDirectory(tiff,stdout,MagickFalse); */
     if (TIFFWriteDirectory(tiff) == 0)
       {
         status=MagickFalse;

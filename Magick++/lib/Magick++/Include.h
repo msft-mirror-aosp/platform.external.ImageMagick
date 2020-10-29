@@ -132,6 +132,7 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_DB_lcms_.lib")
 #        endif
 #        if defined(MAGICKCORE_HEIC_DELEGATE)
+#          pragma comment(lib, "CORE_DB_aom_.lib")
 #          pragma comment(lib, "CORE_DB_libde265_.lib")
 #          pragma comment(lib, "CORE_DB_libheif_.lib")
 #        endif
@@ -142,10 +143,14 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_DB_libraw_.lib")
 #        endif
 #        if defined(MAGICKCORE_RSVG_DELEGATE)
+#          pragma comment(lib, "CORE_DB_croco_.lib")
 #          pragma comment(lib, "CORE_DB_librsvg_.lib")
 #        endif
 #        if defined(MAGICKCORE_XML_DELEGATE)
 #          pragma comment(lib, "CORE_DB_libxml_.lib")
+#        endif
+#        if defined(MAGICKCORE_LIBZIP_DELEGATE)
+#          pragma comment(lib, "CORE_DB_libzip_.lib")
 #        endif
 #        if defined(MAGICKCORE_LQR_DELEGATE)
 #          pragma comment(lib, "CORE_DB_ffi_.lib")
@@ -209,6 +214,7 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_RL_lcms_.lib")
 #        endif
 #        if defined(MAGICKCORE_HEIC_DELEGATE)
+#          pragma comment(lib, "CORE_RL_aom_.lib")
 #          pragma comment(lib, "CORE_RL_libde265_.lib")
 #          pragma comment(lib, "CORE_RL_libheif_.lib")
 #        endif
@@ -219,10 +225,14 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_RL_libraw_.lib")
 #        endif
 #        if defined(MAGICKCORE_RSVG_DELEGATE)
+#          pragma comment(lib, "CORE_RL_croco_.lib")
 #          pragma comment(lib, "CORE_RL_librsvg_.lib")
 #        endif
 #        if defined(MAGICKCORE_XML_DELEGATE)
 #          pragma comment(lib, "CORE_RL_libxml_.lib")
+#        endif
+#        if defined(MAGICKCORE_LIBZIP_DELEGATE)
+#          pragma comment(lib, "CORE_RL_libzip_.lib")
 #        endif
 #        if defined(MAGICKCORE_LQR_DELEGATE)
 #          pragma comment(lib, "CORE_RL_ffi_.lib")

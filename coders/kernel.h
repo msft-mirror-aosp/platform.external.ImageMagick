@@ -16,28 +16,15 @@
 
 #include "coders/coders-private.h"
 
-#define MagickMPEGHeaders \
-  MagickCoderHeader("MPEG", 0, "\000\000\001\263") \
-  MagickCoderHeader("MPEG", 0, "RIFF")
+#define MagickKERNELHeaders
 
-#define MagickMPEGAliases \
-  MagickCoderAlias("MPEG", "3GP") \
-  MagickCoderAlias("MPEG", "3G2") \
-  MagickCoderAlias("MPEG", "AVI") \
-  MagickCoderAlias("MPEG", "FLV") \
-  MagickCoderAlias("MPEG", "MKV") \
-  MagickCoderAlias("MPEG", "MOV") \
-  MagickCoderAlias("MPEG", "MPG") \
-  MagickCoderAlias("MPEG", "MP4") \
-  MagickCoderAlias("MPEG", "M2V") \
-  MagickCoderAlias("MPEG", "M4V") \
-  MagickCoderAlias("MPEG", "WMV")
+#define MagickKERNELAliases
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
 
-MagickCoderExports(MPEG)
+MagickCoderExports(KERNEL)
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }
