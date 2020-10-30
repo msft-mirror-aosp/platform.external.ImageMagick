@@ -312,6 +312,7 @@ static MagickBooleanType ConvertUsage(void)
       "  -wave geometry       alter an image along a sine wave\n"
       "  -wavelet-denoise threshold\n"
       "                       removes noise from the image using a wavelet transform\n"
+      "  -white-balance       automagically adjust white balance of image\n"
       "  -white-threshold value\n"
       "                       force all pixels above the threshold into white",
     sequence_operators[] =
@@ -472,7 +473,7 @@ static MagickBooleanType ConvertUsage(void)
   (void) printf(
     "image type as the filename suffix (i.e. image.ps).  Specify 'file' as\n");
   (void) printf("'-' for standard input or output.\n");
-  return(MagickFalse);
+  return(MagickTrue);
 }
 
 WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
@@ -3234,6 +3235,8 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
               ThrowConvertInvalidArgumentException(option,argv[i]);
             break;
           }
+        if (LocaleCompare("white-balance",option+1) == 0)
+          break;
         if (LocaleCompare("white-threshold",option+1) == 0)
           {
             if (*option == '+')

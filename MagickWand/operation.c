@@ -41,6 +41,9 @@
 % manner that is needed for 'pipelining and file scripting' of options in
 % IMv7.
 %
+% This the modern command-line parser as opposed to mogrify.c which embeds the
+% legacy parser.
+%
 % Anthony Thyssen, September 2011
 */
 
@@ -3640,6 +3643,11 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
             geometry_info.sigma,_exception);
           break;
         }
+      if (LocaleCompare("white-balance",option+1) == 0)
+        {
+          (void) WhiteBalanceImage(_image,_exception);
+          break;
+        }
       if (LocaleCompare("white-threshold",option+1) == 0)
         {
           if (IsGeometry(arg1) == MagickFalse)
@@ -4094,8 +4102,8 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
     {
       if (LocaleCompare("deconstruct",option+1) == 0)
         {
-          CLIWandWarnReplaced("-layer CompareAny");
-          (void) CLIListOperatorImages(cli_wand,"-layer","CompareAny",NULL);
+          CLIWandWarnReplaced("-layers CompareAny");
+          (void) CLIListOperatorImages(cli_wand,"-layers","CompareAny",NULL);
           break;
         }
       if (LocaleCompare("delete",option+1) == 0)

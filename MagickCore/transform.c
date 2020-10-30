@@ -60,6 +60,7 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/pixel-accessor.h"
+#include "MagickCore/profile-private.h"
 #include "MagickCore/property.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/resize.h"
@@ -1133,6 +1134,9 @@ MagickExport Image *ExtentImage(const Image *image,
   MagickBooleanType
     status;
 
+  const StringInfo
+    *profile;
+
   /*
     Allocate extent image.
   */
@@ -1155,6 +1159,12 @@ MagickExport Image *ExtentImage(const Image *image,
     }
   status=CompositeImage(extent_image,image,image->compose,MagickTrue,
     -geometry->x,-geometry->y,exception);
+  if (status != MagickFalse)
+    {
+      profile=GetImageProfile(extent_image,"8bim");
+      if (profile != (StringInfo *) NULL)
+        Update8BIMClipPath(profile,image->columns,image->rows,geometry);
+    }
   return(extent_image);
 }
 
