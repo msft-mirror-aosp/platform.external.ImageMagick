@@ -408,7 +408,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
         /*
           Read ICC profile.
         */
-        if (SkipMagickByteBufferUntil(&buffer,'\n') != MagickFalse)
+        if (SkipMagickByteBufferUntilNewline(&buffer) != MagickFalse)
           {
             ps_info->icc_profile=AcquireStringInfo(MagickPathExtent);
             datum=GetStringInfoDatum(ps_info->icc_profile);
@@ -428,24 +428,24 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
     if ((ps_info->photoshop_profile == (StringInfo *) NULL) &&
         (CompareMagickByteBuffer(&buffer,PhotoshopProfile,strlen(PhotoshopProfile)) != MagickFalse))
       {
+        size_t
+          extent;
+
         unsigned char
           *q;
-
-        unsigned long
-          extent;
 
         /*
           Read Photoshop profile.
         */
         p=GetMagickByteBufferDatum(&buffer);
         extent=0;
-        count=(ssize_t) sscanf(p,PhotoshopProfile " %lu",&extent);
+        count=(ssize_t) sscanf(p,PhotoshopProfile " %zu",&extent);
         if ((count != 1) || (extent == 0))
           continue;
         if ((MagickSizeType) extent > GetBlobSize(image))
           continue;
         length=(size_t) extent;
-        if (SkipMagickByteBufferUntil(&buffer,'\n') != MagickFalse)
+        if (SkipMagickByteBufferUntilNewline(&buffer) != MagickFalse)
           {
             ps_info->photoshop_profile=AcquireStringInfo(length+1U);
             q=GetStringInfoDatum(ps_info->photoshop_profile);
@@ -455,7 +455,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
               if (c == EOF)
                 break;
               *q++=(unsigned char) c;
-              extent-=MagickMin(extent,2);
+              extent-=MagickMin(extent,1);
             }
             SetStringInfoLength(ps_info->photoshop_profile,length);
           }
@@ -696,8 +696,8 @@ static Image *ReadPSImage(const ImageInfo *image_info,ExceptionInfo *exception)
       return((Image *) NULL);
     }
   (void) CopyMagickString(command,"/setpagedevice {pop} bind 1 index where {"
-    "dup wcheck {3 1 roll put} {pop def} ifelse} {def} ifelse\n"
-    "<</UseCIEColor true>>setpagedevice\n",MagickPathExtent);
+    "dup wcheck {3 1 roll put} {pop def} ifelse} {def} ifelse\n",
+    MagickPathExtent);
   count=write(file,command,(unsigned int) strlen(command));
   if (image_info->page == (char *) NULL)
     {
@@ -1550,22 +1550,6 @@ static MagickBooleanType WritePSImage(const ImageInfo *image_info,Image *image,
             (void) WriteBlobString(image,"\n%EndPhotoshop\n");
           }
         profile=GetImageProfile(image,"xmp");
-DisableMSCWarning(4127)
-        if (0 && (profile != (StringInfo *) NULL))
-RestoreMSCWarning
-          {
-            /*
-              Embed XML profile.
-            */
-            (void) WriteBlobString(image,"\n%begin_xml_code\n");
-            (void) FormatLocaleString(buffer,MagickPathExtent,
-               "\n%%begin_xml_packet: %.20g\n",(double)
-               GetStringInfoLength(profile));
-            (void) WriteBlobString(image,buffer);
-            for (i=0; i < (ssize_t) GetStringInfoLength(profile); i++)
-              (void) WriteBlobByte(image,GetStringInfoDatum(profile)[i]);
-            (void) WriteBlobString(image,"\n%end_xml_packet\n%end_xml_code\n");
-          }
         value=GetImageProperty(image,"label",exception);
         if (value != (const char *) NULL)
           (void) WriteBlobString(image,

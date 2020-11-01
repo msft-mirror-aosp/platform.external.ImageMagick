@@ -1175,6 +1175,7 @@ static Image *ReadGIFImage(const ImageInfo *image_info,ExceptionInfo *exception)
                 if (info == (unsigned char *) NULL)
                   ThrowGIFException(ResourceLimitError,
                     "MemoryAllocationFailed");
+                (void) memset(info,0,reserved_length*sizeof(*info));
                 for (info_length=0; ; )
                 {
                   block_length=(int) ReadBlobBlock(image,info+info_length);
@@ -1605,9 +1606,6 @@ static MagickBooleanType WriteGIFImage(const ImageInfo *image_info,Image *image,
   /*
     Write images to file.
   */
-  if ((write_info->adjoin != MagickFalse) &&
-      (GetNextImageInList(image) != (Image *) NULL))
-    write_info->interlace=NoInterlace;
   scene=0;
   one=1;
   imageListLength=GetImageListLength(image);

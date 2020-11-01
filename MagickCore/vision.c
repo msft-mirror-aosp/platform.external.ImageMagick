@@ -438,19 +438,19 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
     }
   background_id=0;
   min_threshold=0.0;
-  max_threshold=HUGE_VAL;
+  max_threshold=0.0;
   component_image->colors=(size_t) n;
   for (i=0; i < (ssize_t) component_image->colors; i++)
   {
     object[i].bounding_box.width-=(object[i].bounding_box.x-1);
     object[i].bounding_box.height-=(object[i].bounding_box.y-1);
-    object[i].color.red/=(object[i].area/QuantumRange);
-    object[i].color.green/=(object[i].area/QuantumRange);
-    object[i].color.blue/=(object[i].area/QuantumRange);
+    object[i].color.red/=(QuantumScale*object[i].area);
+    object[i].color.green/=(QuantumScale*object[i].area);
+    object[i].color.blue/=(QuantumScale*object[i].area);
     if (image->alpha_trait != UndefinedPixelTrait)
-      object[i].color.alpha/=(object[i].area/QuantumRange);
+      object[i].color.alpha/=(QuantumScale*object[i].area);
     if (image->colorspace == CMYKColorspace)
-      object[i].color.black/=(object[i].area/QuantumRange);
+      object[i].color.black/=(QuantumScale*object[i].area);
     object[i].centroid.x/=object[i].area;
     object[i].centroid.y/=object[i].area;
     max_threshold+=object[i].area;
@@ -520,7 +520,7 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
       */
       for (i=0; i < (ssize_t) component_image->colors; i++)
         object[i].merge=MagickTrue;
-      for (c=(char *) artifact; *c != '\0';)
+      for (c=(char *) artifact; *c != '\0'; )
       {
         while ((isspace((int) ((unsigned char) *c)) != 0) || (*c == ','))
           c++;
@@ -607,7 +607,7 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
   if (artifact == (const char *) NULL)
     artifact=GetImageArtifact(image,"connected-components:remove");
   if (artifact != (const char *) NULL)
-    for (c=(char *) artifact; *c != '\0';)
+    for (c=(char *) artifact; *c != '\0'; )
     {
       /*
         Remove selected objects based on id, keep others.
@@ -1387,7 +1387,6 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
     for (j=1; j < (ssize_t) component_image->colors; j++)
       if (object[j].census > object[id].census)
         id=(size_t) j;
-    object[id].area+=object[i].area;
     object[i].area=0.0;
     for (y=0; y < (ssize_t) bounding_box.height; y++)
     {
@@ -1503,8 +1502,12 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
             "connected-components:exclude-header");
           if (IsStringTrue(artifact) == MagickFalse)
             {
-              (void) fprintf(stdout,
-                "Objects (id: bounding-box centroid area mean-color");
+              (void) fprintf(stdout,"Objects (");
+              artifact=GetImageArtifact(image,
+                "connected-components:exclude-ids");
+              if (IsStringTrue(artifact) == MagickFalse)
+                (void) fprintf(stdout,"id: ");
+              (void) fprintf(stdout,"bounding-box centroid area mean-color");
               for (j=0; j <= n; j++)
                 (void) fprintf(stdout," %s",metrics[j]);
               (void) fprintf(stdout,"):\n");
@@ -1516,10 +1519,15 @@ MagickExport Image *ConnectedComponentsImage(const Image *image,
                   mean_color[MagickPathExtent];
 
                 GetColorTuple(&object[i].color,MagickFalse,mean_color);
+                (void) fprintf(stdout,"  ");
+                artifact=GetImageArtifact(image,
+                  "connected-components:exclude-ids");
+                if (IsStringTrue(artifact) == MagickFalse)
+                  (void) fprintf(stdout,"%.20g: ",(double) object[i].id);
                 (void) fprintf(stdout,
-                  "  %.20g: %.20gx%.20g%+.20g%+.20g %.1f,%.1f %.*g %s",
-                  (double) object[i].id,(double) object[i].bounding_box.width,
-                  (double) object[i].bounding_box.height,(double)
+                  "%.20gx%.20g%+.20g%+.20g %.1f,%.1f %.*g %s",(double)
+                  object[i].bounding_box.width,(double)
+                  object[i].bounding_box.height,(double)
                   object[i].bounding_box.x,(double) object[i].bounding_box.y,
                   object[i].centroid.x,object[i].centroid.y,
                   GetMagickPrecision(),(double) object[i].area,mean_color);

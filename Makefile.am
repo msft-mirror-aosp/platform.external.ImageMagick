@@ -107,7 +107,6 @@ TOP_EXTRA_DIST = \
   magick.sh.in \
   Magickshr.opt \
   NEWS.txt \
-  Platforms.txt \
   README.txt \
   index.html \
   version.sh \
@@ -286,7 +285,7 @@ magick-version: MagickCore/version.h
 	fi ; \
 	touch magick-version
 
-${srcdir}/configure: ${srcdir}/version.sh
+MagickCore/version.h:	$(top_srcdir)/ChangeLog $(top_srcdir)/version.sh
 
 # Automagically reconfigure libtool
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
@@ -332,7 +331,7 @@ $(DIST_WINDOWS_SRC_ZIP) $(DIST_WINDOWS_SRC_7ZIP) windows-dist:
 	  chmod -R u+w $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
 	  rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
 	fi
-	git clone git@git.imagemagick.org:repos/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	git clone -b master https://github.com/ImageMagick/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
 if ZIP_DELEGATE
 	rm -f $(DIST_WINDOWS_SRC_ZIP)
 	$(ZIP) -r -9 -q  $(DIST_WINDOWS_SRC_ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
