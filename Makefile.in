@@ -538,8 +538,9 @@ am__MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_SOURC
 	coders/debug.h coders/dib.c coders/dib.h coders/djvu.h \
 	coders/dng.c coders/dng.h coders/dot.c coders/dot.h \
 	coders/dps.h coders/dpx.c coders/dpx.h coders/emf.h \
-	coders/ept.h coders/exr.h coders/fax.c coders/fax.h \
-	coders/fits.c coders/fits.h coders/flif.h coders/fpx.h \
+	coders/ept.h coders/exr.h coders/farbfeld.c coders/farbfeld.h \
+	coders/fax.c coders/fax.h coders/fits.c coders/fits.h \
+	coders/fl32.c coders/fl32.h coders/flif.h coders/fpx.h \
 	coders/ghostscript-private.h coders/gif.c coders/gif.h \
 	coders/gradient.c coders/gradient.h coders/gray.c \
 	coders/gray.h coders/hald.c coders/hald.h coders/hdr.c \
@@ -731,8 +732,10 @@ am__objects_19 = coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dng.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dot.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dpx.lo \
+	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.lo \
+	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gradient.lo \
 	coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gray.lo \
@@ -1100,6 +1103,15 @@ coders_exr_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(coders_exr_la_LDFLAGS) $(LDFLAGS) -o $@
 @OPENEXR_DELEGATE_TRUE@@WITH_MODULES_TRUE@am_coders_exr_la_rpath =  \
 @OPENEXR_DELEGATE_TRUE@@WITH_MODULES_TRUE@	-rpath $(codersdir)
+coders_farbfeld_la_DEPENDENCIES = $(MAGICKCORE_LIBS) \
+	$(am__DEPENDENCIES_1)
+am_coders_farbfeld_la_OBJECTS = coders/farbfeld_la-farbfeld.lo
+coders_farbfeld_la_OBJECTS = $(am_coders_farbfeld_la_OBJECTS)
+coders_farbfeld_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(coders_farbfeld_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@WITH_MODULES_TRUE@am_coders_farbfeld_la_rpath = -rpath $(codersdir)
 coders_fax_la_DEPENDENCIES = $(MAGICKCORE_LIBS)
 am_coders_fax_la_OBJECTS = coders/fax_la-fax.lo
 coders_fax_la_OBJECTS = $(am_coders_fax_la_OBJECTS)
@@ -1115,6 +1127,14 @@ coders_fits_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_CFLAGS) $(CFLAGS) $(coders_fits_la_LDFLAGS) $(LDFLAGS) -o \
 	$@
 @WITH_MODULES_TRUE@am_coders_fits_la_rpath = -rpath $(codersdir)
+coders_fl32_la_DEPENDENCIES = $(MAGICKCORE_LIBS) $(am__DEPENDENCIES_1)
+am_coders_fl32_la_OBJECTS = coders/fl32_la-fl32.lo
+coders_fl32_la_OBJECTS = $(am_coders_fl32_la_OBJECTS)
+coders_fl32_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(coders_fl32_la_LDFLAGS) $(LDFLAGS) -o \
+	$@
+@WITH_MODULES_TRUE@am_coders_fl32_la_rpath = -rpath $(codersdir)
 coders_flif_la_DEPENDENCIES = $(MAGICKCORE_LIBS) $(am__DEPENDENCIES_1)
 am_coders_flif_la_OBJECTS = coders/flif_la-flif.lo
 coders_flif_la_OBJECTS = $(am_coders_flif_la_OBJECTS)
@@ -2278,8 +2298,10 @@ am__depfiles_remade = Magick++/demo/$(DEPDIR)/analyze-analyze.Po \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-emf.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-ept.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-exr.Plo \
+	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.Plo \
+	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-flif.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fpx.Plo \
 	coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.Plo \
@@ -2412,8 +2434,10 @@ am__depfiles_remade = Magick++/demo/$(DEPDIR)/analyze-analyze.Po \
 	coders/$(DEPDIR)/emf_la-emf.Plo \
 	coders/$(DEPDIR)/ept_la-ept.Plo \
 	coders/$(DEPDIR)/exr_la-exr.Plo \
+	coders/$(DEPDIR)/farbfeld_la-farbfeld.Plo \
 	coders/$(DEPDIR)/fax_la-fax.Plo \
 	coders/$(DEPDIR)/fits_la-fits.Plo \
+	coders/$(DEPDIR)/fl32_la-fl32.Plo \
 	coders/$(DEPDIR)/flif_la-flif.Plo \
 	coders/$(DEPDIR)/fpx_la-fpx.Plo \
 	coders/$(DEPDIR)/gif_la-gif.Plo \
@@ -2576,7 +2600,8 @@ SOURCES = $(Magick___lib_libMagick___@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_
 	$(coders_dot_la_SOURCES) $(coders_dps_la_SOURCES) \
 	$(coders_dpx_la_SOURCES) $(coders_emf_la_SOURCES) \
 	$(coders_ept_la_SOURCES) $(coders_exr_la_SOURCES) \
-	$(coders_fax_la_SOURCES) $(coders_fits_la_SOURCES) \
+	$(coders_farbfeld_la_SOURCES) $(coders_fax_la_SOURCES) \
+	$(coders_fits_la_SOURCES) $(coders_fl32_la_SOURCES) \
 	$(coders_flif_la_SOURCES) $(coders_fpx_la_SOURCES) \
 	$(coders_gif_la_SOURCES) $(coders_gradient_la_SOURCES) \
 	$(coders_gray_la_SOURCES) $(coders_hald_la_SOURCES) \
@@ -2667,7 +2692,8 @@ DIST_SOURCES = $(Magick___lib_libMagick___@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUF
 	$(coders_dot_la_SOURCES) $(coders_dps_la_SOURCES) \
 	$(coders_dpx_la_SOURCES) $(coders_emf_la_SOURCES) \
 	$(coders_ept_la_SOURCES) $(coders_exr_la_SOURCES) \
-	$(coders_fax_la_SOURCES) $(coders_fits_la_SOURCES) \
+	$(coders_farbfeld_la_SOURCES) $(coders_fax_la_SOURCES) \
+	$(coders_fits_la_SOURCES) $(coders_fl32_la_SOURCES) \
 	$(coders_flif_la_SOURCES) $(coders_fpx_la_SOURCES) \
 	$(coders_gif_la_SOURCES) $(coders_gradient_la_SOURCES) \
 	$(coders_gray_la_SOURCES) $(coders_hald_la_SOURCES) \
@@ -3252,8 +3278,6 @@ MODULES_DIRNAME = @MODULES_DIRNAME@
 MODULES_PATH = @MODULES_PATH@
 MODULES_RELATIVE_PATH = @MODULES_RELATIVE_PATH@
 MODULE_EXTRA_CPPFLAGS = @MODULE_EXTRA_CPPFLAGS@
-VIDEODecodeDelegate = @VIDEODecodeDelegate@
-VIDEOEncodeDelegate = @VIDEOEncodeDelegate@
 MVDelegate = @MVDelegate@
 MogrifyDelegate = @MogrifyDelegate@
 MrSIDDecodeDelegate = @MrSIDDecodeDelegate@
@@ -3341,9 +3365,12 @@ TAR = @TAR@
 TCMALLOC_LIBS = @TCMALLOC_LIBS@
 THREAD_LIBS = @THREAD_LIBS@
 TIFF_LIBS = @TIFF_LIBS@
+TextEncodeDelegate = @TextEncodeDelegate@
 TraceEncodeDelegate = @TraceEncodeDelegate@
 UMEM_LIBS = @UMEM_LIBS@
 VERSION = @VERSION@
+VIDEODecodeDelegate = @VIDEODecodeDelegate@
+VIDEOEncodeDelegate = @VIDEOEncodeDelegate@
 WEBPMUX_CFLAGS = @WEBPMUX_CFLAGS@
 WEBPMUX_LIBS = @WEBPMUX_LIBS@
 WEBP_CFLAGS = @WEBP_CFLAGS@
@@ -3715,10 +3742,14 @@ MAGICKCORE_CODER_SRCS = \
 	coders/emf.h \
 	coders/ept.h \
 	coders/exr.h \
+	coders/farbfeld.c \
+	coders/farbfeld.h \
 	coders/fax.c \
 	coders/fax.h \
 	coders/fits.c \
 	coders/fits.h \
+	coders/fl32.c \
+	coders/fl32.h \
 	coders/flif.h \
 	coders/fpx.h \
 	coders/ghostscript-private.h \
@@ -3967,8 +3998,10 @@ CODERS_NOINST_HDRS = \
 	coders/emf.h \
 	coders/ept.h \
 	coders/exr.h \
+	coders/farbfeld.h \
 	coders/fax.h \
 	coders/fits.h \
+	coders/fl32.h \
 	coders/flif.h \
 	coders/fpx.h \
 	coders/ghostscript-private.h \
@@ -4100,8 +4133,10 @@ CODERS_NOINST_HDRS = \
 @WITH_MODULES_TRUE@	coders/dng.la \
 @WITH_MODULES_TRUE@	coders/dot.la \
 @WITH_MODULES_TRUE@	coders/dpx.la \
+@WITH_MODULES_TRUE@	coders/farbfeld.la \
 @WITH_MODULES_TRUE@	coders/fax.la \
 @WITH_MODULES_TRUE@	coders/fits.la \
+@WITH_MODULES_TRUE@	coders/fl32.la \
 @WITH_MODULES_TRUE@	coders/gif.la \
 @WITH_MODULES_TRUE@	coders/gradient.la \
 @WITH_MODULES_TRUE@	coders/gray.la \
@@ -4378,6 +4413,12 @@ coders_exr_la_CPPFLAGS = $(MAGICK_CODER_CPPFLAGS) $(OPENEXR_CFLAGS)
 coders_exr_la_LDFLAGS = $(MODULECOMMONFLAGS)
 coders_exr_la_LIBADD = $(MAGICKCORE_LIBS) $(OPENEXR_LIBS) $(MATH_LIBS)
 
+# FARBFELD coder module
+coders_farbfeld_la_SOURCES = coders/farbfeld.c
+coders_farbfeld_la_CPPFLAGS = $(MAGICK_CODER_CPPFLAGS)
+coders_farbfeld_la_LDFLAGS = $(MODULECOMMONFLAGS)
+coders_farbfeld_la_LIBADD = $(MAGICKCORE_LIBS) $(MATH_LIBS)
+
 # FAX coder module
 coders_fax_la_SOURCES = coders/fax.c
 coders_fax_la_CPPFLAGS = $(MAGICK_CODER_CPPFLAGS)
@@ -4389,6 +4430,12 @@ coders_fits_la_SOURCES = coders/fits.c
 coders_fits_la_CPPFLAGS = $(MAGICK_CODER_CPPFLAGS)
 coders_fits_la_LDFLAGS = $(MODULECOMMONFLAGS)
 coders_fits_la_LIBADD = $(MAGICKCORE_LIBS) $(MATH_LIBS)
+
+# FL32 coder module
+coders_fl32_la_SOURCES = coders/fl32.c
+coders_fl32_la_CPPFLAGS = $(MAGICK_CODER_CPPFLAGS)
+coders_fl32_la_LDFLAGS = $(MODULECOMMONFLAGS)
+coders_fl32_la_LIBADD = $(MAGICKCORE_LIBS) $(MATH_LIBS)
 
 # FLIF coder module
 coders_flif_la_SOURCES = coders/flif.c
@@ -6022,9 +6069,7 @@ DISTDIRS = images scripts www PerlMagick
 
 # Install HTML files
 pkgdocdir = $(DOCUMENTATION_PATH)
-DOCDIRSDOXYGEN = www/api/MagickCore www/api/MagickWand
-DOCDIRSMANUAL = images images/patterns www www/assets www/api www/source www/Magick++
-DOCDIRS = $(DOCDIRSMANUAL) $(DOCDIRSDOXYGEN)
+DOCDIRS = images images/patterns www www/assets www/api www/source www/Magick++
 @INSTALL_DOC_TRUE@HTML_INSTALL_DATA_TARGETS = install-data-html
 
 # Uninstall HTML files
@@ -6774,9 +6819,13 @@ coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-do
 	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dpx.lo:  \
 	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
+coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo:  \
+	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.lo:  \
 	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.lo:  \
+	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
+coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo:  \
 	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.lo:  \
 	coders/$(am__dirstamp) coders/$(DEPDIR)/$(am__dirstamp)
@@ -7230,6 +7279,11 @@ coders/exr_la-exr.lo: coders/$(am__dirstamp) \
 
 coders/exr.la: $(coders_exr_la_OBJECTS) $(coders_exr_la_DEPENDENCIES) $(EXTRA_coders_exr_la_DEPENDENCIES) coders/$(am__dirstamp)
 	$(AM_V_CCLD)$(coders_exr_la_LINK) $(am_coders_exr_la_rpath) $(coders_exr_la_OBJECTS) $(coders_exr_la_LIBADD) $(LIBS)
+coders/farbfeld_la-farbfeld.lo: coders/$(am__dirstamp) \
+	coders/$(DEPDIR)/$(am__dirstamp)
+
+coders/farbfeld.la: $(coders_farbfeld_la_OBJECTS) $(coders_farbfeld_la_DEPENDENCIES) $(EXTRA_coders_farbfeld_la_DEPENDENCIES) coders/$(am__dirstamp)
+	$(AM_V_CCLD)$(coders_farbfeld_la_LINK) $(am_coders_farbfeld_la_rpath) $(coders_farbfeld_la_OBJECTS) $(coders_farbfeld_la_LIBADD) $(LIBS)
 coders/fax_la-fax.lo: coders/$(am__dirstamp) \
 	coders/$(DEPDIR)/$(am__dirstamp)
 
@@ -7240,6 +7294,11 @@ coders/fits_la-fits.lo: coders/$(am__dirstamp) \
 
 coders/fits.la: $(coders_fits_la_OBJECTS) $(coders_fits_la_DEPENDENCIES) $(EXTRA_coders_fits_la_DEPENDENCIES) coders/$(am__dirstamp)
 	$(AM_V_CCLD)$(coders_fits_la_LINK) $(am_coders_fits_la_rpath) $(coders_fits_la_OBJECTS) $(coders_fits_la_LIBADD) $(LIBS)
+coders/fl32_la-fl32.lo: coders/$(am__dirstamp) \
+	coders/$(DEPDIR)/$(am__dirstamp)
+
+coders/fl32.la: $(coders_fl32_la_OBJECTS) $(coders_fl32_la_DEPENDENCIES) $(EXTRA_coders_fl32_la_DEPENDENCIES) coders/$(am__dirstamp)
+	$(AM_V_CCLD)$(coders_fl32_la_LINK) $(am_coders_fl32_la_rpath) $(coders_fl32_la_OBJECTS) $(coders_fl32_la_LIBADD) $(LIBS)
 coders/flif_la-flif.lo: coders/$(am__dirstamp) \
 	coders/$(DEPDIR)/$(am__dirstamp)
 
@@ -8200,8 +8259,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-emf.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-ept.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-exr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-flif.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fpx.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.Plo@am__quote@ # am--include-marker
@@ -8334,8 +8395,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/emf_la-emf.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/ept_la-ept.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/exr_la-exr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/farbfeld_la-farbfeld.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/fax_la-fax.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/fits_la-fits.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/fl32_la-fl32.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/flif_la-flif.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/fpx_la-fpx.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@coders/$(DEPDIR)/gif_la-gif.Plo@am__quote@ # am--include-marker
@@ -9289,6 +9352,13 @@ coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dp
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-dpx.lo `test -f 'coders/dpx.c' || echo '$(srcdir)/'`coders/dpx.c
 
+coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo: coders/farbfeld.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo -MD -MP -MF coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Tpo -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo `test -f 'coders/farbfeld.c' || echo '$(srcdir)/'`coders/farbfeld.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Tpo coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/farbfeld.c' object='coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.lo `test -f 'coders/farbfeld.c' || echo '$(srcdir)/'`coders/farbfeld.c
+
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.lo: coders/fax.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.lo -MD -MP -MF coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Tpo -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.lo `test -f 'coders/fax.c' || echo '$(srcdir)/'`coders/fax.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Tpo coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Plo
@@ -9302,6 +9372,13 @@ coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fi
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/fits.c' object='coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.lo `test -f 'coders/fits.c' || echo '$(srcdir)/'`coders/fits.c
+
+coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo: coders/fl32.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo -MD -MP -MF coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Tpo -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo `test -f 'coders/fl32.c' || echo '$(srcdir)/'`coders/fl32.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Tpo coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/fl32.c' object='coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.lo `test -f 'coders/fl32.c' || echo '$(srcdir)/'`coders/fl32.c
 
 coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.lo: coders/gif.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.lo -MD -MP -MF coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.Tpo -c -o coders/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.lo `test -f 'coders/gif.c' || echo '$(srcdir)/'`coders/gif.c
@@ -10444,6 +10521,13 @@ coders/exr_la-exr.lo: coders/exr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_exr_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/exr_la-exr.lo `test -f 'coders/exr.c' || echo '$(srcdir)/'`coders/exr.c
 
+coders/farbfeld_la-farbfeld.lo: coders/farbfeld.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_farbfeld_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/farbfeld_la-farbfeld.lo -MD -MP -MF coders/$(DEPDIR)/farbfeld_la-farbfeld.Tpo -c -o coders/farbfeld_la-farbfeld.lo `test -f 'coders/farbfeld.c' || echo '$(srcdir)/'`coders/farbfeld.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/farbfeld_la-farbfeld.Tpo coders/$(DEPDIR)/farbfeld_la-farbfeld.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/farbfeld.c' object='coders/farbfeld_la-farbfeld.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_farbfeld_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/farbfeld_la-farbfeld.lo `test -f 'coders/farbfeld.c' || echo '$(srcdir)/'`coders/farbfeld.c
+
 coders/fax_la-fax.lo: coders/fax.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_fax_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/fax_la-fax.lo -MD -MP -MF coders/$(DEPDIR)/fax_la-fax.Tpo -c -o coders/fax_la-fax.lo `test -f 'coders/fax.c' || echo '$(srcdir)/'`coders/fax.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/fax_la-fax.Tpo coders/$(DEPDIR)/fax_la-fax.Plo
@@ -10457,6 +10541,13 @@ coders/fits_la-fits.lo: coders/fits.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/fits.c' object='coders/fits_la-fits.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_fits_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/fits_la-fits.lo `test -f 'coders/fits.c' || echo '$(srcdir)/'`coders/fits.c
+
+coders/fl32_la-fl32.lo: coders/fl32.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_fl32_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/fl32_la-fl32.lo -MD -MP -MF coders/$(DEPDIR)/fl32_la-fl32.Tpo -c -o coders/fl32_la-fl32.lo `test -f 'coders/fl32.c' || echo '$(srcdir)/'`coders/fl32.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) coders/$(DEPDIR)/fl32_la-fl32.Tpo coders/$(DEPDIR)/fl32_la-fl32.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coders/fl32.c' object='coders/fl32_la-fl32.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_fl32_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o coders/fl32_la-fl32.lo `test -f 'coders/fl32.c' || echo '$(srcdir)/'`coders/fl32.c
 
 coders/flif_la-flif.lo: coders/flif.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(coders_flif_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT coders/flif_la-flif.lo -MD -MP -MF coders/$(DEPDIR)/flif_la-flif.Tpo -c -o coders/flif_la-flif.lo `test -f 'coders/flif.c' || echo '$(srcdir)/'`coders/flif.c
@@ -12651,8 +12742,10 @@ distclean: distclean-am
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-emf.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-ept.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-exr.Plo
+	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.Plo
+	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-flif.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fpx.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.Plo
@@ -12785,8 +12878,10 @@ distclean: distclean-am
 	-rm -f coders/$(DEPDIR)/emf_la-emf.Plo
 	-rm -f coders/$(DEPDIR)/ept_la-ept.Plo
 	-rm -f coders/$(DEPDIR)/exr_la-exr.Plo
+	-rm -f coders/$(DEPDIR)/farbfeld_la-farbfeld.Plo
 	-rm -f coders/$(DEPDIR)/fax_la-fax.Plo
 	-rm -f coders/$(DEPDIR)/fits_la-fits.Plo
+	-rm -f coders/$(DEPDIR)/fl32_la-fl32.Plo
 	-rm -f coders/$(DEPDIR)/flif_la-flif.Plo
 	-rm -f coders/$(DEPDIR)/fpx_la-fpx.Plo
 	-rm -f coders/$(DEPDIR)/gif_la-gif.Plo
@@ -13139,8 +13234,10 @@ maintainer-clean: maintainer-clean-am
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-emf.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-ept.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-exr.Plo
+	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-farbfeld.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fax.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fits.Plo
+	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fl32.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-flif.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-fpx.Plo
 	-rm -f coders/$(DEPDIR)/MagickCore_libMagickCore_@MAGICK_MAJOR_VERSION@_@MAGICK_ABI_SUFFIX@_la-gif.Plo
@@ -13273,8 +13370,10 @@ maintainer-clean: maintainer-clean-am
 	-rm -f coders/$(DEPDIR)/emf_la-emf.Plo
 	-rm -f coders/$(DEPDIR)/ept_la-ept.Plo
 	-rm -f coders/$(DEPDIR)/exr_la-exr.Plo
+	-rm -f coders/$(DEPDIR)/farbfeld_la-farbfeld.Plo
 	-rm -f coders/$(DEPDIR)/fax_la-fax.Plo
 	-rm -f coders/$(DEPDIR)/fits_la-fits.Plo
+	-rm -f coders/$(DEPDIR)/fl32_la-fl32.Plo
 	-rm -f coders/$(DEPDIR)/flif_la-flif.Plo
 	-rm -f coders/$(DEPDIR)/fpx_la-fpx.Plo
 	-rm -f coders/$(DEPDIR)/gif_la-gif.Plo

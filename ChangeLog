@@ -1,10 +1,86 @@
-2020-10-17  7.0.10-35  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.10-35 GIT revision 17...
+2020-11-30  7.0.10-46  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-46 GIT revision 17...
+
+2020-11-30  7.0.10-45  <quetzlzacatenango@image...>
+  * possible TIFF related-heap buffer overflow (alert & POC by Hardik Shah).
+
+2020-11-30  7.0.10-45  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-45 GIT revision 17972:6c0cb7f72:20201130
+
+2020-11-30  7.0.10-45  Dirk Lemstra <dirk@lem.....org>
+  * added support for the farbfeld format (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/2664).
+
+2020-11-29  7.0.10-45  <quetzlzacatenango@image...>
+  * specify the bilateral neighbor as width/height rather than radius/sigma.
+
+2020-11-28  7.0.10-44  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-44 GIT revision 17948:7e96e9fdd:20201128
+
+2020-11-26  7.0.10-44  Dirk Lemstra <dirk@lem.....org>
+  * correct reading of first row in TIFF decoder.
+
+2020-11-24  7.0.10-44  <quetzlzacatenango@image...>
+  * correct rotation parameter for SVG transform.
+
+2020-11-23  7.0.10-43  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-43 GIT revision 17885:be852878e:20201123
+
+2020-11-23  7.0.10-43  <quetzlzacatenango@image...>
+  * add padding to AcquirePolicyString().
+
+2020-11-22  7.0.10-42  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-42 GIT revision 17881:d228ef95e:20201122
+
+2020-11-21  7.0.10-42  <quetzlzacatenango@image...>
+  * revert memory patch to avert possible thread lock.
+  * add support for FilmLight FL32 image format.
+
+2020-11-20  7.0.10-40  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-40 GIT revision 17860:2594cd0a5:20201120 
+
+2020-11-19  7.0.10-40  <quetzlzacatenango@image...>
+  * remove Linux shell artifact from Windows delegate configuration file.
+  * fix shell injection vulnerability via the -authenticate option (reference
+    alex@cure...).
+
+2020-11-17  7.0.10-39  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-39 GIT revision 17837:ffb8da39c:20201117
+
+2020-11-07  7.0.10-39  <quetzlzacatenango@image...>
+  * support DPX 4:2:2 sampling.
+
+2020-11-14  7.0.10-38  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-38 GIT revision 17815:bf51a3f1f:20201114
+
+2020-11-07  7.0.10-38  <quetzlzacatenango@image...>
+  * add image settings support to -fx.
+  * better support for TIFF YCbCr photometric.
+  * verify TTF glyph format before dereferencing (reference
+    https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=26932).
+  * force single HEIC image per container.
+
+2020-11-07  7.0.10-37  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-37 GIT revision 17780:47a8392ef:20201107
+
+2020-11-07  7.0.10-37  <quetzlzacatenango@image...>
+  * correct soversioning.
+
+2020-11-07  7.0.10-36  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-36 GIT revision 17776:6bb35345c:20201107
+
+2020-11-02  7.0.10-36  <quetzlzacatenango@image...>
+  * check and report if profile is corrupt.
+  * do not add entropy based on mkstemp() unique filename.
+
+2020-10-31  7.0.10-35  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-35 GIT revision 17762:df5df8489:20201031
 
 2020-10-14  7.0.10-35  <quetzlzacatenango@image...>
-  * Perfer ffmpeg over avconv.
+  * Prefer ffmpeg over avconv.
   * Support median image statistic and median property.
   * Add -extend option to {display,animate,import}.
+  * Support papersize property, e.g. [%papersize:A5].
 
 2020-10-07  7.0.10-34  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.10-34 GIT revision 17695:de3284341:20201008

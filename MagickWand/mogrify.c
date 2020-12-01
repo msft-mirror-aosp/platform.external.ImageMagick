@@ -946,6 +946,26 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
       }
       case 'b':
       {
+        if (LocaleCompare("bilateral-blur",option+1) == 0)
+          {
+            /*
+              Bilateral filter image.
+            */
+            (void) SyncImageSettings(mogrify_info,*image,exception);
+            flags=ParseGeometry(argv[i+1],&geometry_info);
+            if ((flags & SigmaValue) == 0)
+              geometry_info.sigma=geometry_info.rho;
+            if ((flags & XiValue) == 0)
+              geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
+                geometry_info.sigma*geometry_info.sigma);
+            if ((flags & PsiValue) == 0)
+              geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
+                geometry_info.sigma*geometry_info.sigma);
+            mogrify_image=BilateralBlurImage(*image,(size_t) geometry_info.rho,
+              (size_t) geometry_info.sigma,geometry_info.xi,geometry_info.psi,
+              exception);
+            break;
+          }
         if (LocaleCompare("black-threshold",option+1) == 0)
           {
             /*
@@ -3541,6 +3561,8 @@ static MagickBooleanType MogrifyUsage(void)
       "  -auto-threshold method\n"
       "                       automatically perform image thresholding\n"
       "  -bench iterations    measure performance\n"
+      "  -bilateral-blur geometry\n"
+      "                       non-linear, edge-preserving, and noise-reducing smoothing filter\n"
       "  -black-threshold value\n"
       "                       force all pixels below the threshold into black\n"
       "  -blue-shift          simulate a scene at nighttime in the moonlight\n"
@@ -4223,6 +4245,17 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
             break;
           }
         if (LocaleCompare("bias",option+1) == 0)
+          {
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowMogrifyException(OptionError,"MissingArgument",option);
+            if (IsGeometry(argv[i]) == MagickFalse)
+              ThrowMogrifyInvalidArgumentException(option,argv[i]);
+            break;
+          }
+        if (LocaleCompare("bilateral-blur",option+1) == 0)
           {
             if (*option == '+')
               break;
@@ -5198,7 +5231,10 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
           break;
         if ((LocaleCompare("help",option+1) == 0) ||
             (LocaleCompare("-help",option+1) == 0))
-          return(MogrifyUsage());
+          {
+            DestroyMogrify();
+            return(MogrifyUsage());
+          }
         if (LocaleCompare("hough-lines",option+1) == 0)
           {
             if (*option == '+')

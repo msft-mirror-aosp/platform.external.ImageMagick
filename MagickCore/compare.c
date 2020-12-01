@@ -221,9 +221,7 @@ MagickExport Image *CompareImages(Image *image,const Image *reconstruct_image,
     Generate difference image.
   */
   status=MagickTrue;
-  fuzz=(double) MagickMin(GetPixelChannels(image),
-    GetPixelChannels(reconstruct_image))*
-    GetFuzzyColorDistance(image,reconstruct_image);
+  fuzz=GetFuzzyColorDistance(image,reconstruct_image);
   image_view=AcquireVirtualCacheView(image,exception);
   reconstruct_view=AcquireVirtualCacheView(reconstruct_image,exception);
   highlight_view=AcquireAuthenticCacheView(highlight_image,exception);
@@ -261,7 +259,6 @@ MagickExport Image *CompareImages(Image *image,const Image *reconstruct_image,
     {
       double
         Da,
-        distance,
         Sa;
 
       MagickStatusType
@@ -280,12 +277,12 @@ MagickExport Image *CompareImages(Image *image,const Image *reconstruct_image,
           continue;
         }
       difference=MagickFalse;
-      distance=0.0;
       Sa=QuantumScale*GetPixelAlpha(image,p);
       Da=QuantumScale*GetPixelAlpha(reconstruct_image,q);
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
       {
         double
+          distance,
           pixel;
 
         PixelChannel channel = GetPixelChannelChannel(image,i);
@@ -300,7 +297,7 @@ MagickExport Image *CompareImages(Image *image,const Image *reconstruct_image,
           pixel=(double) p[i]-GetPixelChannel(reconstruct_image,channel,q);
         else
           pixel=Sa*p[i]-Da*GetPixelChannel(reconstruct_image,channel,q);
-        distance+=pixel*pixel;
+        distance=pixel*pixel;
         if (distance >= fuzz)
           {
             difference=MagickTrue;
@@ -388,9 +385,7 @@ static MagickBooleanType GetAbsoluteDistortion(const Image *image,
     Compute the absolute difference in pixels between two images.
   */
   status=MagickTrue;
-  fuzz=(double) MagickMin(GetPixelChannels(image),
-    GetPixelChannels(reconstruct_image))*
-    GetFuzzyColorDistance(image,reconstruct_image);
+  fuzz=GetFuzzyColorDistance(image,reconstruct_image);
   rows=MagickMax(image->rows,reconstruct_image->rows);
   columns=MagickMax(image->columns,reconstruct_image->columns);
   image_view=AcquireVirtualCacheView(image,exception);
@@ -426,7 +421,6 @@ static MagickBooleanType GetAbsoluteDistortion(const Image *image,
     {
       double
         Da,
-        distance,
         Sa;
 
       MagickBooleanType
@@ -443,12 +437,12 @@ static MagickBooleanType GetAbsoluteDistortion(const Image *image,
           continue;
         }
       difference=MagickFalse;
-      distance=0.0;
       Sa=QuantumScale*GetPixelAlpha(image,p);
       Da=QuantumScale*GetPixelAlpha(reconstruct_image,q);
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
       {
         double
+          distance,
           pixel;
 
         PixelChannel channel = GetPixelChannelChannel(image,i);
@@ -463,7 +457,7 @@ static MagickBooleanType GetAbsoluteDistortion(const Image *image,
           pixel=(double) p[i]-GetPixelChannel(reconstruct_image,channel,q);
         else
           pixel=Sa*p[i]-Da*GetPixelChannel(reconstruct_image,channel,q);
-        distance+=pixel*pixel;
+        distance=pixel*pixel;
         if (distance >= fuzz)
           {
             channel_distortion[i]++;
