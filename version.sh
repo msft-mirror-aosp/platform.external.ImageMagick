@@ -19,7 +19,7 @@ PACKAGE_CHANGE_DATE=`awk '/^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ { print 
 PACKAGE_VERSION='7.0.10'
 PACKAGE_PERL_VERSION='7.0.10'
 PACKAGE_LIB_VERSION="0x70A"
-PACKAGE_RELEASE="35"
+PACKAGE_RELEASE="46"
 PACKAGE_LIB_VERSION_NUMBER="7,0,10,${PACKAGE_RELEASE}"
 PACKAGE_RELEASE_DATE_RAW=`date +%F`
 PACKAGE_RELEASE_DATE_REPRODUCIBLE="${PACKAGE_CHANGE_DATE}"
@@ -38,11 +38,12 @@ PACKAGE_VERSION_ADDENDUM="-${PACKAGE_RELEASE}"
 # release, then increment age.  If any interfaces have been removed or changed
 # since the last public release, then set age to 0.
 #
-#
 # PLEASE NOTE that doing a SO BUMP aka raising the CURRENT REVISION
 # could be avoided using libversioning aka map files.  You MUST change .map
 # files if you raise these versions.
-MAGICK_LIBRARY_CURRENT=7
+#
+# Bump the minor release # whenever there is an SOVersion bump.
+MAGICK_LIBRARY_CURRENT=8
 MAGICK_LIBRARY_REVISION=0
 MAGICK_LIBRARY_AGE=0
 

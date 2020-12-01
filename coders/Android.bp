@@ -19,7 +19,10 @@ cc_library_static {
 
     srcs: ["dds.c", "jpeg.c", "xc.c"],
 
-    cflags: ["-DHAVE_CONFIG_H"],
+    cflags: [
+        "-DHAVE_CONFIG_H",
+        "-Wno-unused-variable",
+    ],
 
     header_libs: ["Magick_headers"],
     static_libs: ["libjpeg_static_ndk"],

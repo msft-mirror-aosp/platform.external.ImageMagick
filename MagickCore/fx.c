@@ -365,7 +365,7 @@ static inline MagickBooleanType SetFxSymbolValue(
       *object=value;
       return(MagickTrue);
     }
-  object=(double *) AcquireQuantumMemory(1,sizeof(*object));
+  object=(double *) AcquireMagickMemory(sizeof(*object));
   if (object == (double *) NULL)
     {
       (void) ThrowMagickException(fx_info->exception,GetMagickModule(),
@@ -563,6 +563,7 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
     symbol[MagickPathExtent];
 
   const char
+    *artifact,
     *p;
 
   const double
@@ -1159,6 +1160,9 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
   value=GetFxSymbolValue(fx_info,symbol);
   if (value != (const double *) NULL)
     return(*value);
+  artifact=GetImageArtifact(image,symbol);
+  if (artifact != (const char *) NULL)
+    return(StringToDouble(artifact,(char **) NULL));
   (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
     "UndefinedVariable","`%s'",symbol);
   (void) SetFxSymbolValue(fx_info,symbol,0.0);
