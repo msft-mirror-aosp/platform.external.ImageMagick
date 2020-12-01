@@ -315,7 +315,7 @@ static Image *RenderSVGImage(const ImageInfo *image_info,Image *image,
     100.0*QuantumScale*image->background_color.green,
     100.0*QuantumScale*image->background_color.blue);
   (void) FormatLocaleString(opacity,MagickPathExtent,"%.20g",QuantumScale*
-    image->background_color.alpha);
+    image->background_color.alpha-MagickEpsilon);
   (void) FormatLocaleString(command,MagickPathExtent,
     GetDelegateCommands(delegate_info),input_filename,output_filename,density,
     background,opacity,unique);
@@ -2315,14 +2315,13 @@ static void SVGStartElement(void *context,const xmlChar *name,
                         if (*token == ',')
                           (void) GetNextToken(p,&p,MagickPathExtent,token);
                         y=StringToDouble(token,&next_token);
-                        affine.tx=svg_info->bounds.x+x*
-                          cos(DegreesToRadians(fmod(angle,360.0)))+y*
-                          sin(DegreesToRadians(fmod(angle,360.0)));
-                        affine.ty=svg_info->bounds.y-x*
+                        y=StringToDouble(token,&next_token);
+                        affine.tx=(-1.0*(svg_info->bounds.x+x*
+                          cos(DegreesToRadians(fmod(angle,360.0)))-y*
+                          sin(DegreesToRadians(fmod(angle,360.0)))))+x;
+                        affine.ty=(-1.0*(svg_info->bounds.y+x*
                           sin(DegreesToRadians(fmod(angle,360.0)))+y*
-                          cos(DegreesToRadians(fmod(angle,360.0)));
-                        affine.tx-=x;
-                        affine.ty-=y;
+                          cos(DegreesToRadians(fmod(angle,360.0)))))+y;
                         break;
                       }
                     break;
@@ -2777,7 +2776,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
       if (LocaleCompare((const char *) name,"stop") == 0)
         {
           (void) FormatLocaleFile(svg_info->file,"stop-color \"%s\" %s\n",
-            svg_info->stop_color,svg_info->offset == (char *) NULL ? "100%" : 
+            svg_info->stop_color,svg_info->offset == (char *) NULL ? "100%" :
             svg_info->offset);
           break;
         }
@@ -3508,6 +3507,8 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
             }
           }
 #if defined(MAGICKCORE_CAIRO_DELEGATE)
+        else
+          g_object_unref(svg_handle);
         if (pixel_info != (MemoryInfo *) NULL)
           pixel_info=RelinquishVirtualMemory(pixel_info);
 #else
@@ -3767,7 +3768,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry=AcquireMagickInfo("SVG","SVG","Scalable Vector Graphics");
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
@@ -3781,7 +3781,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
@@ -3796,7 +3795,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
