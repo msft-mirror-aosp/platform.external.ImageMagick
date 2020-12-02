@@ -805,6 +805,321 @@ MagickExport Image *BlurImage(const Image *image,const double radius,
 %                                                                             %
 %                                                                             %
 %                                                                             %
+%     B i l a t e r a l B l u r I m a g e                                     %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  BilateralBlurImage() is a non-linear, edge-preserving, and noise-reducing
+%  smoothing filter for images.  It replaces the intensity of each pixel with
+%  a weighted average of intensity values from nearby pixels.  This weight is
+%  based on a Gaussian distribution.  The weights depend not only on Euclidean
+%  distance of pixels, but also on the radiometric differences (e.g., range
+%  differences, such as color intensity, depth distance, etc.). This preserves
+%  sharp edges.
+%
+%  The format of the BilateralBlurImage method is:
+%
+%      Image *BilateralBlurImage(const Image *image,const size_t width,
+%        const size_t height,const double intensity_sigma,
+%        const double spatial_sigma,ExceptionInfo *exception)
+%
+%  A description of each parameter follows:
+%
+%    o image: the image.
+%
+%    o width: the width of the neighborhood in pixels.
+%
+%    o height: the height of the neighborhood in pixels.
+%
+%    o intensity_sigma: sigma in the intensity space. A larger value means
+%      that farther colors within the pixel neighborhood (see spatial_sigma)
+%      will be mixed together, resulting in larger areas of semi-equal color.
+%
+%    o spatial_sigma: sigma in the coordinate space. A larger value means that
+%      farther pixels influence each other as long as their colors are close
+%      enough (see intensity_sigma ). When the neigborhood diameter is greater
+%      than zero, it specifies the neighborhood size regardless of
+%      spatial_sigma. Otherwise, the neigborhood diameter is proportional to
+%      spatial_sigma.
+%
+%    o exception: return any errors or warnings in this structure.
+%
+*/
+
+static inline double BlurDistance(const ssize_t x,const ssize_t y,
+  const ssize_t u,const ssize_t v)
+{
+  return(sqrt(((double) x-u)*((double) x-u)+((double) y-v)*((double) y-v)));
+}
+
+static inline double BlurGaussian(const double x,const double sigma)
+{
+  return(exp(-((double) x*x)*PerceptibleReciprocal(2.0*sigma*sigma))*
+    PerceptibleReciprocal(Magick2PI*sigma*sigma));
+}
+
+static double **DestroyBilateralThreadSet(double **weights)
+{
+  register ssize_t
+    i;
+
+  assert(weights != (double **) NULL);
+  for (i=0; i < (ssize_t) GetMagickResourceLimit(ThreadResource); i++)
+    if (weights[i] != (double *) NULL)
+      weights[i]=(double *) RelinquishMagickMemory(weights[i]);
+  weights=(double **) RelinquishMagickMemory(weights);
+  return(weights);
+}
+
+static double **AcquireBilateralThreadSet(const size_t width,
+  const size_t height)
+{
+  double
+    **weights;
+
+  register ssize_t
+    i;
+
+  size_t
+    number_threads;
+
+  number_threads=(size_t) GetMagickResourceLimit(ThreadResource);
+  weights=(double **) AcquireQuantumMemory(number_threads,sizeof(*weights));
+  if (weights == (double **) NULL)
+    return((double **) NULL);
+  (void) memset(weights,0,number_threads*sizeof(*weights));
+  for (i=0; i < (ssize_t) number_threads; i++)
+  {
+    weights[i]=(double *) AcquireQuantumMemory(width,height*sizeof(**weights));
+    if (weights[i] == (double *) NULL)
+      return(DestroyBilateralThreadSet(weights));
+  }
+  return(weights);
+}
+
+MagickExport Image *BilateralBlurImage(const Image *image,const size_t width,
+  const size_t height,const double intensity_sigma,const double spatial_sigma,
+  ExceptionInfo *exception)
+{
+#define BilateralBlurImageTag  "Convolve/Image"
+
+  CacheView
+    *blur_view,
+    *image_view;
+
+  double
+    **weights;
+
+  Image
+    *blur_image;
+
+  MagickBooleanType
+    status;
+
+  MagickOffsetType
+    progress;
+
+  OffsetInfo
+    mid;
+
+  ssize_t
+    y;
+
+  assert(image != (const Image *) NULL);
+  assert(image->signature == MagickCoreSignature);
+  if (image->debug != MagickFalse)
+    (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  assert(exception != (ExceptionInfo *) NULL);
+  assert(exception->signature == MagickCoreSignature);
+  blur_image=CloneImage(image,0,0,MagickTrue,exception);
+  if (blur_image == (Image *) NULL)
+    return((Image *) NULL);
+  if (SetImageStorageClass(blur_image,DirectClass,exception) == MagickFalse)
+    {
+      blur_image=DestroyImage(blur_image);
+      return((Image *) NULL);
+    }
+  weights=AcquireBilateralThreadSet(width,height);
+  if (weights == (double **) NULL)
+    {
+      blur_image=DestroyImage(blur_image);
+      ThrowImageException(ResourceLimitError,"MemoryAllocationFailed");
+    }
+  /*
+    Bilateral blur image.
+  */
+  status=MagickTrue;
+  progress=0;
+  mid.x=(ssize_t) (width/2L);
+  mid.y=(ssize_t) (height/2L);
+  image_view=AcquireVirtualCacheView(image,exception);
+  blur_view=AcquireAuthenticCacheView(blur_image,exception);
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+  #pragma omp parallel for schedule(static) shared(progress,status) \
+    magick_number_threads(image,blur_image,blur_image->rows,1)
+#endif
+  for (y=0; y < (ssize_t) blur_image->rows; y++)
+  {
+    const int
+      id = GetOpenMPThreadId();
+
+    register Quantum
+      *magick_restrict q;
+
+    register ssize_t
+      x;
+
+    if (status == MagickFalse)
+      continue;
+    q=QueueCacheViewAuthenticPixels(blur_view,0,y,blur_image->columns,1,
+      exception);
+    if (q == (Quantum *) NULL)
+      {
+        status=MagickFalse;
+        continue;
+      }
+    for (x=0; x < (ssize_t) blur_image->columns; x++)
+    {
+      double
+        gamma,
+        pixel;
+
+      register const Quantum
+        *magick_restrict p,
+        *magick_restrict r;
+
+      register ssize_t
+        i,
+        u;
+
+      ssize_t
+        n,
+        v;
+
+      /*
+        Tonal weighting preserves edges while smoothing in the flat regions.
+      */
+      p=GetCacheViewVirtualPixels(image_view,x-mid.x,y-mid.y,width,height,
+        exception);
+      if (p == (const Quantum *) NULL)
+        break;
+      p+=(ssize_t) GetPixelChannels(image)*width*mid.y+
+        GetPixelChannels(image)*mid.x;
+      n=0;
+      for (v=0; v < (ssize_t) height; v++)
+      {
+        for (u=0; u < (ssize_t) width; u++)
+        {
+          r=p+(ssize_t) GetPixelChannels(image)*(ssize_t) width*(mid.y-v)+
+            GetPixelChannels(image)*(mid.x-u);
+          weights[id][n]=BlurGaussian(ScaleQuantumToChar(
+            GetPixelIntensity(image,r))-(double) ScaleQuantumToChar(
+            GetPixelIntensity(image,p)),intensity_sigma)*BlurGaussian(
+            BlurDistance(x,y,x+u-mid.x,y+v-mid.y),spatial_sigma);
+          n++;
+        }
+      }
+      for (i=0; i < (ssize_t) GetPixelChannels(blur_image); i++)
+      {
+        PixelChannel
+          channel;
+
+        PixelTrait
+          blur_traits,
+          traits;
+
+        channel=GetPixelChannelChannel(image,i);
+        traits=GetPixelChannelTraits(image,channel);
+        blur_traits=GetPixelChannelTraits(blur_image,channel);
+        if ((traits == UndefinedPixelTrait) ||
+            (blur_traits == UndefinedPixelTrait))
+          continue;
+        if ((blur_traits & CopyPixelTrait) != 0)
+          {
+            SetPixelChannel(blur_image,channel,p[i],q);
+            continue;
+          }
+        pixel=0.0;
+        gamma=0.0;
+        n=0;
+        if ((blur_traits & BlendPixelTrait) == 0)
+          {
+            /*
+              No alpha blending.
+            */
+            for (v=0; v < (ssize_t) height; v++)
+            {
+              for (u=0; u < (ssize_t) width; u++)
+              {
+                r=p+(ssize_t) GetPixelChannels(image)*width*(mid.y-v)+
+                  GetPixelChannels(image)*(mid.x-u);
+                pixel+=weights[id][n]*r[i];
+                gamma+=weights[id][n];
+                n++;
+              }
+            }
+            SetPixelChannel(blur_image,channel,ClampToQuantum(
+              PerceptibleReciprocal(gamma)*pixel),q);
+            continue;
+          }
+        /*
+          Alpha blending.
+        */
+        for (v=0; v < (ssize_t) height; v++)
+        {
+          for (u=0; u < (ssize_t) width; u++)
+          {
+            double
+              alpha,
+              beta;
+
+            r=p+(ssize_t) GetPixelChannels(image)*width*(mid.y-v)+
+              GetPixelChannels(image)*(mid.x-u);
+            alpha=(double) (QuantumScale*GetPixelAlpha(image,p));
+            beta=(double) (QuantumScale*GetPixelAlpha(image,r));
+            pixel+=weights[id][n]*r[i];
+            gamma+=weights[id][n]*alpha*beta;
+            n++;
+          }
+        }
+        SetPixelChannel(blur_image,channel,ClampToQuantum(
+          PerceptibleReciprocal(gamma)*pixel),q);
+      }
+      q+=GetPixelChannels(blur_image);
+    }
+    if (SyncCacheViewAuthenticPixels(blur_view,exception) == MagickFalse)
+      status=MagickFalse;
+    if (image->progress_monitor != (MagickProgressMonitor) NULL)
+      {
+        MagickBooleanType
+          proceed;
+
+#if defined(MAGICKCORE_OPENMP_SUPPORT)
+        #pragma omp atomic
+#endif
+        progress++;
+        proceed=SetImageProgress(image,BilateralBlurImageTag,progress,
+          image->rows);
+        if (proceed == MagickFalse)
+          status=MagickFalse;
+      }
+  }
+  blur_image->type=image->type;
+  blur_view=DestroyCacheView(blur_view);
+  image_view=DestroyCacheView(image_view);
+  weights=DestroyBilateralThreadSet(weights);
+  if (status == MagickFalse)
+    blur_image=DestroyImage(blur_image);
+  return(blur_image);
+}
+
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                                                                             %
+%                                                                             %
 %     C o n v o l v e I m a g e                                               %
 %                                                                             %
 %                                                                             %
@@ -1352,7 +1667,7 @@ MagickExport Image *EmbossImage(const Image *image,const double radius,
 %  GaussianBlurImage() blurs an image.  We convolve the image with a
 %  Gaussian operator of the given radius and standard deviation (sigma).
 %  For reasonable results, the radius should be larger than sigma.  Use a
-%  radius of 0 and GaussianBlurImage() selects a suitable radius for you
+%  radius of 0 and GaussianBlurImage() selects a suitable radius for you.
 %
 %  The format of the GaussianBlurImage method is:
 %

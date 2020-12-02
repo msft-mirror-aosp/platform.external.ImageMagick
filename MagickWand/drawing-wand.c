@@ -441,7 +441,7 @@ WandExport void ClearDrawingWand(DrawingWand *wand)
   wand->pattern_bounds.width=0;
   wand->pattern_bounds.height=0;
   wand->index=0;
-  wand->graphic_context=(DrawInfo **) AcquireMagickMemory(
+  wand->graphic_context=(DrawInfo **) AcquireQuantumMemory(1,
     sizeof(*wand->graphic_context));
   if (wand->graphic_context == (DrawInfo **) NULL)
     {

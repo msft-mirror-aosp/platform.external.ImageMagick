@@ -58,6 +58,7 @@
 #include "MagickCore/blob-private.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/memory_.h"
 #include "MagickCore/memory-private.h"
 #include "MagickCore/policy.h"
@@ -174,14 +175,14 @@ static size_t
   virtual_anonymous_memory = 0;
 
 #if defined _MSC_VER
-static void* MSCMalloc(size_t size)
+static void *MSCMalloc(size_t size)
 {
-  return malloc(size);
+  return(malloc(size));
 }
 
-static void* MSCRealloc(void* ptr, size_t size)
+static void *MSCRealloc(void* ptr, size_t size)
 {
-  return realloc(ptr,size);
+  return(realloc(ptr,size));
 }
 
 static void MSCFree(void* ptr)
@@ -319,7 +320,7 @@ static inline void *AcquireAlignedMemory_Generic(const size_t size)
   #if SIZE_MAX < ALIGNMENT_OVERHEAD
     #error "CACHE_LINE_SIZE is way too big."
   #endif
-  extent=(size + ALIGNMENT_OVERHEAD);
+  extent=(size+ALIGNMENT_OVERHEAD);
   if (extent <= size)
     {
       errno=ENOMEM;
@@ -340,7 +341,10 @@ MagickExport void *AcquireAlignedMemory(const size_t count,const size_t quantum)
     size;
 
   if (HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse)
-    return(NULL);
+    {
+      errno=ENOMEM;
+      return(NULL);
+    }
   if (memory_methods.acquire_aligned_memory_handler != (AcquireAlignedMemoryHandler) NULL)
     return(memory_methods.acquire_aligned_memory_handler(size,CACHE_LINE_SIZE));
   return(AcquireAlignedMemory_Actual(size));
@@ -636,8 +640,12 @@ MagickExport void *AcquireQuantumMemory(const size_t count,const size_t quantum)
   size_t
     size;
 
-  if (HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse)
-    return((void *) NULL);
+  if ((HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse) ||
+      (size > GetMaxMemoryRequest()))
+    {
+      errno=ENOMEM;
+      return(NULL);
+    }
   return(AcquireMagickMemory(size));
 }
 
@@ -680,7 +688,10 @@ MagickExport MemoryInfo *AcquireVirtualMemory(const size_t count,
     size;
 
   if (HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse)
-    return((MemoryInfo *) NULL);
+    {
+      errno=ENOMEM;
+      return((MemoryInfo *) NULL);
+    }
   if (virtual_anonymous_memory == 0)
     {
       virtual_anonymous_memory=1;
@@ -740,7 +751,7 @@ MagickExport MemoryInfo *AcquireVirtualMemory(const size_t count,
 #if !defined(MAGICKCORE_HAVE_POSIX_FALLOCATE)
                   memory_info->blob=MapBlob(file,IOMode,0,size);
 #else
-                  if (posix_fallocate(file,0,size) == 0)
+                  if (posix_fallocate(file,0,(MagickOffsetType) size) == 0)
                     memory_info->blob=MapBlob(file,IOMode,0,size);
 #endif
                   if (memory_info->blob != NULL)
@@ -1005,22 +1016,24 @@ MagickExport void GetMagickMemoryMethods(
 */
 MagickExport size_t GetMaxMemoryRequest(void)
 {
+#define MinMemoryRequest "16MiB"
+
   if (max_memory_request == 0)
     {
       char
         *value;
 
+      max_memory_request=(size_t) MagickULLConstant(~0);
       value=GetPolicyValue("system:max-memory-request");
       if (value != (char *) NULL)
         {
           /*
             The security policy sets a max memory request limit.
           */
-          max_memory_request=StringToSizeType(value,100.0);
+          max_memory_request=MagickMax(StringToSizeType(value,100.0),
+            StringToSizeType(MinMemoryRequest,100.0));
           value=DestroyString(value);
         }
-      else
-        max_memory_request=(size_t) MagickULLConstant(~0);
     }
   return(max_memory_request);
 }
@@ -1410,10 +1423,12 @@ MagickExport void *ResizeQuantumMemory(void *memory,const size_t count,
   size_t
     size;
 
-  if (HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse)
+  if ((HeapOverflowSanityCheckGetSize(count,quantum,&size) != MagickFalse) ||
+      (size > GetMaxMemoryRequest()))
     {
+      errno=ENOMEM;
       memory=RelinquishMagickMemory(memory);
-      return((void *) NULL);
+      return(NULL);
     }
   return(ResizeMagickMemory(memory,size));
 }

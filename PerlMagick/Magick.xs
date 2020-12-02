@@ -580,6 +580,10 @@ static struct
     { "ColorThreshold", { {"start-color", StringReference},
       {"stop-color", StringReference}, {"channel", MagickChannelOptions} } },
     { "WhiteBalance", { { (const char *) NULL, NullReference } } },
+    { "BilateralBlur", { {"geometry", StringReference},
+      {"width", IntegerReference}, {"height", IntegerReference},
+      {"intensity-sigma", RealReference}, {"spatial-sigma", RealReference},
+      {"channel", MagickChannelOptions} } },
   };
 
 static SplayTreeInfo
@@ -7669,6 +7673,8 @@ Mogrify(ref,...)
     ColorThresholdImage= 302
     WhiteBalance       = 303
     WhiteBalanceImage  = 304
+    BilateralBlur      = 305
+    BilateralBlurImage = 306
     MogrifyRegion      = 666
   PPCODE:
   {
@@ -11568,6 +11574,38 @@ Mogrify(ref,...)
         case 152:  /* WhiteBalance */
         {
           (void) WhiteBalanceImage(image,exception);
+          break;
+        }
+        case 153:  /* BilateralBlur */
+        {
+          if (attribute_flag[0] != 0)
+            {
+              flags=ParseGeometry(argument_list[0].string_reference,
+                &geometry_info);
+              if ((flags & SigmaValue) == 0)
+                geometry_info.sigma=geometry_info.rho;
+              if ((flags & XiValue) == 0)
+                geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
+                  geometry_info.sigma*geometry_info.sigma);
+              if ((flags & PsiValue) == 0)
+                geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
+                  geometry_info.sigma*geometry_info.sigma);
+            }
+          if (attribute_flag[1] != 0)
+            geometry_info.rho=(double) argument_list[1].integer_reference;
+          if (attribute_flag[2] != 0)
+            geometry_info.sigma=(double) argument_list[2].integer_reference;
+          if (attribute_flag[3] != 0)
+            geometry_info.xi=argument_list[3].real_reference;
+          if (attribute_flag[4] != 0)
+            geometry_info.psi=argument_list[4].real_reference;
+          if (attribute_flag[5] != 0)
+            channel=(ChannelType) argument_list[5].integer_reference;
+          channel_mask=SetImageChannelMask(image,channel);
+          image=BilateralBlurImage(image,(size_t) geometry_info.rho,(size_t)
+            geometry_info.sigma,geometry_info.xi,geometry_info.psi,exception);
+          if (image != (Image *) NULL)
+            (void) SetImageChannelMask(image,channel_mask);
           break;
         }
       }
