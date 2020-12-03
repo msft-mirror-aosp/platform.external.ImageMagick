@@ -160,6 +160,8 @@ static MagickBooleanType ConvertUsage(void)
       "  -auto-threshold method\n"
       "                       automatically perform image thresholding\n"
       "  -bench iterations    measure performance\n"
+      "  -bilateral-blur geometry\n"
+      "                       non-linear, edge-preserving, and noise-reducing smoothing filter\n"
       "  -black-threshold value\n"
       "                       force all pixels below the threshold into black\n"
       "  -blue-shift factor   simulate a scene at nighttime in the moonlight\n"
@@ -762,6 +764,17 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
             break;
           }
         if (LocaleCompare("bias",option+1) == 0)
+          {
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowConvertException(OptionError,"MissingArgument",option);
+            if (IsGeometry(argv[i]) == MagickFalse)
+              ThrowConvertInvalidArgumentException(option,argv[i]);
+            break;
+          }
+        if (LocaleCompare("bilateral-blur",option+1) == 0)
           {
             if (*option == '+')
               break;
@@ -1784,7 +1797,10 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
           break;
         if ((LocaleCompare("help",option+1) == 0) ||
             (LocaleCompare("-help",option+1) == 0))
-          return(ConvertUsage());
+          {
+            DestroyConvert();
+            return(ConvertUsage());
+          }
         if (LocaleCompare("hough-lines",option+1) == 0)
           {
             if (*option == '+')

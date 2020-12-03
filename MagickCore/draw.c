@@ -206,7 +206,7 @@ static MagickBooleanType
   TraceSquareLinecap(PrimitiveInfo *,const size_t,const double);
 
 static PrimitiveInfo
-  *TraceStrokePolygon(const DrawInfo *,const PrimitiveInfo *);
+  *TraceStrokePolygon(const DrawInfo *,const PrimitiveInfo *,ExceptionInfo *);
 
 static ssize_t
   TracePath(MVGInfo *,const char *,ExceptionInfo *);
@@ -400,11 +400,12 @@ MagickExport DrawInfo *CloneDrawInfo(const ImageInfo *image_info,
 %
 %  The format of the ConvertPathToPolygon method is:
 %
-%      PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
+%      PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info,
+%        ExceptionInfo *excetion)
 %
 %  A description of each parameter follows:
 %
-%    o Method ConvertPathToPolygon returns the path in a more efficient sorted
+%    o ConvertPathToPolygon() returns the path in a more efficient sorted
 %      rendering form of type PolygonInfo.
 %
 %    o draw_info: Specifies a pointer to an DrawInfo structure.
@@ -414,6 +415,22 @@ MagickExport DrawInfo *CloneDrawInfo(const ImageInfo *image_info,
 %
 */
 
+static PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
+{
+  register ssize_t
+    i;
+
+  if (polygon_info->edges != (EdgeInfo *) NULL)
+    {
+      for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
+        if (polygon_info->edges[i].points != (PointInfo *) NULL)
+          polygon_info->edges[i].points=(PointInfo *)
+            RelinquishMagickMemory(polygon_info->edges[i].points);
+      polygon_info->edges=(EdgeInfo *) RelinquishMagickMemory(
+        polygon_info->edges);
+    }
+  return((PolygonInfo *) RelinquishMagickMemory(polygon_info));
+}
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
@@ -496,7 +513,8 @@ static void ReversePoints(PointInfo *points,const size_t number_points)
   }
 }
 
-static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
+static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info,
+  ExceptionInfo *exception)
 {
   long
     direction,
@@ -529,12 +547,20 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
   */
   polygon_info=(PolygonInfo *) AcquireMagickMemory(sizeof(*polygon_info));
   if (polygon_info == (PolygonInfo *) NULL)
-    return((PolygonInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PolygonInfo *) NULL);
+    }
   number_edges=16;
   polygon_info->edges=(EdgeInfo *) AcquireQuantumMemory(number_edges,
     sizeof(*polygon_info->edges));
   if (polygon_info->edges == (EdgeInfo *) NULL)
-    return((PolygonInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(DestroyPolygonInfo(polygon_info));
+    }
   (void) memset(polygon_info->edges,0,number_edges*
     sizeof(*polygon_info->edges));
   direction=0;
@@ -570,7 +596,12 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
                   polygon_info->edges,(size_t) number_edges,
                   sizeof(*polygon_info->edges));
                 if (polygon_info->edges == (EdgeInfo *) NULL)
-                  return((PolygonInfo *) NULL);
+                  {
+                    (void) ThrowMagickException(exception,GetMagickModule(),
+                      ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                    points=(PointInfo *) RelinquishMagickMemory(points);
+                    return(DestroyPolygonInfo(polygon_info));
+                  }
               }
             polygon_info->edges[edge].number_points=(size_t) n;
             polygon_info->edges[edge].scanline=(-1.0);
@@ -586,6 +617,7 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
             points=(PointInfo *) NULL;
             ghostline=MagickFalse;
             edge++;
+            polygon_info->number_edges=edge;
           }
         if (points == (PointInfo *) NULL)
           {
@@ -593,7 +625,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
             points=(PointInfo *) AcquireQuantumMemory((size_t) number_points,
               sizeof(*points));
             if (points == (PointInfo *) NULL)
-              return((PolygonInfo *) NULL);
+              {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                return(DestroyPolygonInfo(polygon_info));
+              }
           }
         ghostline=path_info[i].code == GhostlineCode ? MagickTrue : MagickFalse;
         point=path_info[i].point;
@@ -624,7 +660,12 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
               polygon_info->edges,(size_t) number_edges,
               sizeof(*polygon_info->edges));
             if (polygon_info->edges == (EdgeInfo *) NULL)
-              return((PolygonInfo *) NULL);
+              {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                points=(PointInfo *) RelinquishMagickMemory(points);
+                return(DestroyPolygonInfo(polygon_info));
+              }
           }
         polygon_info->edges[edge].number_points=(size_t) n;
         polygon_info->edges[edge].scanline=(-1.0);
@@ -637,11 +678,17 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
         polygon_info->edges[edge].bounds=bounds;
         polygon_info->edges[edge].bounds.y1=points[0].y;
         polygon_info->edges[edge].bounds.y2=points[n-1].y;
+        polygon_info->number_edges=edge+1;
+        points=(PointInfo *) NULL;
         number_points=16;
         points=(PointInfo *) AcquireQuantumMemory((size_t) number_points,
           sizeof(*points));
         if (points == (PointInfo *) NULL)
-          return((PolygonInfo *) NULL);
+          {
+            (void) ThrowMagickException(exception,GetMagickModule(),
+              ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+            return(DestroyPolygonInfo(polygon_info));
+          }
         n=1;
         ghostline=MagickFalse;
         points[0]=point;
@@ -658,7 +705,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
         points=(PointInfo *) ResizeQuantumMemory(points,(size_t) number_points,
           sizeof(*points));
         if (points == (PointInfo *) NULL)
-          return((PolygonInfo *) NULL);
+          {
+            (void) ThrowMagickException(exception,GetMagickModule(),
+              ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+            return(DestroyPolygonInfo(polygon_info));
+          }
       }
     point=path_info[i].point;
     points[n]=point;
@@ -681,7 +732,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
                 polygon_info->edges,(size_t) number_edges,
                 sizeof(*polygon_info->edges));
               if (polygon_info->edges == (EdgeInfo *) NULL)
-                return((PolygonInfo *) NULL);
+                {
+                  (void) ThrowMagickException(exception,GetMagickModule(),
+                    ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                  return(DestroyPolygonInfo(polygon_info));
+                }
             }
           polygon_info->edges[edge].number_points=(size_t) n;
           polygon_info->edges[edge].scanline=(-1.0);
@@ -694,11 +749,36 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
           polygon_info->edges[edge].bounds=bounds;
           polygon_info->edges[edge].bounds.y1=points[0].y;
           polygon_info->edges[edge].bounds.y2=points[n-1].y;
+          points=(PointInfo *) NULL;
           ghostline=MagickFalse;
           edge++;
+          polygon_info->number_edges=edge;
         }
     }
   polygon_info->number_edges=edge;
+  polygon_info->edges=(EdgeInfo *) ResizeQuantumMemory(polygon_info->edges,
+    polygon_info->number_edges,sizeof(*polygon_info->edges));
+  if (polygon_info->edges == (EdgeInfo *) NULL)
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(DestroyPolygonInfo(polygon_info));
+    }
+  for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
+  {
+    EdgeInfo
+      *edge_info;
+
+    edge_info=polygon_info->edges+i;
+    edge_info->points=(PointInfo *) ResizeQuantumMemory(edge_info->points,
+      edge_info->number_points,sizeof(*edge_info->points));
+    if (edge_info->points == (PointInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonInfo(polygon_info));
+      }
+  }
   qsort(polygon_info->edges,(size_t) polygon_info->number_edges,
     sizeof(*polygon_info->edges),DrawCompareEdges);
   if (IsEventLogging() != MagickFalse)
@@ -723,17 +803,16 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
 %  The format of the ConvertPrimitiveToPath method is:
 %
 %      PathInfo *ConvertPrimitiveToPath(const DrawInfo *draw_info,
-%        const PrimitiveInfo *primitive_info)
+%        const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
-%    o Method ConvertPrimitiveToPath returns a vector path structure of type
+%    o ConvertPrimitiveToPath() returns a vector path structure of type
 %      PathInfo.
 %
 %    o draw_info: a structure of type DrawInfo.
 %
 %    o primitive_info: Specifies a pointer to an PrimitiveInfo structure.
-%
 %
 */
 
@@ -752,7 +831,8 @@ static void LogPathInfo(const PathInfo *path_info)
   (void) LogMagickEvent(DrawEvent,GetMagickModule(),"    end vector-path");
 }
 
-static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info)
+static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info,
+  ExceptionInfo *exception)
 {
   MagickBooleanType
     closed_subpath;
@@ -793,7 +873,11 @@ static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info)
   path_info=(PathInfo *) AcquireQuantumMemory((size_t) (3UL*i+1UL),
     sizeof(*path_info));
   if (path_info == (PathInfo *) NULL)
-    return((PathInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PathInfo *) NULL);
+    }
   coordinates=0;
   closed_subpath=MagickFalse;
   n=0;
@@ -925,81 +1009,6 @@ MagickExport DrawInfo *DestroyDrawInfo(DrawInfo *draw_info)
   draw_info->signature=(~MagickCoreSignature);
   draw_info=(DrawInfo *) RelinquishMagickMemory(draw_info);
   return(draw_info);
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-+   D e s t r o y E d g e                                                     %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  DestroyEdge() destroys the specified polygon edge.
-%
-%  The format of the DestroyEdge method is:
-%
-%      ssize_t DestroyEdge(PolygonInfo *polygon_info,const int edge)
-%
-%  A description of each parameter follows:
-%
-%    o polygon_info: Specifies a pointer to an PolygonInfo structure.
-%
-%    o edge: the polygon edge number to destroy.
-%
-*/
-static size_t DestroyEdge(PolygonInfo *polygon_info,
-  const size_t edge)
-{
-  assert(edge < polygon_info->number_edges);
-  polygon_info->edges[edge].points=(PointInfo *) RelinquishMagickMemory(
-    polygon_info->edges[edge].points);
-  polygon_info->number_edges--;
-  if (edge < polygon_info->number_edges)
-    (void) memmove(polygon_info->edges+edge,polygon_info->edges+edge+1,
-      (size_t) (polygon_info->number_edges-edge)*sizeof(*polygon_info->edges));
-  return(polygon_info->number_edges);
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-+   D e s t r o y P o l y g o n I n f o                                       %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  DestroyPolygonInfo() destroys the PolygonInfo data structure.
-%
-%  The format of the DestroyPolygonInfo method is:
-%
-%      PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
-%
-%  A description of each parameter follows:
-%
-%    o polygon_info: Specifies a pointer to an PolygonInfo structure.
-%
-*/
-static PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
-{
-  register ssize_t
-    i;
-
-  if (polygon_info->edges != (EdgeInfo *) NULL)
-    {
-      for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
-        polygon_info->edges[i].points=(PointInfo *)
-          RelinquishMagickMemory(polygon_info->edges[i].points);
-      polygon_info->edges=(EdgeInfo *) RelinquishMagickMemory(
-        polygon_info->edges);
-    }
-  return((PolygonInfo *) RelinquishMagickMemory(polygon_info));
 }
 
 /*
@@ -1770,7 +1779,11 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
   dash_polygon=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     (2UL*number_vertices+32UL),sizeof(*dash_polygon));
   if (dash_polygon == (PrimitiveInfo *) NULL)
-    return(MagickFalse);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(MagickFalse);
+    }
   (void) memset(dash_polygon,0,(2UL*number_vertices+32UL)*
     sizeof(*dash_polygon));
   clone_info=CloneDrawInfo((ImageInfo *) NULL,draw_info);
@@ -1811,7 +1824,7 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
     dy=primitive_info[i].point.y-primitive_info[i-1].point.y;
     maximum_length=hypot(dx,dy);
     if (maximum_length > (double) (MaxBezierCoordinates >> 2))
-      break;
+      continue;
     if (fabs(length) < MagickEpsilon)
       {
         if (fabs(draw_info->dash_pattern[n]) >= MagickEpsilon)
@@ -2258,23 +2271,19 @@ static MagickBooleanType CheckPrimitiveExtent(MVGInfo *mvg_info,
   */
   extent=(double) mvg_info->offset+pad+PrimitiveExtentPad+1;
   quantum=sizeof(**mvg_info->primitive_info);
-  if (((extent*quantum) < (double) SSIZE_MAX) &&
-      ((extent*quantum) < (double) GetMaxMemoryRequest()))
+  if (extent <= (double) *mvg_info->extent)
+    return(MagickTrue);
+  *mvg_info->primitive_info=(PrimitiveInfo *) ResizeQuantumMemory(
+    *mvg_info->primitive_info,(size_t) extent,quantum);
+  if (*mvg_info->primitive_info != (PrimitiveInfo *) NULL)
     {
-      if (extent <= (double) *mvg_info->extent)
-        return(MagickTrue);
-      *mvg_info->primitive_info=(PrimitiveInfo *) ResizeQuantumMemory(
-        *mvg_info->primitive_info,(size_t) extent,quantum);
-      if (*mvg_info->primitive_info != (PrimitiveInfo *) NULL)
-        {
-          register ssize_t
-            i;
+      register ssize_t
+        i;
 
-          *mvg_info->extent=(size_t) extent;
-          for (i=mvg_info->offset+1; i < (ssize_t) extent; i++)
-            (*mvg_info->primitive_info)[i].primitive=UndefinedPrimitive;
-          return(MagickTrue);
-        }
+      *mvg_info->extent=(size_t) extent;
+      for (i=mvg_info->offset+1; i < (ssize_t) extent; i++)
+        (*mvg_info->primitive_info)[i].primitive=UndefinedPrimitive;
+      return(MagickTrue);
     }
   /*
     Reallocation failed, allocate a primitive to facilitate unwinding.
@@ -4606,7 +4615,7 @@ static PolygonInfo **DestroyPolygonThreadSet(PolygonInfo **polygon_info)
 }
 
 static PolygonInfo **AcquirePolygonThreadSet(
-  const PrimitiveInfo *primitive_info)
+  const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 {
   PathInfo
     *magick_restrict path_info;
@@ -4624,19 +4633,82 @@ static PolygonInfo **AcquirePolygonThreadSet(
   polygon_info=(PolygonInfo **) AcquireQuantumMemory(number_threads,
     sizeof(*polygon_info));
   if (polygon_info == (PolygonInfo **) NULL)
-    return((PolygonInfo **) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PolygonInfo **) NULL);
+    }
   (void) memset(polygon_info,0,number_threads*sizeof(*polygon_info));
-  path_info=ConvertPrimitiveToPath(primitive_info);
+  path_info=ConvertPrimitiveToPath(primitive_info,exception);
   if (path_info == (PathInfo *) NULL)
     return(DestroyPolygonThreadSet(polygon_info));
-  for (i=0; i < (ssize_t) number_threads; i++)
-  {
-    polygon_info[i]=ConvertPathToPolygon(path_info);
-    if (polygon_info[i] == (PolygonInfo *) NULL)
+  polygon_info[0]=ConvertPathToPolygon(path_info,exception);
+  if (polygon_info[0] == (PolygonInfo *) NULL)
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
       return(DestroyPolygonThreadSet(polygon_info));
+    }
+  for (i=1; i < (ssize_t) number_threads; i++)
+  {
+    EdgeInfo
+      *edge_info;
+
+    register ssize_t
+      j;
+
+    polygon_info[i]=(PolygonInfo *) AcquireMagickMemory(
+      sizeof(*polygon_info[i]));
+    if (polygon_info[i] == (PolygonInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonThreadSet(polygon_info));
+      }
+    polygon_info[i]->number_edges=0;
+    edge_info=polygon_info[0]->edges;
+    polygon_info[i]->edges=(EdgeInfo *) AcquireQuantumMemory(
+      polygon_info[0]->number_edges,sizeof(*edge_info));
+    if (polygon_info[i]->edges == (EdgeInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonThreadSet(polygon_info));
+      }
+    (void) memcpy(polygon_info[i]->edges,edge_info,
+      polygon_info[0]->number_edges*sizeof(*edge_info));
+    for (j=0; j < (ssize_t) polygon_info[i]->number_edges; j++)
+      polygon_info[i]->edges[j].points=(PointInfo *) NULL;
+    polygon_info[i]->number_edges=polygon_info[0]->number_edges;
+    for (j=0; j < (ssize_t) polygon_info[i]->number_edges; j++)
+    {
+      edge_info=polygon_info[0]->edges+j;
+      polygon_info[i]->edges[j].points=(PointInfo *) AcquireQuantumMemory(
+        edge_info->number_points,sizeof(*edge_info));
+      if (polygon_info[i]->edges[j].points == (PointInfo *) NULL)
+        {
+          (void) ThrowMagickException(exception,GetMagickModule(),
+            ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+          return(DestroyPolygonThreadSet(polygon_info));
+        }
+      (void) memcpy(polygon_info[i]->edges[j].points,edge_info->points,
+        edge_info->number_points*sizeof(*edge_info->points));
+    }
   }
   path_info=(PathInfo *) RelinquishMagickMemory(path_info);
   return(polygon_info);
+}
+
+static size_t DestroyEdge(PolygonInfo *polygon_info,const ssize_t edge)
+{
+  assert(edge < polygon_info->number_edges);
+  polygon_info->edges[edge].points=(PointInfo *) RelinquishMagickMemory(
+    polygon_info->edges[edge].points);
+  polygon_info->number_edges--;
+  if (edge < polygon_info->number_edges)
+    (void) memmove(polygon_info->edges+edge,polygon_info->edges+edge+1,
+      (size_t) (polygon_info->number_edges-edge)*sizeof(*polygon_info->edges));
+  return(polygon_info->number_edges);
 }
 
 static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
@@ -4677,7 +4749,7 @@ static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
       break;
     if ((double) y > (p->bounds.y2+mid+0.5))
       {
-        (void) DestroyEdge(polygon_info,(size_t) j);
+        (void) DestroyEdge(polygon_info,j);
         continue;
       }
     if (((double) x <= (p->bounds.x1-mid-0.5)) ||
@@ -4856,7 +4928,7 @@ static MagickBooleanType DrawPolygonPrimitive(Image *image,
   /*
     Compute bounding box.
   */
-  polygon_info=AcquirePolygonThreadSet(primitive_info);
+  polygon_info=AcquirePolygonThreadSet(primitive_info,exception);
   if (polygon_info == (PolygonInfo **) NULL)
     return(MagickFalse);
   if (image->debug != MagickFalse)
@@ -5473,7 +5545,8 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
               clone_info->size=DestroyString(clone_info->size);
             if (clone_info->extract != (char *) NULL)
               clone_info->extract=DestroyString(clone_info->extract);
-            composite_images=ReadImage(clone_info,exception);
+            if (*clone_info->filename != '\0')
+              composite_images=ReadImage(clone_info,exception);
           }
       clone_info=DestroyImageInfo(clone_info);
       if (composite_images == (Image *) NULL)
@@ -5742,7 +5815,7 @@ static MagickBooleanType DrawStrokePolygon(Image *image,
   {
     if (p->coordinates == 1)
       continue;
-    stroke_polygon=TraceStrokePolygon(draw_info,p);
+    stroke_polygon=TraceStrokePolygon(draw_info,p,exception);
     if (stroke_polygon == (PrimitiveInfo *) NULL)
       {
         status=0;
@@ -7100,7 +7173,7 @@ static MagickBooleanType TraceSquareLinecap(PrimitiveInfo *primitive_info,
 }
 
 static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
-  const PrimitiveInfo *primitive_info)
+  const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 {
 #define MaxStrokePad  (6*BezierQuantum+360)
 #define CheckPathExtent(pad_p,pad_q) \
@@ -7141,6 +7214,8 @@ static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
         stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q); \
       polygon_primitive=(PrimitiveInfo *) \
         RelinquishMagickMemory(polygon_primitive); \
+      (void) ThrowMagickException(exception,GetMagickModule(), \
+        ResourceLimitError,"MemoryAllocationFailed","`%s'",""); \
       return((PrimitiveInfo *) NULL); \
     } \
 }
@@ -7202,7 +7277,11 @@ static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
   polygon_primitive=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     number_vertices+2UL,sizeof(*polygon_primitive));
   if (polygon_primitive == (PrimitiveInfo *) NULL)
-    return((PrimitiveInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PrimitiveInfo *) NULL);
+    }
   (void) memcpy(polygon_primitive,primitive_info,(size_t) number_vertices*
     sizeof(*polygon_primitive));
   offset.x=primitive_info[number_vertices-1].point.x-primitive_info[0].point.x;
@@ -7259,6 +7338,8 @@ static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
         stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
       polygon_primitive=(PrimitiveInfo *)
         RelinquishMagickMemory(polygon_primitive);
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
       return((PrimitiveInfo *) NULL);
     }
   slope.p=0.0;
@@ -7552,36 +7633,43 @@ static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
   */
   stroke_polygon=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     (p+q+2UL*closed_path+2UL),sizeof(*stroke_polygon));
-  if (stroke_polygon != (PrimitiveInfo *) NULL)
+  if (stroke_polygon == (PrimitiveInfo *) NULL)
     {
-      for (i=0; i < (ssize_t) p; i++)
-      {
-        stroke_polygon[i]=polygon_primitive[0];
-        stroke_polygon[i].point=stroke_p[i];
-      }
-      if (closed_path != MagickFalse)
-        {
-          stroke_polygon[i]=polygon_primitive[0];
-          stroke_polygon[i].point=stroke_polygon[0].point;
-          i++;
-        }
-      for ( ; i < (ssize_t) (p+q+closed_path); i++)
-      {
-        stroke_polygon[i]=polygon_primitive[0];
-        stroke_polygon[i].point=stroke_q[p+q+closed_path-(i+1)];
-      }
-      if (closed_path != MagickFalse)
-        {
-          stroke_polygon[i]=polygon_primitive[0];
-          stroke_polygon[i].point=stroke_polygon[p+closed_path].point;
-          i++;
-        }
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p);
+      stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
+      polygon_primitive=(PrimitiveInfo *) RelinquishMagickMemory(
+        polygon_primitive);
+      return(stroke_polygon);
+    }
+  for (i=0; i < (ssize_t) p; i++)
+  {
+    stroke_polygon[i]=polygon_primitive[0];
+    stroke_polygon[i].point=stroke_p[i];
+  }
+  if (closed_path != MagickFalse)
+    {
       stroke_polygon[i]=polygon_primitive[0];
       stroke_polygon[i].point=stroke_polygon[0].point;
       i++;
-      stroke_polygon[i].primitive=UndefinedPrimitive;
-      stroke_polygon[0].coordinates=(size_t) (p+q+2*closed_path+1);
     }
+  for ( ; i < (ssize_t) (p+q+closed_path); i++)
+  {
+    stroke_polygon[i]=polygon_primitive[0];
+    stroke_polygon[i].point=stroke_q[p+q+closed_path-(i+1)];
+  }
+  if (closed_path != MagickFalse)
+    {
+      stroke_polygon[i]=polygon_primitive[0];
+      stroke_polygon[i].point=stroke_polygon[p+closed_path].point;
+      i++;
+    }
+  stroke_polygon[i]=polygon_primitive[0];
+  stroke_polygon[i].point=stroke_polygon[0].point;
+  i++;
+  stroke_polygon[i].primitive=UndefinedPrimitive;
+  stroke_polygon[0].coordinates=(size_t) (p+q+2*closed_path+1);
   stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p);
   stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
   polygon_primitive=(PrimitiveInfo *) RelinquishMagickMemory(polygon_primitive);

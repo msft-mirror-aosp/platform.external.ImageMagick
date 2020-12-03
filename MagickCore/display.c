@@ -2504,7 +2504,7 @@ static MagickBooleanType XAnnotateEditImage(Display *display,
                 p=annotate_info->text;
                 break;
               }
-            annotate_info->next=(XAnnotateInfo *) AcquireMagickMemory(
+            annotate_info->next=(XAnnotateInfo *) AcquireQuantumMemory(1,
               sizeof(*annotate_info->next));
             if (annotate_info->next == (XAnnotateInfo *) NULL)
               return(MagickFalse);
@@ -2599,7 +2599,7 @@ static MagickBooleanType XAnnotateEditImage(Display *display,
               p=annotate_info->text;
               continue;
             }
-          annotate_info->next=(XAnnotateInfo *) AcquireMagickMemory(
+          annotate_info->next=(XAnnotateInfo *) AcquireQuantumMemory(1,
             sizeof(*annotate_info->next));
           if (annotate_info->next == (XAnnotateInfo *) NULL)
             return(MagickFalse);
