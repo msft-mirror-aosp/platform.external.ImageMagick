@@ -235,7 +235,7 @@ static KernelInfo *ParseKernelArray(const char *kernel_string)
   GeometryInfo
     args;
 
-  kernel=(KernelInfo *) AcquireQuantumMemory(1,sizeof(*kernel));
+  kernel=(KernelInfo *) AcquireMagickMemory(sizeof(*kernel));
   if (kernel == (KernelInfo *) NULL)
     return(kernel);
   (void) memset(kernel,0,sizeof(*kernel));

@@ -1840,6 +1840,24 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
     }
     case 'b':
     {
+      if (LocaleCompare("bilateral-blur",option+1) == 0)
+        {
+          flags=ParseGeometry(arg1,&geometry_info);
+          if ((flags & (RhoValue|SigmaValue)) == 0)
+            CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,arg1);
+          if ((flags & SigmaValue) == 0)
+            geometry_info.sigma=geometry_info.rho;
+          if ((flags & XiValue) == 0)
+            geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.sigma*geometry_info.sigma);
+          if ((flags & PsiValue) == 0)
+            geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.sigma*geometry_info.sigma);
+          new_image=BilateralBlurImage(_image,(size_t) geometry_info.rho,
+            (size_t) geometry_info.sigma,geometry_info.xi,geometry_info.psi,
+           _exception);
+          break;
+        }
       if (LocaleCompare("black-threshold",option+1) == 0)
         {
           if (IsGeometry(arg1) == MagickFalse)

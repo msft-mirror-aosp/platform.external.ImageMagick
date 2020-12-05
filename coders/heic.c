@@ -153,7 +153,7 @@ static MagickBooleanType ReadHEICColorProfile(Image *image,
       if ((MagickSizeType) length > GetBlobSize(image))
         ThrowBinaryException(CorruptImageError,"InsufficientImageDataInFile",
           image->filename);
-      color_buffer=(unsigned char *) AcquireMagickMemory(length);
+      color_buffer=(unsigned char *) AcquireQuantumMemory(1,length);
       if (color_buffer != (unsigned char *) NULL)
         {
           struct heif_error
@@ -206,7 +206,7 @@ static MagickBooleanType ReadHEICExifProfile(Image *image,
       if ((MagickSizeType) exif_size > GetBlobSize(image))
         ThrowBinaryException(CorruptImageError,"InsufficientImageDataInFile",
           image->filename);
-      exif_buffer=(unsigned char *) AcquireMagickMemory(exif_size);
+      exif_buffer=(unsigned char *) AcquireQuantumMemory(1,exif_size);
       if (exif_buffer != (unsigned char *) NULL)
         {
           struct heif_error
@@ -621,10 +621,32 @@ ModuleExport size_t RegisterHEICImage(void)
   entry=AcquireMagickInfo("HEIC","HEIC","High Efficiency Image Format");
 #if defined(MAGICKCORE_HEIC_DELEGATE)
   entry->decoder=(DecodeImageHandler *) ReadHEICImage;
+#if LIBHEIF_NUMERIC_VERSION >= 0x01030000
+  if (heif_have_encoder_for_format(heif_compression_HEVC))
+    entry->encoder=(EncodeImageHandler *) WriteHEICImage;
+#else
   entry->encoder=(EncodeImageHandler *) WriteHEICImage;
 #endif
+#endif
   entry->magick=(IsImageFormatHandler *) IsHEIC;
-  entry->mime_type=ConstantString("image/x-heic");
+  entry->mime_type=ConstantString("image/heic");
+#if defined(LIBHEIF_VERSION)
+  entry->version=ConstantString(LIBHEIF_VERSION);
+#endif
+  entry->flags|=CoderDecoderSeekableStreamFlag;
+  (void) RegisterMagickInfo(entry);
+  entry=AcquireMagickInfo("HEIC","HEIF","High Efficiency Image Format");
+#if defined(MAGICKCORE_HEIC_DELEGATE)
+  entry->decoder=(DecodeImageHandler *) ReadHEICImage;
+#if LIBHEIF_NUMERIC_VERSION >= 0x01030000
+  if (heif_have_encoder_for_format(heif_compression_HEVC))
+    entry->encoder=(EncodeImageHandler *) WriteHEICImage;
+#else
+  entry->encoder=(EncodeImageHandler *) WriteHEICImage;
+#endif
+#endif
+  entry->magick=(IsImageFormatHandler *) IsHEIC;
+  entry->mime_type=ConstantString("image/heif");
 #if defined(LIBHEIF_VERSION)
   entry->version=ConstantString(LIBHEIF_VERSION);
 #endif
@@ -639,7 +661,7 @@ ModuleExport size_t RegisterHEICImage(void)
     entry->encoder=(EncodeImageHandler *) WriteHEICImage;
 #endif
   entry->magick=(IsImageFormatHandler *) IsHEIC;
-  entry->mime_type=ConstantString("image/x-heic");
+  entry->mime_type=ConstantString("image/avif");
 #if defined(LIBHEIF_VERSION)
   entry->version=ConstantString(LIBHEIF_VERSION);
 #endif
@@ -670,7 +692,9 @@ ModuleExport size_t RegisterHEICImage(void)
 */
 ModuleExport void UnregisterHEICImage(void)
 {
+  (void) UnregisterMagickInfo("AVIF");
   (void) UnregisterMagickInfo("HEIC");
+  (void) UnregisterMagickInfo("HEIF");
 }
 
 /*
@@ -970,8 +994,14 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
   struct heif_encoder
     *heif_encoder;
 
+  struct heif_error
+    error;
+
   struct heif_image
     *heif_image;
+
+  struct heif_writer
+    writer;
 
   /*
     Open output image file.
@@ -997,25 +1027,14 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
       *profile;
 #endif
 
-    struct heif_error
-      error;
-
-    struct heif_writer
-      writer;
-
-    enum heif_colorspace 
+    enum heif_colorspace
       colorspace;
 
-    enum heif_chroma 
+    enum heif_chroma
       chroma;
-
-    MagickBooleanType 
-      is_avif;
-
 
     colorspace=heif_colorspace_YCbCr;
     chroma=heif_chroma_420;
-    is_avif=MagickFalse;
     /*
       Get encoder for the specified format.
     */
@@ -1024,7 +1043,12 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
       {
         error=heif_context_get_encoder_for_format(heif_context,
           heif_compression_AV1,&heif_encoder);
-        is_avif=MagickTrue;
+        if (IssRGBCompatibleColorspace(image->colorspace) != MagickFalse)
+          {
+            colorspace=heif_colorspace_RGB;
+            chroma=(image->alpha_trait == UndefinedPixelTrait) ?
+              heif_chroma_interleaved_RGB : heif_chroma_interleaved_RGBA;
+          }
       }
     else
 #endif
@@ -1033,18 +1057,9 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
     status=IsHeifSuccess(&error,image,exception);
     if (status == MagickFalse)
       break;
-    if ((is_avif != MagickFalse) &&
-        (IssRGBCompatibleColorspace(image->colorspace) != MagickFalse))
+    if ((colorspace == heif_colorspace_YCbCr) &&
+        (image->colorspace != YCbCrColorspace))
       {
-        colorspace=heif_colorspace_RGB;
-        chroma=(image->alpha_trait == UndefinedPixelTrait) ?
-          heif_chroma_interleaved_RGB : heif_chroma_interleaved_RGBA;
-      } 
-    else if (image->colorspace != YCbCrColorspace)
-      {
-        /*
-        Transform colorspace to YCbCr.
-        */
         status=TransformImageColorspace(image,YCbCrColorspace,exception);
         if (status == MagickFalse)
           break;
@@ -1086,16 +1101,10 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
     status=IsHeifSuccess(&error,image,exception);
     if (status == MagickFalse)
       break;
-    writer.writer_api_version=1;
-    writer.write=heif_write_func;
 #if LIBHEIF_NUMERIC_VERSION >= 0x01030000
     if (image->profiles != (void *) NULL)
-      WriteProfile(heif_context, image, exception);
+      WriteProfile(heif_context,image,exception);
 #endif
-    error=heif_context_write(heif_context,&writer,image);
-    status=IsHeifSuccess(&error,image,exception);
-    if (status == MagickFalse)
-      break;
     if (GetNextImageInList(image) == (Image *) NULL)
       break;
     image=SyncNextImageInList(image);
@@ -1109,6 +1118,14 @@ static MagickBooleanType WriteHEICImage(const ImageInfo *image_info,
     heif_image=(struct heif_image*) NULL;
     scene++;
   } while (image_info->adjoin != MagickFalse);
+  writer.writer_api_version=1;
+  writer.write=heif_write_func;
+#if LIBHEIF_NUMERIC_VERSION >= 0x01030000
+  if (image->profiles != (void *) NULL)
+    WriteProfile(heif_context,image,exception);
+#endif
+  error=heif_context_write(heif_context,&writer,image);
+  status=IsHeifSuccess(&error,image,exception);
   if (heif_encoder != (struct heif_encoder*) NULL)
     heif_encoder_release(heif_encoder);
   if (heif_image != (struct heif_image*) NULL)
