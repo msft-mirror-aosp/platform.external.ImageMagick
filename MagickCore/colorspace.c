@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -169,12 +169,84 @@ MagickExport ColorspaceType GetImageColorspaceType(const Image *image,
 %
 */
 
+static inline void ConvertAdobe98ToRGB(const double r,const double g,
+  const double b,double *red,double *green,double *blue)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertAdobe98ToXYZ(r,g,b,&X,&Y,&Z);
+  ConvertXYZToRGB(X,Y,Z,red,green,blue);
+}
+
+static inline void ConvertDisplayP3ToRGB(const double r,const double g,
+  const double b,double *red,double *green,double *blue)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertDisplayP3ToXYZ(r,g,b,&X,&Y,&Z);
+  ConvertXYZToRGB(X,Y,Z,red,green,blue);
+}
+
+static inline void ConvertProPhotoToRGB(const double r,const double g,
+  const double b,double *red,double *green,double *blue)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertProPhotoToXYZ(r,g,b,&X,&Y,&Z);
+  ConvertXYZToRGB(X,Y,Z,red,green,blue);
+}
+
 static inline void ConvertRGBToCMY(const double red,const double green,
   const double blue,double *cyan,double *magenta,double *yellow)
 {
   *cyan=QuantumScale*(QuantumRange-red);
   *magenta=QuantumScale*(QuantumRange-green);
   *yellow=QuantumScale*(QuantumRange-blue);
+}
+
+static void ConvertRGBToAdobe98(const double red,const double green,
+  const double blue,double *r,double *g,double *b)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
+  ConvertXYZToAdobe98(X,Y,Z,r,g,b);
+}
+
+static void ConvertRGBToDisplayP3(const double red,const double green,
+  const double blue,double *r,double *g,double *b)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
+  ConvertXYZToDisplayP3(X,Y,Z,r,g,b);
+}
+
+static void ConvertRGBToProPhoto(const double red,const double green,
+  const double blue,double *r,double *g,double *b)
+{
+  double
+    X,
+    Y,
+    Z;
+
+  ConvertRGBToXYZ(red,green,blue,&X,&Y,&Z);
+  ConvertXYZToProPhoto(X,Y,Z,r,g,b);
 }
 
 static inline void ConvertXYZToLMS(const double x,const double y,
@@ -392,7 +464,7 @@ static MagickBooleanType sRGBTransformImage(Image *image,
   PrimaryInfo
     primary_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -445,10 +517,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         PixelInfo
           pixel;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -501,10 +573,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -558,10 +630,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -594,6 +666,8 @@ static MagickBooleanType sRGBTransformImage(Image *image,
       return(status);
     }
     case CMYColorspace:
+    case Adobe98Colorspace:
+    case DisplayP3Colorspace:
     case HCLColorspace:
     case HCLpColorspace:
     case HSBColorspace:
@@ -608,6 +682,7 @@ static MagickBooleanType sRGBTransformImage(Image *image,
     case LCHuvColorspace:
     case LMSColorspace:
     case LuvColorspace:
+    case ProPhotoColorspace:
     case xyYColorspace:
     case XYZColorspace:
     case YCbCrColorspace:
@@ -646,10 +721,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -676,9 +751,19 @@ static MagickBooleanType sRGBTransformImage(Image *image,
           blue=(double) GetPixelBlue(image,q);
           switch (colorspace)
           {
+            case Adobe98Colorspace:
+            {
+              ConvertRGBToAdobe98(red,green,blue,&X,&Y,&Z);
+              break;
+            }
             case CMYColorspace:
             {
               ConvertRGBToCMY(red,green,blue,&X,&Y,&Z);
+              break;
+            }
+            case DisplayP3Colorspace:
+            {
+              ConvertRGBToDisplayP3(red,green,blue,&X,&Y,&Z);
               break;
             }
             case HCLColorspace:
@@ -745,6 +830,11 @@ static MagickBooleanType sRGBTransformImage(Image *image,
             case LuvColorspace:
             {
               ConvertRGBToLuv(red,green,blue,&X,&Y,&Z);
+              break;
+            }
+            case ProPhotoColorspace:
+            {
+              ConvertRGBToProPhoto(red,green,blue,&X,&Y,&Z);
               break;
             }
             case xyYColorspace:
@@ -869,10 +959,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -936,10 +1026,10 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -1182,13 +1272,13 @@ static MagickBooleanType sRGBTransformImage(Image *image,
         PixelInfo
           pixel;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register unsigned int
+        unsigned int
           blue,
           green,
           red;
@@ -1244,7 +1334,7 @@ static MagickBooleanType sRGBTransformImage(Image *image,
     }
     case PseudoClass:
     {
-      register unsigned int
+      unsigned int
         blue,
         green,
         red;
@@ -1941,7 +2031,7 @@ static MagickBooleanType TransformsRGBImage(Image *image,
   MagickOffsetType
     progress;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -1989,10 +2079,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         PixelInfo
           pixel;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2045,10 +2135,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2106,10 +2196,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2142,7 +2232,9 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         return(MagickFalse);
       return(status);
     }
+    case Adobe98Colorspace:
     case CMYColorspace:
+    case DisplayP3Colorspace:
     case HCLColorspace:
     case HCLpColorspace:
     case HSBColorspace:
@@ -2157,6 +2249,7 @@ static MagickBooleanType TransformsRGBImage(Image *image,
     case LCHuvColorspace:
     case LMSColorspace:
     case LuvColorspace:
+    case ProPhotoColorspace:
     case xyYColorspace:
     case XYZColorspace:
     case YCbCrColorspace:
@@ -2195,10 +2288,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2225,9 +2318,19 @@ static MagickBooleanType TransformsRGBImage(Image *image,
           Z=QuantumScale*GetPixelBlue(image,q);
           switch (image->colorspace)
           {
+            case Adobe98Colorspace:
+            {
+              ConvertAdobe98ToRGB(X,Y,Z,&red,&green,&blue);
+              break;
+            }
             case CMYColorspace:
             {
               ConvertCMYToRGB(X,Y,Z,&red,&green,&blue);
+              break;
+            }
+            case DisplayP3Colorspace:
+            {
+              ConvertDisplayP3ToRGB(X,Y,Z,&red,&green,&blue);
               break;
             }
             case HCLColorspace:
@@ -2294,6 +2397,11 @@ static MagickBooleanType TransformsRGBImage(Image *image,
             case LuvColorspace:
             {
               ConvertLuvToRGB(X,Y,Z,&red,&green,&blue);
+              break;
+            }
+            case ProPhotoColorspace:
+            {
+              ConvertProPhotoToRGB(X,Y,Z,&red,&green,&blue);
               break;
             }
             case xyYColorspace:
@@ -2421,10 +2529,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2487,10 +2595,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         MagickBooleanType
           sync;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2722,10 +2830,10 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         PixelInfo
           pixel;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -2739,7 +2847,7 @@ static MagickBooleanType TransformsRGBImage(Image *image,
           }
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          register size_t
+          size_t
             blue,
             green,
             red;
@@ -2805,7 +2913,7 @@ static MagickBooleanType TransformsRGBImage(Image *image,
         PixelInfo
           pixel;
 
-        register size_t
+        size_t
           blue,
           green,
           red;

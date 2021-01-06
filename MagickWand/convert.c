@@ -17,7 +17,7 @@
 %                                April 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -96,7 +96,7 @@ static MagickBooleanType ConcatenateImages(int argc,char **argv,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -525,7 +525,7 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
