@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -207,10 +207,10 @@ static void ReadPDFInfo(const ImageInfo *image_info,Image *image,
   MagickByteBuffer
     buffer;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   SegmentInfo
@@ -292,7 +292,7 @@ static void ReadPDFInfo(const ImageInfo *image_info,Image *image,
         SkipMagickByteBuffer(&buffer,strlen(SpotColor)+1);
         for (c=ReadMagickByteBuffer(&buffer); c != EOF; c=ReadMagickByteBuffer(&buffer))
         {
-          if ((isspace(c) != 0) || (c == '/') || ((i+1) == MagickPathExtent))
+          if ((isspace((int) ((unsigned char) c)) != 0) || (c == '/') || ((i+1) == MagickPathExtent))
             break;
           name[i++]=(char) c;
         }
@@ -376,7 +376,7 @@ static char *SanitizeDelegateString(const char *source)
   const char
     *q;
 
-  register char
+  char
     *p;
 
   static char
@@ -445,7 +445,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   RectangleInfo
     page;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -481,6 +481,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   */
   delta.x=DefaultResolution;
   delta.y=DefaultResolution;
+  (void) memset(&page,0,sizeof(page));
   if ((image->resolution.x == 0.0) || (image->resolution.y == 0.0))
     {
       flags=ParseGeometry(PSDensityGeometry,&geometry_info);
@@ -497,7 +498,6 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       if ((flags & SigmaValue) == 0)
         image->resolution.y=image->resolution.x;
     }
-  (void) memset(&page,0,sizeof(page));
   (void) ParseAbsoluteGeometry(PSPageGeometry,&page);
   if (image_info->page != (char *) NULL)
     (void) ParseAbsoluteGeometry(image_info->page,&page);
@@ -567,6 +567,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   file=AcquireUniqueFileResource(postscript_filename);
   if (file == -1)
     {
+      (void) RelinquishUniqueFileResource(input_filename);
       ThrowFileException(exception,FileOpenError,"UnableToCreateTemporaryFile",
         image_info->filename);
       CleanupPDFInfo(&pdf_info);
@@ -576,6 +577,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (write(file," ",1) != 1)
     {
       file=close(file)-1;
+      (void) RelinquishUniqueFileResource(input_filename);
       (void) RelinquishUniqueFileResource(postscript_filename);
       CleanupPDFInfo(&pdf_info);
       image=DestroyImage(image);
@@ -594,6 +596,7 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
        delegate_info=GetDelegateInfo("ps:alpha",(char *) NULL,exception);
   if (delegate_info == (const DelegateInfo *) NULL)
     {
+      (void) RelinquishUniqueFileResource(input_filename);
       (void) RelinquishUniqueFileResource(postscript_filename);
       CleanupPDFInfo(&pdf_info);
       image=DestroyImage(image);
@@ -603,6 +606,8 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   options=AcquireString("");
   (void) FormatLocaleString(density,MagickPathExtent,"%gx%g",
     image->resolution.x,image->resolution.y);
+  if (image_info->ping != MagickFalse)
+    (void) FormatLocaleString(density,MagickPathExtent,"2.0x2.0");
   if ((image_info->page != (char *) NULL) || (fitPage != MagickFalse))
     (void) FormatLocaleString(options,MagickPathExtent,"-g%.20gx%.20g ",(double)
       page.width,(double) page.height);
@@ -747,6 +752,13 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
     (void) CopyMagickString(pdf_image->filename,filename,MagickPathExtent);
     (void) CopyMagickString(pdf_image->magick,image->magick,MagickPathExtent);
     pdf_image->page=page;
+    if (image_info->ping != MagickFalse)
+      {
+        pdf_image->magick_columns*=image->resolution.x/2.0;
+        pdf_image->magick_rows*=image->resolution.y/2.0;
+        pdf_image->columns*=image->resolution.x/2.0;
+        pdf_image->rows*=image->resolution.y/2.0;
+      }
     (void) CloneImageProfiles(pdf_image,image);
     (void) CloneImageProperties(pdf_image,image);
     next=SyncNextImageInList(pdf_image);
@@ -901,10 +913,10 @@ static char *EscapeParenthesis(const char *source)
   char
     *destination;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
   size_t
@@ -942,12 +954,12 @@ static char *EscapeParenthesis(const char *source)
 
 static size_t UTF8ToUTF16(const unsigned char *utf8,wchar_t *utf16)
 {
-  register const unsigned char
+  const unsigned char
     *p;
 
   if (utf16 != (wchar_t *) NULL)
     {
-      register wchar_t
+      wchar_t
         *q;
 
       wchar_t
@@ -1031,7 +1043,7 @@ static wchar_t *ConvertUTF8ToUTF16(const unsigned char *source,size_t *length)
   *length=UTF8ToUTF16(source,(wchar_t *) NULL);
   if (*length == 0)
     {
-      register ssize_t
+      ssize_t
         i;
 
       /*
@@ -1104,7 +1116,7 @@ static MagickBooleanType WritePOCKETMODImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(image_info != (const ImageInfo *) NULL);
@@ -1287,13 +1299,13 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
     media_info,
     page_info;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 

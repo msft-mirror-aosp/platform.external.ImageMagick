@@ -17,7 +17,7 @@
 %                              January 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -464,7 +464,7 @@ MagickExport char *GetPageGeometry(const char *page_geometry)
   char
     page[MaxTextExtent];
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(page_geometry != (char *) NULL);
@@ -758,7 +758,7 @@ MagickExport MagickStatusType ParseAffineGeometry(const char *geometry,
   MagickStatusType
     flags;
 
-  register ssize_t
+  ssize_t
     i;
 
   GetAffineMatrix(affine_matrix);
@@ -900,7 +900,7 @@ MagickExport MagickStatusType ParseGeometry(const char *geometry,
   for (p=pedantic_geometry; *p != '\0'; )
   {
     c=(int) ((unsigned char) *p);
-    if (isspace(c) != 0)
+    if (isspace((int) ((unsigned char) c)) != 0)
       {
         (void) CopyMagickString(p,p+1,MagickPathExtent);
         continue;
@@ -1419,8 +1419,8 @@ MagickExport MagickStatusType ParseMetaGeometry(const char *geometry,ssize_t *x,
       scale.y=geometry_info.sigma;
       if ((percent_flags & SigmaValue) == 0)
         scale.y=scale.x;
-      *width=(size_t) MagickMax(floor(scale.x*former_width/100.0+0.5),1.0);
-      *height=(size_t) MagickMax(floor(scale.y*former_height/100.0+0.5),1.0);
+      *width=(size_t) floor(scale.x*former_width/100.0+0.5);
+      *height=(size_t) floor(scale.y*former_height/100.0+0.5);
       former_width=(*width);
       former_height=(*height);
     }
