@@ -22,7 +22,7 @@
 %                                January 2013                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -147,7 +147,7 @@
 static inline MagickOffsetType dpc_read(int file,const MagickSizeType length,
   unsigned char *magick_restrict message)
 {
-  register MagickOffsetType
+  MagickOffsetType
     i;
 
   ssize_t
@@ -162,7 +162,7 @@ static inline MagickOffsetType dpc_read(int file,const MagickSizeType length,
   for (i=0; i < (MagickOffsetType) length; i+=count)
   {
     count=recv(file,CHAR_TYPE_CAST message+i,(LENGTH_TYPE) MagickMin(length-i,
-      (MagickSizeType) SSIZE_MAX),0);
+      (MagickSizeType) LONG_MAX),0);
     if (count <= 0)
       {
         count=0;
@@ -278,7 +278,7 @@ static char *GetHostname(int *port,ExceptionInfo *exception)
   int
     argc;
 
-  register ssize_t
+  ssize_t
     i;
 
   static size_t
@@ -427,7 +427,7 @@ static inline MagickOffsetType dpc_send(int file,const MagickSizeType length,
   MagickOffsetType
     count;
 
-  register MagickOffsetType
+  MagickOffsetType
     i;
 
 #if !MAGICKCORE_HAVE_DISTRIBUTE_CACHE
@@ -442,7 +442,7 @@ static inline MagickOffsetType dpc_send(int file,const MagickSizeType length,
   for (i=0; i < (MagickOffsetType) length; i+=count)
   {
     count=(MagickOffsetType) send(file,CHAR_TYPE_CAST message+i,(LENGTH_TYPE)
-      MagickMin(length-i,(MagickSizeType) SSIZE_MAX),MSG_NOSIGNAL);
+      MagickMin(length-i,(MagickSizeType) LONG_MAX),MSG_NOSIGNAL);
     if (count <= 0)
       {
         count=0;
@@ -484,7 +484,7 @@ static MagickBooleanType OpenDistributeCache(SplayTreeInfo *registry,int file,
   MagickSizeType
     length;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -552,10 +552,10 @@ static MagickBooleanType ReadDistributeCacheMetacontent(SplayTreeInfo *registry,
   RectangleInfo
     region;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
   unsigned char
@@ -609,10 +609,10 @@ static MagickBooleanType ReadDistributeCachePixels(SplayTreeInfo *registry,
   RectangleInfo
     region;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register unsigned char
+  unsigned char
     *q;
 
   unsigned char
@@ -671,10 +671,10 @@ static MagickBooleanType WriteDistributeCacheMetacontent(
   RectangleInfo
     region;
 
-  register Quantum
+  Quantum
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -729,10 +729,10 @@ static MagickBooleanType WriteDistributeCachePixels(SplayTreeInfo *registry,
   RectangleInfo
     region;
 
-  register Quantum
+  Quantum
     *q;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -784,7 +784,7 @@ static HANDLER_RETURN_TYPE DistributePixelCacheClient(void *socket)
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   RandomInfo
@@ -912,7 +912,7 @@ MagickExport void DistributePixelCacheServer(const int port,
   Not implemented!
 #endif
 
-  register struct addrinfo
+  struct addrinfo
     *p;
 
   SOCKET_TYPE
@@ -1134,7 +1134,7 @@ MagickPrivate MagickBooleanType OpenDistributePixelCache(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1223,7 +1223,7 @@ MagickPrivate MagickOffsetType ReadDistributePixelCacheMetacontent(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1236,7 +1236,7 @@ MagickPrivate MagickOffsetType ReadDistributePixelCacheMetacontent(
   assert(server_info->signature == MagickCoreSignature);
   assert(region != (RectangleInfo *) NULL);
   assert(metacontent != (unsigned char *) NULL);
-  if (length > (MagickSizeType) SSIZE_MAX)
+  if (length > (MagickSizeType) LONG_MAX)
     return(-1);
   p=message;
   *p++='R';
@@ -1298,7 +1298,7 @@ MagickPrivate MagickOffsetType ReadDistributePixelCachePixels(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1311,7 +1311,7 @@ MagickPrivate MagickOffsetType ReadDistributePixelCachePixels(
   assert(server_info->signature == MagickCoreSignature);
   assert(region != (RectangleInfo *) NULL);
   assert(pixels != (unsigned char *) NULL);
-  if (length > (MagickSizeType) SSIZE_MAX)
+  if (length > (MagickSizeType) LONG_MAX)
     return(-1);
   p=message;
   *p++='r';
@@ -1370,7 +1370,7 @@ MagickPrivate MagickBooleanType RelinquishDistributePixelCache(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1434,7 +1434,7 @@ MagickPrivate MagickOffsetType WriteDistributePixelCacheMetacontent(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1447,7 +1447,7 @@ MagickPrivate MagickOffsetType WriteDistributePixelCacheMetacontent(
   assert(server_info->signature == MagickCoreSignature);
   assert(region != (RectangleInfo *) NULL);
   assert(metacontent != (unsigned char *) NULL);
-  if (length > (MagickSizeType) SSIZE_MAX)
+  if (length > (MagickSizeType) LONG_MAX)
     return(-1);
   p=message;
   *p++='W';
@@ -1510,7 +1510,7 @@ MagickPrivate MagickOffsetType WriteDistributePixelCachePixels(
   MagickOffsetType
     count;
 
-  register unsigned char
+  unsigned char
     *p;
 
   unsigned char
@@ -1523,7 +1523,7 @@ MagickPrivate MagickOffsetType WriteDistributePixelCachePixels(
   assert(server_info->signature == MagickCoreSignature);
   assert(region != (RectangleInfo *) NULL);
   assert(pixels != (const unsigned char *) NULL);
-  if (length > (MagickSizeType) SSIZE_MAX)
+  if (length > (MagickSizeType) LONG_MAX)
     return(-1);
   p=message;
   *p++='w';
