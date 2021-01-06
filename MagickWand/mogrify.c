@@ -17,7 +17,7 @@
 %                                March 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -142,7 +142,7 @@ WandExport MagickBooleanType MagickCommandGenesis(ImageInfo *image_info,
     regard_warnings,
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -422,7 +422,7 @@ static MagickBooleanType MonitorProgress(const char *text,
   const char
     *locale_message;
 
-  register char
+  char
     *p;
 
   magick_unreferenced(client_data);
@@ -475,7 +475,7 @@ static Image *SparseColorOption(const Image *image,
   MagickBooleanType
     error;
 
-  register size_t
+  size_t
     x;
 
   size_t
@@ -744,7 +744,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
     geometry,
     region_geometry;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -956,10 +956,10 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             if ((flags & SigmaValue) == 0)
               geometry_info.sigma=geometry_info.rho;
             if ((flags & XiValue) == 0)
-              geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.xi=1.0*sqrt(geometry_info.rho*geometry_info.rho+
                 geometry_info.sigma*geometry_info.sigma);
             if ((flags & PsiValue) == 0)
-              geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.psi=0.25*sqrt(geometry_info.rho*geometry_info.rho+
                 geometry_info.sigma*geometry_info.sigma);
             mogrify_image=BilateralBlurImage(*image,(size_t) geometry_info.rho,
               (size_t) geometry_info.sigma,geometry_info.xi,geometry_info.psi,
@@ -1314,7 +1314,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             KernelInfo
               *kernel_info;
 
-            register ssize_t
+            ssize_t
               j;
 
             size_t
@@ -1442,7 +1442,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             double
               *arguments;
 
-            register ssize_t
+            ssize_t
               x;
 
             size_t
@@ -1762,7 +1762,7 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             MagickFunction
               function;
 
-            register ssize_t
+            ssize_t
               x;
 
             size_t
@@ -3933,7 +3933,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -6734,7 +6734,7 @@ WandExport MagickBooleanType MogrifyImageInfo(ImageInfo *image_info,
   ssize_t
     count;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -7122,12 +7122,6 @@ WandExport MagickBooleanType MogrifyImageInfo(ImageInfo *image_info,
           }
         if (LocaleCompare("format",option+1) == 0)
           {
-            register const char
-              *q;
-
-            for (q=strchr(argv[i+1],'%'); q != (char *) NULL; q=strchr(q+1,'%'))
-              if (strchr("Agkrz@[#",*(q+1)) != (char *) NULL)
-                image_info->ping=MagickFalse;
             (void) SetImageOption(image_info,option+1,argv[i+1]);
             break;
           }
@@ -7852,7 +7846,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
   QuantizeInfo
     *quantize_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -8757,7 +8751,7 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
             Image
               *polynomial_image;
 
-            register ssize_t
+            ssize_t
               x;
 
             size_t
@@ -9068,7 +9062,7 @@ WandExport MagickBooleanType MogrifyImages(ImageInfo *image_info,
   size_t
     n;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(image_info != (ImageInfo *) NULL);
