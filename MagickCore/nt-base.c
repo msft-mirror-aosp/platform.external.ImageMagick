@@ -17,7 +17,7 @@
 %                                December 1996                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -42,6 +42,7 @@
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
 #include "MagickCore/client.h"
 #include "MagickCore/exception-private.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/locale_.h"
 #include "MagickCore/log.h"
 #include "MagickCore/magick.h"
@@ -1328,7 +1329,7 @@ MagickPrivate const GhostInfo *NTGhostscriptDLLVectors(void)
 */
 MagickPrivate void NTGhostscriptEXE(char *path,int length)
 {
-  register char
+  char
     *p;
 
   static char
@@ -1402,7 +1403,7 @@ MagickPrivate int NTGhostscriptFonts(char *path,int length)
     *directory,
     filename[MagickPathExtent];
 
-  register char
+  char
     *p,
     *q;
 
@@ -1664,6 +1665,7 @@ MagickExport MagickBooleanType NTLongPathsEnabled()
           long_paths_enabled=0;
           return(MagickFalse);
         }
+      size=0;
       status=RegQueryValueExA(registry_key,"LongPathsEnabled",0,&type,
         (LPBYTE) &value,&size);
       RegCloseKey(registry_key);
@@ -1901,7 +1903,7 @@ MagickPrivate void *NTOpenLibrary(const char *filename)
   char
     path[MagickPathExtent];
 
-  register const char
+  const char
     *p,
     *q;
 
@@ -2300,9 +2302,7 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
     local_command[MagickPathExtent];
 
   DWORD
-    bytes_read,
-    child_status,
-    size;
+    child_status;
 
   int
     status;
@@ -2319,6 +2319,9 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
 
   SECURITY_ATTRIBUTES
     sa;
+
+  size_t
+    output_offset;
 
   STARTUPINFO
     startup_info;
@@ -2375,9 +2378,47 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
       CleanupOutputHandles;
       return(-1);
     }
+  if (output != (char *) NULL)
+    *output='\0';
   if (asynchronous != MagickFalse)
     return(status == 0);
-  status=WaitForSingleObject(process_info.hProcess,INFINITE);
+  output_offset=0;
+  status=STATUS_TIMEOUT;
+  while (status == STATUS_TIMEOUT)
+  {
+    DWORD
+      size;
+
+    status=WaitForSingleObject(process_info.hProcess,1000);
+    size=0;
+    if (read_output != (HANDLE) NULL)
+      if (!PeekNamedPipe(read_output,NULL,0,NULL,&size,NULL))
+        break;
+    while (size > 0)
+    {
+      char
+        buffer[MagickPathExtent];
+
+      DWORD
+        bytes_read;
+
+      if (ReadFile(read_output,buffer,sizeof(buffer)-1,&bytes_read,NULL))
+        {
+          size_t
+            count;
+
+          count=MagickMin(MagickPathExtent-1-output_offset,bytes_read);
+          if (count > 0)
+            {
+              CopyMagickString(output+output_offset,buffer,count);
+              output[count]='\0';
+              output_offset=count;
+            }
+        }
+      if (!PeekNamedPipe(read_output,NULL,0,NULL,&size,NULL))
+        break;
+    }
+  }
   if (status != WAIT_OBJECT_0)
     {
       CopyLastError;
@@ -2393,10 +2434,6 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
     }
   CloseHandle(process_info.hProcess);
   CloseHandle(process_info.hThread);
-  if (read_output != (HANDLE) NULL)
-    if (PeekNamedPipe(read_output,(LPVOID) NULL,0,(LPDWORD) NULL,&size,(LPDWORD) NULL))
-      if ((size > 0) && (ReadFile(read_output,output,MagickPathExtent-1,&bytes_read,NULL)))
-        output[bytes_read]='\0';
   CleanupOutputHandles;
   return((int) child_status);
 }
