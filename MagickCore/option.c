@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -462,9 +462,11 @@ static const OptionInfo
   ColorspaceOptions[] =
   {
     { "Undefined", UndefinedColorspace, UndefinedOptionFlag, MagickTrue },
+    { "Adobe98", Adobe98Colorspace, UndefinedOptionFlag, MagickFalse },
     { "CIELab", LabColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMY", CMYColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMYK", CMYKColorspace, UndefinedOptionFlag, MagickFalse },
+    { "DisplayP3", DisplayP3Colorspace, UndefinedOptionFlag, MagickFalse },
     { "Gray", GRAYColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCL", HCLColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCLp", HCLpColorspace, UndefinedOptionFlag, MagickFalse },
@@ -483,6 +485,7 @@ static const OptionInfo
     { "Log", LogColorspace, UndefinedOptionFlag, MagickFalse },
     { "Luv", LuvColorspace, UndefinedOptionFlag, MagickFalse },
     { "OHTA", OHTAColorspace, UndefinedOptionFlag, MagickFalse },
+    { "ProPhoto", ProPhotoColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec601YCbCr", Rec601YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec709YCbCr", Rec709YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "RGB", RGBColorspace, UndefinedOptionFlag, MagickFalse },
@@ -2202,7 +2205,7 @@ MagickExport MagickBooleanType DefineImageOption(ImageInfo *image_info,
     key[MagickPathExtent],
     value[MagickPathExtent];
 
-  register char
+  char
     *p;
 
   assert(image_info != (ImageInfo *) NULL);
@@ -2454,13 +2457,13 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -2547,7 +2550,7 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
 */
 MagickExport const OptionInfo *GetCommandOptionInfo(const char *option)
 {
-  register ssize_t
+  ssize_t
     i;
 
   for (i=0; CommandOptions[i].mnemonic != (char *) NULL; i++)
@@ -2586,7 +2589,7 @@ MagickExport char **GetCommandOptions(const CommandOption option)
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2704,7 +2707,7 @@ MagickExport const char *CommandOptionToMnemonic(const CommandOption option,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2757,7 +2760,7 @@ MagickExport MagickBooleanType IsOptionMember(const char *option,
   MagickBooleanType
     member;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -2824,7 +2827,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   magick_unreferenced(exception);
@@ -2867,7 +2870,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
 */
 MagickExport ssize_t ParseChannelOption(const char *channels)
 {
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -3005,13 +3008,13 @@ MagickExport ssize_t ParseCommandOption(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t

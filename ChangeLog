@@ -1,8 +1,93 @@
-2020-11-30  7.0.10-46  <quetzlzacatenango@image...>
-  * Release ImageMagick version 7.0.10-46 GIT revision 17...
+2021-01-05  7.0.10-56  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-56 GIT revision 18192:2fb74f026:20210105
 
-2020-11-30  7.0.10-45  <quetzlzacatenango@image...>
+2021-01-05  7.0.10-56  <quetzlzacatenango@image...>
+  * Fix rounding error for CSS colors (reference
+    https://github.com/ImageMagick/ImageMagick6/issues/129).
+
+2021-01-03  7.0.10-55  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-55 GIT revision 18181:636ebf7ba:20210103
+
+2021-01-04  7.0.10-55  <quetzlzacatenango@image...>
+  * revert changes to the default max width/height of image.
+
+2021-01-02  7.0.10-54  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-54 GIT revision 18159:24fabe7e2:20210102
+
+2020-12-27  7.0.10-54  Dirk Lemstra <dirk@lem.....org>
+  * replaced jxl coder with an implementation that uses the jpeg-xl reference
+    library.
+  * added -define trim:edges=(north,east,south,west) that can be used to
+    trim a single or multiple edges.
+
+2020-12-25  7.0.10-54  <quetzlzacatenango@image...>
+  * enable reading of a certain grayscale TIFF image.
+  * support HEIC depth masks (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/3040).
+  * validate pixel cache offsets (reference
+    https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=29039).
+
+2020-12-24  7.0.10-53  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-53 GIT revision 18083:3b141f557:20201224
+
+2020-12-20  7.0.10-53  <quetzlzacatenango@image...>
+  * CSS colors no longer require commas.
+  * eliminate possible arthimetic overflow (reference
+    https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=28849)
+  * support display-p3, Adobe-98, and Pro-photo colorspaces
+  * read/write 1024 colors Sixel images (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/3018).
+
+2020-12-19  7.0.10-52  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-52 GIT revision 18057:1f5bab30b:20201219
+
+2020-12-19  7.0.10-52  <quetzlzacatenango@image...>
+  * return alpha bytes with stream utility (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/2862).
+  * percentage -border in x no longer adds one pixel border in y (reference
+    https://github.com/ImageMagick/ImageMagick/issues/2978).
+
+2020-12-18  7.0.10-51  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-51 GIT revision 18052:475508769:20201218
+
+2020-12-17  7.0.10-51  <quetzlzacatenango@image...>
+  * reduce time to identify PDF/PS/XPS/PCL image width/height (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/2993).
+
+2020-12-16  7.0.10-50  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-50 GIT revision 18046:83c162886:20201216
+
+2020-12-15  7.0.10-50  <quetzlzacatenango@image...>
+  * revert patch to ready gray alpha TIFF image.
+
+2020-12-14  7.0.10-49  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-49 GIT revision 18040:7976abf6e:20201214
+
+2020-12-13  7.0.10-49  <quetzlzacatenango@image...>
+  * correct previous patch to read planar RGB TIFF images.
+
+2020-12-10  7.0.10-48  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-48 GIT revision 18026:4646e5fd1:20201210
+
+2020-12-09  7.0.10-48  <quetzlzacatenango@image...>
+  * Repair unit test failures (reference
+    https://github.com/ImageMagick/ImageMagick/issues/2959).
+
+2020-12-09  7.0.10-47  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-47 GIT revision 18020:6f1ee6104:20201209
+
+2020-12-06  7.0.10-47  <quetzlzacatenango@image...>
+  * support YAML image format.
+  * use generic TIFF read method for LZW-compressed strips (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/2935).
+
+2020-12-05  7.0.10-46  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-46 GIT revision 18001:7c75b33a1:20201205
+
+2020-11-30  7.0.10-46  <quetzlzacatenango@image...>
   * possible TIFF related-heap buffer overflow (alert & POC by Hardik Shah).
+  * set default system font in policy.xml configuration file.
+  * support portable float map format 16-bit half.
 
 2020-11-30  7.0.10-45  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.10-45 GIT revision 17972:6c0cb7f72:20201130
