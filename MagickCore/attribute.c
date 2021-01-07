@@ -17,7 +17,7 @@
 %                                October 2002                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -157,7 +157,7 @@ static double GetEdgeBackgroundCensus(const Image *image,
   RectangleInfo
     edge_geometry;
 
-  register const Quantum
+  const Quantum
     *p;
 
   ssize_t
@@ -216,7 +216,7 @@ static double GetEdgeBackgroundCensus(const Image *image,
   edge_view=AcquireVirtualCacheView(edge_image,exception);
   for (y=0; y < (ssize_t) edge_image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
     p=GetCacheViewVirtualPixels(edge_view,0,y,edge_image->columns,1,exception);
@@ -405,7 +405,7 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
   RectangleInfo
     bounds;
 
-  register const Quantum
+  const Quantum
     *p;
 
   ssize_t
@@ -418,10 +418,40 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
   artifact=GetImageArtifact(image,"trim:percent-background");
   if (artifact != (const char *) NULL)
     return(GetEdgeBoundingBox(image,exception));
-  bounds.width=0;
-  bounds.height=0;
-  bounds.x=(ssize_t) image->columns;
-  bounds.y=(ssize_t) image->rows;
+  artifact=GetImageArtifact(image, "trim:edges");
+  if (artifact == (const char *) NULL)
+    {
+      bounds.width=0;
+      bounds.height=0;
+      bounds.x=(ssize_t) image->columns;
+      bounds.y=(ssize_t) image->rows;
+    }
+  else
+    {
+      char
+        *edges,
+        *p,
+        *q;
+
+      bounds.width=(ssize_t) image->columns;
+      bounds.height=(ssize_t) image->rows;
+      bounds.x=0;
+      bounds.y=0;
+      edges=AcquireString(artifact);
+      q=edges;
+      while ((p=StringToken(",",&q)) != (char *) NULL)
+      {
+        if (LocaleCompare(p,"north") == 0)
+          bounds.y=(ssize_t) image->rows;
+        if (LocaleCompare(p,"east") == 0)
+          bounds.width=0;
+        if (LocaleCompare(p,"south") == 0)
+          bounds.height=0;
+        if (LocaleCompare(p,"west") == 0)
+          bounds.x=(ssize_t) image->columns;
+      }
+      edges=DestroyString(edges);
+    }
   GetPixelInfo(image,&target[0]);
   image_view=AcquireVirtualCacheView(image,exception);
   p=GetCacheViewVirtualPixels(image_view,0,0,1,1,exception);
@@ -455,10 +485,10 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
     RectangleInfo
       bounding_box;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -567,7 +597,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
     background[4],
     edge_background;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -596,7 +626,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
     RectangleInfo
       edge_geometry;
 
-    register const Quantum
+    const Quantum
       *p;
 
     ssize_t
@@ -650,7 +680,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
     edge_view=AcquireVirtualCacheView(edge_image,exception);
     for (y=0; y < (ssize_t) edge_image->rows; y++)
     {
-      register ssize_t
+      ssize_t
         x;
 
       p=GetCacheViewVirtualPixels(edge_view,0,y,edge_image->columns,1,
@@ -684,7 +714,7 @@ void TraceConvexHull(PointInfo *vertices,size_t number_vertices,
   PointInfo
     **chain;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -768,10 +798,10 @@ MagickExport PointInfo *GetImageConvexHull(const Image *image,
   n=0;
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -844,7 +874,7 @@ MagickExport size_t GetImageDepth(const Image *image,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -953,10 +983,10 @@ MagickExport size_t GetImageDepth(const Image *image,ExceptionInfo *exception)
         const int
           id = GetOpenMPThreadId();
 
-        register const Quantum
+        const Quantum
           *magick_restrict p;
 
-        register ssize_t
+        ssize_t
           x;
 
         if (status == MagickFalse)
@@ -966,7 +996,7 @@ MagickExport size_t GetImageDepth(const Image *image,ExceptionInfo *exception)
           continue;
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1005,10 +1035,10 @@ MagickExport size_t GetImageDepth(const Image *image,ExceptionInfo *exception)
     const int
       id = GetOpenMPThreadId();
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1018,7 +1048,7 @@ MagickExport size_t GetImageDepth(const Image *image,ExceptionInfo *exception)
       continue;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1167,7 +1197,7 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
     *bounding_box,
     *vertices;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1207,7 +1237,7 @@ MagickExport PointInfo *GetImageMinimumBoundingBox(Image *image,
       min_diameter = -1.0,
       min_projection = 0.0;
 
-    register ssize_t
+    ssize_t
       j,
       k;
 
@@ -1523,10 +1553,10 @@ MagickExport ImageType IdentifyImageGray(const Image *image,
   ImageType
     type;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -1605,10 +1635,10 @@ MagickExport MagickBooleanType IdentifyImageMonochrome(const Image *image,
   MagickBooleanType
     bilevel;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register const Quantum
+  const Quantum
     *p;
 
   ssize_t
@@ -1807,10 +1837,10 @@ MagickExport MagickBooleanType IsImageOpaque(const Image *image,
   CacheView
     *image_view;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -1900,7 +1930,7 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
   range=GetQuantumRange(depth);
   if (image->storage_class == PseudoClass)
     {
-      register ssize_t
+      ssize_t
         i;
 
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -1931,7 +1961,7 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
       Quantum
         *depth_map;
 
-      register ssize_t
+      ssize_t
         i;
 
       /*
@@ -1949,10 +1979,10 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
 #endif
       for (y=0; y < (ssize_t) image->rows; y++)
       {
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         if (status == MagickFalse)
@@ -1966,7 +1996,7 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
           }
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          register ssize_t
+          ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -2007,10 +2037,10 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -2023,7 +2053,7 @@ MagickExport MagickBooleanType SetImageDepth(Image *image,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
