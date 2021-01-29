@@ -85,6 +85,12 @@ $example->Label('Auto Threshold');
 $example->AutoThreshold();
 push(@$images,$example);
 
+print "Blilateral Blur...\n";
+$example=$model->Clone();
+$example->Label('Blilateral Blur');
+$example->BilateralBlur('8x8');
+push(@$images,$example);
+
 print "Blur...\n";
 $example=$model->Clone();
 $example->Label('Blur');
@@ -95,6 +101,12 @@ print "Border...\n";
 $example=$model->Clone();
 $example->Label('Border');
 $example->Border(geometry=>'6x6',color=>'gold');
+push(@$images,$example);
+
+print "CLAHE...\n";
+$example=$model->Clone();
+$example->Label('CLAHE');
+$example->CLAHE('128x192+32+3');
 push(@$images,$example);
 
 print "Channel...\n";

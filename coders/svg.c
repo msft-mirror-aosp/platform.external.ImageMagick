@@ -18,7 +18,7 @@
 %                                March 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -315,7 +315,7 @@ static Image *RenderSVGImage(const ImageInfo *image_info,Image *image,
     100.0*QuantumScale*image->background_color.green,
     100.0*QuantumScale*image->background_color.blue);
   (void) FormatLocaleString(opacity,MagickPathExtent,"%.20g",QuantumScale*
-    image->background_color.alpha);
+    image->background_color.alpha-MagickEpsilon);
   (void) FormatLocaleString(command,MagickPathExtent,
     GetDelegateCommands(delegate_info),input_filename,output_filename,density,
     background,opacity,unique);
@@ -374,6 +374,8 @@ static SVGInfo *AcquireSVGInfo(void)
 
 static SVGInfo *DestroySVGInfo(SVGInfo *svg_info)
 {
+  if (svg_info->size != (char *) NULL)
+    svg_info->size=DestroyString(svg_info->size);
   if (svg_info->text != (char *) NULL)
     svg_info->text=DestroyString(svg_info->text);
   if (svg_info->scale != (double *) NULL)
@@ -650,7 +652,7 @@ static void SVGElementDeclaration(void *context,const xmlChar *name,int type,
 
 static void SVGStripString(const MagickBooleanType trim,char *message)
 {
-  register char
+  char
     *p,
     *q;
 
@@ -714,11 +716,11 @@ static char **SVGKeyValuePairs(void *context,const int key_sentinel,
   char
     **tokens;
 
-  register const char
+  const char
     *p,
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -813,7 +815,7 @@ static void SVGProcessStyleElement(void *context,const xmlChar *name,
   char
     **tokens;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -881,6 +883,8 @@ static void SVGProcessStyleElement(void *context,const xmlChar *name,
         if (LocaleCompare(keyword,"color") == 0)
           {
             (void) CloneString(&color,value);
+            (void) FormatLocaleFile(svg_info->file,"currentColor \"%s\"\n",
+              color);
             break;
           }
         break;
@@ -920,21 +924,23 @@ static void SVGProcessStyleElement(void *context,const xmlChar *name,
         if (LocaleCompare(keyword,"font") == 0)
           {
             char
-              family[MagickPathExtent],
-              size[MagickPathExtent],
-              style[MagickPathExtent];
+              font_family[MagickPathExtent],
+              font_size[MagickPathExtent],
+              font_style[MagickPathExtent];
 
-            if (sscanf(value,"%2048s %2048s %2048s",style,size,family) != 3)
+            if (sscanf(value,"%2048s %2048s %2048s",font_style,font_size,
+                  font_family) != 3)
               break;
-            if (GetUserSpaceCoordinateValue(svg_info,0,style) == 0)
+            if (GetUserSpaceCoordinateValue(svg_info,0,font_style) == 0)
               (void) FormatLocaleFile(svg_info->file,"font-style \"%s\"\n",
                 style);
             else
-              if (sscanf(value,"%2048s %2048s",size,family) != 2)
+              if (sscanf(value,"%2048s %2048s",font_size,font_family) != 2)
                 break;
-            (void) FormatLocaleFile(svg_info->file,"font-size \"%s\"\n",size);
+            (void) FormatLocaleFile(svg_info->file,"font-size \"%s\"\n",
+              font_size);
             (void) FormatLocaleFile(svg_info->file,"font-family \"%s\"\n",
-              family);
+              font_family);
             break;
           }
         if (LocaleCompare(keyword,"font-family") == 0)
@@ -1248,7 +1254,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
     *p,
     *value;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -1358,177 +1364,6 @@ static void SVGStartElement(void *context,const xmlChar *name,
             {
               svg_info->element.angle=GetUserSpaceCoordinateValue(svg_info,0,
                 value);
-              break;
-            }
-          break;
-        }
-        case 'T':
-        case 't':
-        {
-          if (LocaleCompare(keyword,"transform") == 0)
-            {
-              AffineMatrix
-                affine,
-                current,
-                transform;
-
-              GetAffineMatrix(&transform);
-              (void) LogMagickEvent(CoderEvent,GetMagickModule(),"  ");
-              tokens=SVGKeyValuePairs(context,'(',')',value,&number_tokens);
-              if (tokens == (char **) NULL)
-                break;
-              for (j=0; j < (ssize_t) (number_tokens-1); j+=2)
-              {
-                keyword=(char *) tokens[j];
-                value=(char *) tokens[j+1];
-                (void) LogMagickEvent(CoderEvent,GetMagickModule(),
-                  "    %s: %s",keyword,value);
-                current=transform;
-                GetAffineMatrix(&affine);
-                switch (*keyword)
-                {
-                  case 'M':
-                  case 'm':
-                  {
-                    if (LocaleCompare(keyword,"matrix") == 0)
-                      {
-                        p=(const char *) value;
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.sx=StringToDouble(value,(char **) NULL);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.rx=StringToDouble(token,&next_token);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.ry=StringToDouble(token,&next_token);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.sy=StringToDouble(token,&next_token);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.tx=StringToDouble(token,&next_token);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        affine.ty=StringToDouble(token,&next_token);
-                        break;
-                      }
-                    break;
-                  }
-                  case 'R':
-                  case 'r':
-                  {
-                    if (LocaleCompare(keyword,"rotate") == 0)
-                      {
-                        double
-                          angle,
-                          x,
-                          y;
-
-                        p=(const char *) value;
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        angle=StringToDouble(value,(char **) NULL);
-                        affine.sx=cos(DegreesToRadians(fmod(angle,360.0)));
-                        affine.rx=sin(DegreesToRadians(fmod(angle,360.0)));
-                        affine.ry=(-sin(DegreesToRadians(fmod(angle,360.0))));
-                        affine.sy=cos(DegreesToRadians(fmod(angle,360.0)));
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        x=StringToDouble(token,&next_token);
-                        (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        if (*token == ',')
-                          (void) GetNextToken(p,&p,MagickPathExtent,token);
-                        y=StringToDouble(token,&next_token);
-                        affine.tx=svg_info->bounds.x+x*
-                          cos(DegreesToRadians(fmod(angle,360.0)))+y*
-                          sin(DegreesToRadians(fmod(angle,360.0)));
-                        affine.ty=svg_info->bounds.y-x*
-                          sin(DegreesToRadians(fmod(angle,360.0)))+y*
-                          cos(DegreesToRadians(fmod(angle,360.0)));
-                        affine.tx-=x;
-                        affine.ty-=y;
-                        break;
-                      }
-                    break;
-                  }
-                  case 'S':
-                  case 's':
-                  {
-                    if (LocaleCompare(keyword,"scale") == 0)
-                      {
-                        for (p=(const char *) value; *p != '\0'; p++)
-                          if ((isspace((int) ((unsigned char) *p)) != 0) ||
-                              (*p == ','))
-                            break;
-                        affine.sx=GetUserSpaceCoordinateValue(svg_info,1,value);
-                        affine.sy=affine.sx;
-                        if (*p != '\0')
-                          affine.sy=GetUserSpaceCoordinateValue(svg_info,-1,
-                            p+1);
-                        svg_info->scale[svg_info->n]=ExpandAffine(&affine);
-                        break;
-                      }
-                    if (LocaleCompare(keyword,"skewX") == 0)
-                      {
-                        affine.sx=svg_info->affine.sx;
-                        affine.ry=tan(DegreesToRadians(fmod(
-                          GetUserSpaceCoordinateValue(svg_info,1,value),
-                          360.0)));
-                        affine.sy=svg_info->affine.sy;
-                        break;
-                      }
-                    if (LocaleCompare(keyword,"skewY") == 0)
-                      {
-                        affine.sx=svg_info->affine.sx;
-                        affine.rx=tan(DegreesToRadians(fmod(
-                          GetUserSpaceCoordinateValue(svg_info,-1,value),
-                          360.0)));
-                        affine.sy=svg_info->affine.sy;
-                        break;
-                      }
-                    break;
-                  }
-                  case 'T':
-                  case 't':
-                  {
-                    if (LocaleCompare(keyword,"translate") == 0)
-                      {
-                        for (p=(const char *) value; *p != '\0'; p++)
-                          if ((isspace((int) ((unsigned char) *p)) != 0) ||
-                              (*p == ','))
-                            break;
-                        affine.tx=GetUserSpaceCoordinateValue(svg_info,1,value);
-                        affine.ty=0;
-                        if (*p != '\0')
-                          affine.ty=GetUserSpaceCoordinateValue(svg_info,-1,
-                            p+1);
-                        break;
-                      }
-                    break;
-                  }
-                  default:
-                    break;
-                }
-                transform.sx=affine.sx*current.sx+affine.ry*current.rx;
-                transform.rx=affine.rx*current.sx+affine.sy*current.rx;
-                transform.ry=affine.sx*current.ry+affine.ry*current.sy;
-                transform.sy=affine.rx*current.ry+affine.sy*current.sy;
-                transform.tx=affine.tx*current.sx+affine.ty*current.ry+
-                  current.tx;
-                transform.ty=affine.tx*current.rx+affine.ty*current.sy+
-                  current.ty;
-              }
-              (void) FormatLocaleFile(svg_info->file,
-                "affine %g %g %g %g %g %g\n",transform.sx,transform.rx,
-                transform.ry,transform.sy,transform.tx,transform.ty);
-              for (j=0; tokens[j] != (char *) NULL; j++)
-                tokens[j]=DestroyString(tokens[j]);
-              tokens=(char **) RelinquishMagickMemory(tokens);
               break;
             }
           break;
@@ -1773,7 +1608,6 @@ static void SVGStartElement(void *context,const xmlChar *name,
       if (LocaleCompare((const char *) name,"text") == 0)
         {
           PushGraphicContext(id);
-          (void) FormatLocaleFile(svg_info->file,"class \"text\"\n");
           svg_info->text_offset.x=svg_info->bounds.x;
           svg_info->text_offset.y=svg_info->bounds.y;
           svg_info->bounds.x=0.0;
@@ -1838,9 +1672,6 @@ static void SVGStartElement(void *context,const xmlChar *name,
         {
           if (LocaleCompare(keyword,"class") == 0)
             {
-              const char
-                *p;
-
               p=value;
               (void) GetNextToken(p,&p,MagickPathExtent,token);
               if (*token == ',')
@@ -2034,7 +1865,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
                   {
                     if (LocaleCompare(keyword,"matrix") == 0)
                       {
-                        p=(const char *) value;
+                        p=value;
                         (void) GetNextToken(p,&p,MagickPathExtent,token);
                         affine.sx=StringToDouble(value,(char **) NULL);
                         (void) GetNextToken(p,&p,MagickPathExtent,token);
@@ -2083,7 +1914,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
                   {
                     if (LocaleCompare(keyword,"scale") == 0)
                       {
-                        for (p=(const char *) value; *p != '\0'; p++)
+                        for (p=value; *p != '\0'; p++)
                           if ((isspace((int) ((unsigned char) *p)) != 0) ||
                               (*p == ','))
                             break;
@@ -2120,7 +1951,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
                   {
                     if (LocaleCompare(keyword,"translate") == 0)
                       {
-                        for (p=(const char *) value; *p != '\0'; p++)
+                        for (p=value; *p != '\0'; p++)
                           if ((isspace((int) ((unsigned char) *p)) != 0) ||
                               (*p == ','))
                             break;
@@ -2405,6 +2236,171 @@ static void SVGStartElement(void *context,const xmlChar *name,
                 LocaleCompare(value,"true") == 0);
               break;
             }
+          if (LocaleCompare(keyword,"transform") == 0)
+            {
+              AffineMatrix
+                affine,
+                current,
+                transform;
+
+              GetAffineMatrix(&transform);
+              (void) LogMagickEvent(CoderEvent,GetMagickModule(),"  ");
+              tokens=SVGKeyValuePairs(context,'(',')',value,&number_tokens);
+              if (tokens == (char **) NULL)
+                break;
+              for (j=0; j < (ssize_t) (number_tokens-1); j+=2)
+              {
+                keyword=(char *) tokens[j];
+                value=(char *) tokens[j+1];
+                (void) LogMagickEvent(CoderEvent,GetMagickModule(),
+                  "    %s: %s",keyword,value);
+                current=transform;
+                GetAffineMatrix(&affine);
+                switch (*keyword)
+                {
+                  case 'M':
+                  case 'm':
+                  {
+                    if (LocaleCompare(keyword,"matrix") == 0)
+                      {
+                        p=value;
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.sx=StringToDouble(value,(char **) NULL);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.rx=StringToDouble(token,&next_token);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.ry=StringToDouble(token,&next_token);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.sy=StringToDouble(token,&next_token);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.tx=StringToDouble(token,&next_token);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        affine.ty=StringToDouble(token,&next_token);
+                        break;
+                      }
+                    break;
+                  }
+                  case 'R':
+                  case 'r':
+                  {
+                    if (LocaleCompare(keyword,"rotate") == 0)
+                      {
+                        double
+                          angle,
+                          x,
+                          y;
+
+                        p=value;
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        angle=StringToDouble(value,(char **) NULL);
+                        affine.sx=cos(DegreesToRadians(fmod(angle,360.0)));
+                        affine.rx=sin(DegreesToRadians(fmod(angle,360.0)));
+                        affine.ry=(-sin(DegreesToRadians(fmod(angle,360.0))));
+                        affine.sy=cos(DegreesToRadians(fmod(angle,360.0)));
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        x=StringToDouble(token,&next_token);
+                        (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        if (*token == ',')
+                          (void) GetNextToken(p,&p,MagickPathExtent,token);
+                        y=StringToDouble(token,&next_token);
+                        y=StringToDouble(token,&next_token);
+                        affine.tx=(-1.0*(svg_info->bounds.x+x*
+                          cos(DegreesToRadians(fmod(angle,360.0)))-y*
+                          sin(DegreesToRadians(fmod(angle,360.0)))))+x;
+                        affine.ty=(-1.0*(svg_info->bounds.y+x*
+                          sin(DegreesToRadians(fmod(angle,360.0)))+y*
+                          cos(DegreesToRadians(fmod(angle,360.0)))))+y;
+                        break;
+                      }
+                    break;
+                  }
+                  case 'S':
+                  case 's':
+                  {
+                    if (LocaleCompare(keyword,"scale") == 0)
+                      {
+                        for (p=value; *p != '\0'; p++)
+                          if ((isspace((int) ((unsigned char) *p)) != 0) ||
+                              (*p == ','))
+                            break;
+                        affine.sx=GetUserSpaceCoordinateValue(svg_info,1,value);
+                        affine.sy=affine.sx;
+                        if (*p != '\0')
+                          affine.sy=GetUserSpaceCoordinateValue(svg_info,-1,
+                            p+1);
+                        svg_info->scale[svg_info->n]=ExpandAffine(&affine);
+                        break;
+                      }
+                    if (LocaleCompare(keyword,"skewX") == 0)
+                      {
+                        affine.sx=svg_info->affine.sx;
+                        affine.ry=tan(DegreesToRadians(fmod(
+                          GetUserSpaceCoordinateValue(svg_info,1,value),
+                          360.0)));
+                        affine.sy=svg_info->affine.sy;
+                        break;
+                      }
+                    if (LocaleCompare(keyword,"skewY") == 0)
+                      {
+                        affine.sx=svg_info->affine.sx;
+                        affine.rx=tan(DegreesToRadians(fmod(
+                          GetUserSpaceCoordinateValue(svg_info,-1,value),
+                          360.0)));
+                        affine.sy=svg_info->affine.sy;
+                        break;
+                      }
+                    break;
+                  }
+                  case 'T':
+                  case 't':
+                  {
+                    if (LocaleCompare(keyword,"translate") == 0)
+                      {
+                        for (p=value; *p != '\0'; p++)
+                          if ((isspace((int) ((unsigned char) *p)) != 0) ||
+                              (*p == ','))
+                            break;
+                        affine.tx=GetUserSpaceCoordinateValue(svg_info,1,value);
+                        affine.ty=0;
+                        if (*p != '\0')
+                          affine.ty=GetUserSpaceCoordinateValue(svg_info,-1,
+                            p+1);
+                        break;
+                      }
+                    break;
+                  }
+                  default:
+                    break;
+                }
+                transform.sx=affine.sx*current.sx+affine.ry*current.rx;
+                transform.rx=affine.rx*current.sx+affine.sy*current.rx;
+                transform.ry=affine.sx*current.ry+affine.ry*current.sy;
+                transform.sy=affine.rx*current.ry+affine.sy*current.sy;
+                transform.tx=affine.tx*current.sx+affine.ty*current.ry+
+                  current.tx;
+                transform.ty=affine.tx*current.rx+affine.ty*current.sy+
+                  current.ty;
+              }
+              (void) FormatLocaleFile(svg_info->file,
+                "affine %g %g %g %g %g %g\n",transform.sx,transform.rx,
+                transform.ry,transform.sy,transform.tx,transform.ty);
+              for (j=0; tokens[j] != (char *) NULL; j++)
+                tokens[j]=DestroyString(tokens[j]);
+              tokens=(char **) RelinquishMagickMemory(tokens);
+              break;
+            }
           break;
         }
         case 'V':
@@ -2417,7 +2413,7 @@ static void SVGStartElement(void *context,const xmlChar *name,
             }
           if (LocaleCompare(keyword,"viewBox") == 0)
             {
-              p=(const char *) value;
+              p=value;
               (void) GetNextToken(p,&p,MagickPathExtent,token);
               svg_info->view_box.x=StringToDouble(token,&next_token);
               (void) GetNextToken(p,&p,MagickPathExtent,token);
@@ -2582,7 +2578,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
     {
       if (LocaleCompare((const char *) name,"circle") == 0)
         {
-          (void) FormatLocaleFile(svg_info->file,"class \"circle\"\n");
           (void) FormatLocaleFile(svg_info->file,"circle %g,%g %g,%g\n",
             svg_info->element.cx,svg_info->element.cy,svg_info->element.cx,
             svg_info->element.cy+svg_info->element.minor);
@@ -2606,7 +2601,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
         }
       if (LocaleCompare((const char *) name,"desc") == 0)
         {
-          register char
+          char
             *p;
 
           if (*svg_info->text == '\0')
@@ -2632,7 +2627,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
           double
             angle;
 
-          (void) FormatLocaleFile(svg_info->file,"class \"ellipse\"\n");
           angle=svg_info->element.angle;
           (void) FormatLocaleFile(svg_info->file,"ellipse %g,%g %g,%g 0,360\n",
             svg_info->element.cx,svg_info->element.cy,
@@ -2682,7 +2676,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
     {
       if (LocaleCompare((const char *) name,"line") == 0)
         {
-          (void) FormatLocaleFile(svg_info->file,"class \"line\"\n");
           (void) FormatLocaleFile(svg_info->file,"line %g,%g %g,%g\n",
             svg_info->segment.x1,svg_info->segment.y1,svg_info->segment.x2,
             svg_info->segment.y2);
@@ -2716,7 +2709,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
         }
       if (LocaleCompare((const char *) name,"path") == 0)
         {
-          (void) FormatLocaleFile(svg_info->file,"class \"path\"\n");
           (void) FormatLocaleFile(svg_info->file,"path \"%s\"\n",
             svg_info->vertices);
           (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
@@ -2724,7 +2716,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
         }
       if (LocaleCompare((const char *) name,"polygon") == 0)
         {
-          (void) FormatLocaleFile(svg_info->file,"class \"polygon\"\n");
           (void) FormatLocaleFile(svg_info->file,"polygon %s\n",
             svg_info->vertices);
           (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
@@ -2732,7 +2723,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
         }
       if (LocaleCompare((const char *) name,"polyline") == 0)
         {
-          (void) FormatLocaleFile(svg_info->file,"class \"polyline\"\n");
           (void) FormatLocaleFile(svg_info->file,"polyline %s\n",
             svg_info->vertices);
           (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
@@ -2752,7 +2742,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
         {
           if ((svg_info->radius.x == 0.0) && (svg_info->radius.y == 0.0))
             {
-              (void) FormatLocaleFile(svg_info->file,"class \"rect\"\n");
               if ((fabs(svg_info->bounds.width-1.0) < MagickEpsilon) &&
                   (fabs(svg_info->bounds.height-1.0) < MagickEpsilon))
                 (void) FormatLocaleFile(svg_info->file,"point %g,%g\n",
@@ -2787,7 +2776,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
       if (LocaleCompare((const char *) name,"stop") == 0)
         {
           (void) FormatLocaleFile(svg_info->file,"stop-color \"%s\" %s\n",
-            svg_info->stop_color,svg_info->offset == (char *) NULL ? "100%" : 
+            svg_info->stop_color,svg_info->offset == (char *) NULL ? "100%" :
             svg_info->offset);
           break;
         }
@@ -2798,7 +2787,7 @@ static void SVGEndElement(void *context,const xmlChar *name)
             **tokens,
             *value;
 
-          register ssize_t
+          ssize_t
             j;
 
           size_t
@@ -2865,7 +2854,6 @@ static void SVGEndElement(void *context,const xmlChar *name)
               char
                 *text;
 
-              (void) FormatLocaleFile(svg_info->file,"class \"tspan\"\n");
               text=EscapeString(svg_info->text,'\"');
               (void) FormatLocaleFile(svg_info->file,"text %g,%g \"%s\"\n",
                 svg_info->bounds.x,svg_info->bounds.y,text);
@@ -2914,10 +2902,10 @@ static void SVGCharacters(void *context,const xmlChar *c,int length)
   char
     *text;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   SVGInfo
@@ -3277,7 +3265,7 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
         MemoryInfo
           *pixel_info;
 
-        register unsigned char
+        unsigned char
           *p;
 
         RsvgDimensionData
@@ -3290,7 +3278,7 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
         GdkPixbuf
           *pixel_buffer;
 
-        register const guchar
+        const guchar
           *p;
 #endif
 
@@ -3300,10 +3288,10 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
         PixelInfo
           fill_color;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *q;
 
         RsvgHandle
@@ -3519,6 +3507,8 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
             }
           }
 #if defined(MAGICKCORE_CAIRO_DELEGATE)
+        else
+          g_object_unref(svg_handle);
         if (pixel_info != (MemoryInfo *) NULL)
           pixel_info=RelinquishVirtualMemory(pixel_info);
 #else
@@ -3607,16 +3597,26 @@ static Image *ReadSVGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     {
       svg_info->parser=xmlCreatePushParserCtxt(sax_handler,svg_info,(char *)
         message,n,image->filename);
-      option=GetImageOption(image_info,"svg:xml-parse-huge");
-      if ((option != (char *) NULL) && (IsStringTrue(option) != MagickFalse))
-        (void) xmlCtxtUseOptions(svg_info->parser,XML_PARSE_HUGE);
-      while ((n=ReadBlob(image,MagickPathExtent-1,message)) != 0)
-      {
-        message[n]='\0';
-        status=xmlParseChunk(svg_info->parser,(char *) message,(int) n,0);
-        if (status != 0)
-          break;
-      }
+      if (svg_info->parser != (xmlParserCtxtPtr) NULL)
+        {
+          option=GetImageOption(image_info,"svg:xml-parse-huge");
+          if ((option != (char *) NULL) && (IsStringTrue(option) != MagickFalse))
+            (void) xmlCtxtUseOptions(svg_info->parser,XML_PARSE_HUGE);
+          while ((n=ReadBlob(image,MagickPathExtent-1,message)) != 0)
+          {
+            message[n]='\0';
+            status=xmlParseChunk(svg_info->parser,(char *) message,(int) n,0);
+            if (status != 0)
+              break;
+          }
+        }
+    }
+  if (svg_info->parser == (xmlParserCtxtPtr) NULL)
+    {
+      svg_info=DestroySVGInfo(svg_info);
+      (void) RelinquishUniqueFileResource(filename);
+      image=DestroyImage(image);
+      return((Image *) NULL);
     }
   (void) xmlParseChunk(svg_info->parser,(char *) message,0,1);
   SVGEndDocument(svg_info);
@@ -3768,7 +3768,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry=AcquireMagickInfo("SVG","SVG","Scalable Vector Graphics");
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
@@ -3782,7 +3781,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
@@ -3797,7 +3795,6 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-  entry->flags^=CoderBlobSupportFlag;
 #if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
 #endif
@@ -3951,10 +3948,10 @@ static MagickBooleanType TraceSVGImage(Image *image,ExceptionInfo *exception)
     ImageType
       type;
 
-    register const Quantum
+    const Quantum
       *p;
 
-    register ssize_t
+    ssize_t
       i,
       x;
 
@@ -4024,7 +4021,7 @@ static MagickBooleanType TraceSVGImage(Image *image,ExceptionInfo *exception)
     MagickBooleanType
       status;
 
-    register char
+    char
       *p;
 
     size_t
@@ -4147,10 +4144,10 @@ static MagickBooleanType WriteSVGImage(const ImageInfo *image_info,Image *image,
   PrimitiveType
     primitive_type;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -4219,7 +4216,6 @@ static MagickBooleanType WriteSVGImage(const ImageInfo *image_info,Image *image,
     (void) GetNextToken(q,&q,MagickPathExtent,keyword);
     if (*keyword == '\0')
       break;
-puts(keyword);
     if (*keyword == '#')
       {
         /*
@@ -5201,9 +5197,6 @@ puts(keyword);
       }
       case TextPrimitive:
       {
-        register char
-          *p;
-
         if (primitive_info[j].coordinates != 1)
           {
             status=MagickFalse;
@@ -5214,7 +5207,7 @@ puts(keyword);
           "  <text x=\"%g\" y=\"%g\">",primitive_info[j].point.x,
           primitive_info[j].point.y);
         (void) WriteBlobString(image,message);
-        for (p=token; *p != '\0'; p++)
+        for (p=(const char *) token; *p != '\0'; p++)
           switch (*p)
           {
             case '<': (void) WriteBlobString(image,"&lt;"); break;

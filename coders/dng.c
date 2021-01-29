@@ -17,7 +17,7 @@
 %                                 July 1999                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -179,7 +179,7 @@ static void SetDNGProperties(Image *image,const libraw_data_t *raw_info,
     (void) SetImageProperty(image,"dng:serial.number",
       raw_info->shootinginfo.BodySerial,exception);
   (void) FormatImageProperty(image,"dng:exposure.time","1/%0.1f",
-    1.0/raw_info->other.shutter);
+    PerceptibleReciprocal(raw_info->other.shutter));
   (void) FormatImageProperty(image,"dng:f.number","%0.1f",
     raw_info->other.aperture);
   (void) FormatImageProperty(image,"dng:max.aperture.value","%0.1f",
@@ -385,7 +385,7 @@ static Image *ReadDNGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     libraw_processed_image_t
       *raw_image;
 
-    register ssize_t
+    ssize_t
       y;
 
     StringInfo
@@ -482,10 +482,10 @@ static Image *ReadDNGImage(const ImageInfo *image_info,ExceptionInfo *exception)
     p=(unsigned short *) raw_image->data;
     for (y=0; y < (ssize_t) image->rows; y++)
     {
-      register Quantum
+      Quantum
         *q;
 
-      register ssize_t
+      ssize_t
         x;
 
       q=QueueAuthenticPixels(image,0,y,image->columns,1,exception);

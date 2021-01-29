@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -68,6 +68,7 @@
 #include "MagickCore/quantum.h"
 #include "MagickCore/quantum-private.h"
 #include "MagickCore/pixel-accessor.h"
+#include "MagickCore/policy.h"
 #include "MagickCore/property.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/semaphore.h"
@@ -248,7 +249,7 @@ MagickExport MagickBooleanType AnnotateImage(Image *image,
   RectangleInfo
     geometry;
 
-  register ssize_t
+  ssize_t
     i;
 
   TypeMetric
@@ -335,8 +336,10 @@ MagickExport MagickBooleanType AnnotateImage(Image *image,
     (void) CloneString(&annotate->text,textlist[i]);
     if ((metrics.width == 0) || (annotate->gravity != NorthWestGravity))
       (void) GetTypeMetrics(image,annotate,&metrics,exception);
-    height=(ssize_t) (metrics.ascent-metrics.descent+
-      draw_info->interline_spacing+0.5);
+    height=(size_t) floor(metrics.ascent-metrics.descent+0.5);
+    if (height == 0)
+      height=draw_info->pointsize;
+    height+=(size_t) floor(draw_info->interline_spacing+0.5);
     switch (annotate->gravity)
     {
       case UndefinedGravity:
@@ -592,12 +595,12 @@ MagickExport ssize_t FormatMagickCaption(Image *image,DrawInfo *draw_info,
   MagickBooleanType
     status;
 
-  register char
+  char
     *p,
     *q,
     *s;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -628,11 +631,13 @@ MagickExport ssize_t FormatMagickCaption(Image *image,DrawInfo *draw_info,
       continue;
     if (s != (char *) NULL)
       {
+        for (i=0; i < (ssize_t) GetUTFOctets(s); i++)
+          *(s+i)=' ';
         *s='\n';
         p=s;
       }
     else
-      if (split != MagickFalse)
+      if ((split != MagickFalse) || (GetUTFOctets(p) > 2))
         {
           /*
             No convenient line breaks-- insert newline.
@@ -729,7 +734,7 @@ MagickExport MagickBooleanType GetMultilineTypeMetrics(Image *image,
   MagickSizeType
     size;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -927,11 +932,17 @@ MagickExport MagickBooleanType GetTypeMetrics(Image *image,
 static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
   const PointInfo *offset,TypeMetric *metrics,ExceptionInfo *exception)
 {
+  const char
+    *font;
+
   const TypeInfo
     *type_info;
 
   DrawInfo
     *annotate_info;
+
+  ExceptionInfo
+    *sans_exception;
 
   MagickBooleanType
     status;
@@ -963,8 +974,9 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
   if ((type_info == (const TypeInfo *) NULL) &&
       (draw_info->family != (const char *) NULL))
     {
-      type_info=GetTypeInfoByFamily(draw_info->family,draw_info->style,
-        draw_info->stretch,draw_info->weight,exception);
+      if (strchr(draw_info->family,',') == (char *) NULL)
+        type_info=GetTypeInfoByFamily(draw_info->family,draw_info->style,
+          draw_info->stretch,draw_info->weight,exception);
       if (type_info == (const TypeInfo *) NULL)
         {
           char
@@ -973,7 +985,7 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
           int
             number_families;
 
-          register ssize_t
+          ssize_t
             i;
 
           /*
@@ -984,7 +996,8 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
           {
             type_info=GetTypeInfoByFamily(family[i],draw_info->style,
               draw_info->stretch,draw_info->weight,exception);
-            if (type_info != (const TypeInfo *) NULL)
+            if ((type_info != (const TypeInfo *) NULL) &&
+                (LocaleCompare(family[i],type_info->family) == 0))
               break;
           }
           for (i=0; i < (ssize_t) number_families; i++)
@@ -995,23 +1008,32 @@ static MagickBooleanType RenderType(Image *image,const DrawInfo *draw_info,
               "UnableToReadFont","`%s'",draw_info->family);
         }
     }
+  font=GetPolicyValue("system:font");
+  if ((font != (const char *) NULL) && (IsPathAccessible(font) != MagickFalse))
+    {
+      /*
+        Render with default system font.
+      */
+      annotate_info=CloneDrawInfo((ImageInfo *) NULL,draw_info);
+      annotate_info->font=ConstantString(font);
+      status=RenderFreetype(image,annotate_info,annotate_info->encoding,offset,
+        metrics,exception);
+      annotate_info=DestroyDrawInfo(annotate_info);
+      return(status);
+    }
+  sans_exception=AcquireExceptionInfo();
   if (type_info == (const TypeInfo *) NULL)
-    type_info=GetTypeInfoByFamily("Arial",draw_info->style,
-      draw_info->stretch,draw_info->weight,exception);
+    type_info=GetTypeInfoByFamily("Open Sans",draw_info->style,
+      draw_info->stretch,draw_info->weight,sans_exception);
   if (type_info == (const TypeInfo *) NULL)
-    type_info=GetTypeInfoByFamily("Helvetica",draw_info->style,
-      draw_info->stretch,draw_info->weight,exception);
-  if (type_info == (const TypeInfo *) NULL)
-    type_info=GetTypeInfoByFamily("Century Schoolbook",draw_info->style,
-      draw_info->stretch,draw_info->weight,exception);
-  if (type_info == (const TypeInfo *) NULL)
-    type_info=GetTypeInfoByFamily("Sans",draw_info->style,
-      draw_info->stretch,draw_info->weight,exception);
+    type_info=GetTypeInfoByFamily("Sans Serif",draw_info->style,
+      draw_info->stretch,draw_info->weight,sans_exception);
   if (type_info == (const TypeInfo *) NULL)
     type_info=GetTypeInfoByFamily((const char *) NULL,draw_info->style,
-      draw_info->stretch,draw_info->weight,exception);
+      draw_info->stretch,draw_info->weight,sans_exception);
   if (type_info == (const TypeInfo *) NULL)
-    type_info=GetTypeInfo("*",exception);
+    type_info=GetTypeInfo("*",sans_exception);
+  sans_exception=DestroyExceptionInfo(sans_exception);
   if (type_info == (const TypeInfo *) NULL)
     {
       status=RenderFreetype(image,draw_info,draw_info->encoding,offset,metrics,
@@ -1082,7 +1104,7 @@ static size_t ComplexTextLayout(const Image *image,const DrawInfo *draw_info,
   raqm_glyph_t
     *glyphs;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1160,7 +1182,7 @@ cleanup:
   FT_Error
     ft_status;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -1202,6 +1224,12 @@ cleanup:
   }
   return((size_t) i);
 #endif
+}
+
+static inline MagickBooleanType IsEmptyOutline(FT_Outline outline)
+{
+  return((outline.n_points == 0) || (outline.n_contours <= 0) ? MagickTrue :
+    MagickFalse);
 }
 
 static int TraceCubicBezier(FT_Vector *p,FT_Vector *q,FT_Vector *to,
@@ -1342,10 +1370,10 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
     point,
     resolution;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1492,9 +1520,9 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
   metrics->bounds.x2=metrics->ascent+metrics->descent;
   metrics->bounds.y2=metrics->ascent+metrics->descent;
   metrics->underline_position=face->underline_position*
-    (metrics->pixels_per_em.x/face->units_per_EM);
+    (metrics->pixels_per_em.x*PerceptibleReciprocal(face->units_per_EM));
   metrics->underline_thickness=face->underline_thickness*
-    (metrics->pixels_per_em.x/face->units_per_EM);
+    (metrics->pixels_per_em.x*PerceptibleReciprocal(face->units_per_EM));
   first_glyph_id=0;
   FT_Get_First_Char(face,&first_glyph_id);
   if ((draw_info->text == (char *) NULL) || (*draw_info->text == '\0') ||
@@ -1558,8 +1586,6 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
       if (image->alpha_trait == UndefinedPixelTrait)
         (void) SetImageAlphaChannel(image,OpaqueAlphaChannel,exception);
     }
-  point.x=0.0;
-  point.y=0.0;
   for (p=draw_info->text; GetUTFCode(p) != 0; p+=GetUTFOctets(p))
     if (GetUTFCode(p) < 0)
       break;
@@ -1606,6 +1632,9 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
     if (ft_status != 0)
       continue;
     outline=((FT_OutlineGlyph) glyph.image)->outline;
+    if ((glyph.image->format != FT_GLYPH_FORMAT_OUTLINE) &&
+        (IsEmptyOutline(outline) == MagickFalse))
+      continue;
     ft_status=FT_Outline_Get_BBox(&outline,&bounds);
     if (ft_status != 0)
       continue;
@@ -1630,20 +1659,20 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
         */
         annotate_info->affine.tx=glyph.origin.x/64.0;
         annotate_info->affine.ty=(-glyph.origin.y/64.0);
-        if ((outline.n_contours > 0) && (outline.n_points > 0))
+        if (IsEmptyOutline(outline) == MagickFalse)
           ft_status=FT_Outline_Decompose(&outline,&OutlineMethods,
             annotate_info);
       }
     FT_Vector_Transform(&glyph.origin,&affine);
     (void) FT_Glyph_Transform(glyph.image,&affine,&glyph.origin);
-    ft_status=FT_Glyph_To_Bitmap(&glyph.image,ft_render_mode_normal,
+    ft_status=FT_Glyph_To_Bitmap(&glyph.image,FT_RENDER_MODE_NORMAL,
       (FT_Vector *) NULL,MagickTrue);
     if (ft_status != 0)
       continue;
     bitmap=(FT_BitmapGlyph) glyph.image;
     point.x=offset->x+bitmap->left;
     if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
-      point.x=origin.x >> 6;
+      point.x+=(origin.x/64.0);
     point.y=offset->y-bitmap->top;
     if (draw_info->render != MagickFalse)
       {
@@ -1653,7 +1682,7 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
         MagickBooleanType
           transparent_fill;
 
-        register unsigned char
+        unsigned char
           *r;
 
         /*
@@ -1678,10 +1707,10 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
           PixelInfo
             fill_color;
 
-          register Quantum
+          Quantum
             *magick_restrict q;
 
-          register ssize_t
+          ssize_t
             x;
 
           ssize_t
@@ -1691,8 +1720,8 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
 
           if (status == MagickFalse)
             continue;
-          x_offset=(ssize_t) ceil(point.x-0.5);
-          y_offset=(ssize_t) ceil(point.y+y-0.5);
+          x_offset=CastDoubleToLong(ceil(point.x-0.5));
+          y_offset=CastDoubleToLong(ceil(point.y+y-0.5));
           if ((y_offset < 0) || (y_offset >= (ssize_t) image->rows))
             continue;
           q=(Quantum *) NULL;
@@ -1704,11 +1733,10 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
                 bitmap->bitmap.width,1,exception);
               active=q != (Quantum *) NULL ? MagickTrue : MagickFalse;
             }
-          n=y*bitmap->bitmap.pitch-1;
-          for (x=0; x < (ssize_t) bitmap->bitmap.width; x++)
+          n=y*bitmap->bitmap.pitch;
+          for (x=0; x < (ssize_t) bitmap->bitmap.width; x++, n++)
           {
-            n++;
-            x_offset++;
+            x_offset=CastDoubleToLong(ceil(point.x+x-0.5));
             if ((x_offset < 0) || (x_offset >= (ssize_t) image->columns))
               {
                 if (q != (Quantum *) NULL)
@@ -1716,12 +1744,15 @@ static MagickBooleanType RenderFreetype(Image *image,const DrawInfo *draw_info,
                 continue;
               }
             fill_opacity=1.0;
-            if (bitmap->bitmap.pixel_mode == ft_pixel_mode_grays)
-              fill_opacity=(double) (r[n])/(bitmap->bitmap.num_grays-1);
-            else
-              if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
-                fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
-                  (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
+            if (bitmap->bitmap.buffer != (unsigned char *) NULL)
+              {
+                if (bitmap->bitmap.pixel_mode == ft_pixel_mode_grays)
+                  fill_opacity=(double) (r[n])/(bitmap->bitmap.num_grays-1);
+                else
+                  if (bitmap->bitmap.pixel_mode == ft_pixel_mode_mono)
+                    fill_opacity=((r[(x >> 3)+y*bitmap->bitmap.pitch] &
+                      (1 << (~x & 0x07)))) == 0 ? 0.0 : 1.0;
+              }
             if (draw_info->text_antialias == MagickFalse)
               fill_opacity=fill_opacity >= 0.5 ? 1.0 : 0.0;
             if (active == MagickFalse)
@@ -1870,10 +1901,10 @@ static char *EscapeParenthesis(const char *source)
   char
     *destination;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
   size_t
@@ -1938,7 +1969,7 @@ static MagickBooleanType RenderPostscript(Image *image,
     point,
     resolution;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -2057,8 +2088,8 @@ static MagickBooleanType RenderPostscript(Image *image,
       crop_info=GetImageBoundingBox(annotate_image,exception);
       crop_info.height=(size_t) ((resolution.y/DefaultResolution)*
         ExpandAffine(&draw_info->affine)*draw_info->pointsize+0.5);
-      crop_info.y=(ssize_t) ceil((resolution.y/DefaultResolution)*extent.y/8.0-
-        0.5);
+      crop_info.y=CastDoubleToLong(ceil((resolution.y/DefaultResolution)*
+        extent.y/8.0-0.5));
       (void) FormatLocaleString(geometry,MagickPathExtent,
         "%.20gx%.20g%+.20g%+.20g",(double) crop_info.width,(double)
         crop_info.height,(double) crop_info.x,(double) crop_info.y);
@@ -2107,10 +2138,10 @@ static MagickBooleanType RenderPostscript(Image *image,
       annotate_view=AcquireAuthenticCacheView(annotate_image,exception);
       for (y=0; y < (ssize_t) annotate_image->rows; y++)
       {
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         q=GetCacheViewAuthenticPixels(annotate_view,0,y,annotate_image->columns,

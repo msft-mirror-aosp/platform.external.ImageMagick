@@ -17,7 +17,7 @@
 %                               February 2002                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -113,7 +113,7 @@ static Image *ReadCAPTIONImage(const ImageInfo *image_info,
     split,
     status;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -312,7 +312,9 @@ static Image *ReadCAPTIONImage(const ImageInfo *image_info,
   status=AnnotateImage(image,draw_info,exception);
   if (image_info->pointsize == 0.0)
     (void) FormatImageProperty(image,"caption:pointsize","%.*g",
-      GetMagickPrecision(),draw_info->pointsize);      
+      GetMagickPrecision(),draw_info->pointsize);
+  (void) FormatImageProperty(image,"caption:lines","%.*g",GetMagickPrecision(),
+    (double) (i+1));
   draw_info=DestroyDrawInfo(draw_info);
   if (status == MagickFalse)
     {

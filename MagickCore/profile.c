@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -401,7 +401,7 @@ static void cmsDeleteContext(cmsContext magick_unused(ContextID))
 
 static void **DestroyPixelThreadSet(void **pixels)
 {
-  register ssize_t
+  ssize_t
     i;
 
   if (pixels == (void **) NULL)
@@ -416,7 +416,7 @@ static void **DestroyPixelThreadSet(void **pixels)
 static void **AcquirePixelThreadSet(const size_t columns,
   const size_t channels,MagickBooleanType highres)
 {
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -447,7 +447,7 @@ static void **AcquirePixelThreadSet(const size_t columns,
 
 static cmsHTRANSFORM *DestroyTransformThreadSet(cmsHTRANSFORM *transform)
 {
-  register ssize_t
+  ssize_t
     i;
 
   assert(transform != (cmsHTRANSFORM *) NULL);
@@ -465,7 +465,7 @@ static cmsHTRANSFORM *AcquireTransformThreadSet(const LCMSInfo *source_info,
   cmsHTRANSFORM
     *transform;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -530,10 +530,10 @@ static void TransformDoublePixels(const int id,const Image* image,
 #define SetLCMSPixel(target_info,pixel) \
   ClampToQuantum(target_info->scale*QuantumRange*(pixel)+target_info->translate)
 
-  register double
+  double
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   p=(double *) source_info->pixels[id];
@@ -580,10 +580,10 @@ static void TransformQuantumPixels(const int id,const Image* image,
   const LCMSInfo *source_info,const LCMSInfo *target_info,
   const cmsHTRANSFORM *transform,Quantum *q)
 {
-  register Quantum
+  Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
   p=(Quantum *) source_info->pixels[id];
@@ -596,7 +596,7 @@ static void TransformQuantumPixels(const int id,const Image* image,
         *p++=GetPixelBlue(image,q);
       }
     if (source_info->channels > 3)
-      *p++=GetLCMSPixel(source_info,GetPixelBlack(image,q));
+      *p++=GetPixelBlack(image,q);
     q+=GetPixelChannels(image);
   }
   cmsDoTransform(transform[id],source_info->pixels[id],
@@ -923,6 +923,8 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
 #endif
 #define ThrowProfileException(severity,tag,context) \
 { \
+  if (profile != (StringInfo *) NULL) \
+     profile=DestroyStringInfo(profile); \
   if (cms_context != (cmsContext) NULL) \
     cmsDeleteContext(cms_context); \
   if (source_info.profile != (cmsHPROFILE) NULL) \
@@ -1352,7 +1354,7 @@ MagickExport MagickBooleanType ProfileImage(Image *image,const char *name,
               MagickBooleanType
                 sync;
 
-              register Quantum
+              Quantum
                 *magick_restrict q;
 
               if (status == MagickFalse)
@@ -1587,7 +1589,7 @@ static void WriteTo8BimProfile(Image *image,const char *name,
     *datum,
     *q;
 
-  register const unsigned char
+  const unsigned char
     *p;
 
   size_t
@@ -1695,7 +1697,7 @@ static void GetProfilesFromResourceBlock(Image *image,
   const unsigned char
     *datum;
 
-  register const unsigned char
+  const unsigned char
     *p;
 
   size_t
@@ -1838,8 +1840,67 @@ static void GetProfilesFromResourceBlock(Image *image,
   }
 }
 
+static void PatchCorruptProfile(const char *name,StringInfo *profile)
+{
+  unsigned char
+    *p;
+
+  size_t
+    length;
+
+  /*
+    Detect corrupt profiles and if discovered, repair.
+  */
+  if (LocaleCompare(name,"xmp") == 0)
+    {
+      /*
+        Remove garbage after xpacket end.
+      */
+      p=GetStringInfoDatum(profile);
+      p=(unsigned char *) strstr((const char *) p,"<?xpacket end=\"w\"?>");
+      if (p != (unsigned char *) NULL)
+        {
+          p+=19;
+          length=p-GetStringInfoDatum(profile);
+          if (length != GetStringInfoLength(profile))
+            {
+              *p='\0';
+              SetStringInfoLength(profile,length);
+            }
+        }
+      return;
+    }
+  if (LocaleCompare(name,"exif") == 0)
+    {
+      /*
+        Check if profile starts with byte order marker instead of Exif.
+      */
+      p=GetStringInfoDatum(profile);
+      if ((LocaleNCompare((const char *) p,"MM",2) == 0) ||
+          (LocaleNCompare((const char *) p,"II",2) == 0))
+        {
+          const unsigned char
+            profile_start[] = "Exif\0\0";
+
+          StringInfo
+            *exif_profile;
+
+          exif_profile=AcquireStringInfo(6);
+          if (exif_profile != (StringInfo *) NULL)
+            {
+              SetStringInfoDatum(exif_profile,profile_start);
+              ConcatenateStringInfo(exif_profile,profile);
+              SetStringInfoLength(profile,GetStringInfoLength(exif_profile));
+              SetStringInfo(profile,exif_profile);
+              exif_profile=DestroyStringInfo(exif_profile);
+            }
+        }
+    }
+}
+
 #if defined(MAGICKCORE_XML_DELEGATE)
-static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
+static MagickBooleanType ValidateXMPProfile(Image *image,
+  const StringInfo *profile,ExceptionInfo *exception)
 {
   xmlDocPtr
     document;
@@ -1851,13 +1912,20 @@ static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
     GetStringInfoLength(profile),"xmp.xml",NULL,XML_PARSE_NOERROR |
     XML_PARSE_NOWARNING);
   if (document == (xmlDocPtr) NULL)
-    return(MagickFalse);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),ImageWarning,
+        "CorruptImageProfile","`%s' (XMP)",image->filename);
+      return(MagickFalse);
+    }
   xmlFreeDoc(document);
   return(MagickTrue);
 }
 #else
-static MagickBooleanType ValidateXMPProfile(const StringInfo *profile)
+static MagickBooleanType ValidateXMPProfile(Image *image,
+  const StringInfo *profile,ExceptionInfo *exception)
 {
+  (void) ThrowMagickException(exception,GetMagickModule(),MissingDelegateError,
+    "DelegateLibrarySupportNotBuiltIn","'%s' (XML)",image->filename);
   return(MagickFalse);
 }
 #endif
@@ -1872,15 +1940,19 @@ static MagickBooleanType SetImageProfileInternal(Image *image,const char *name,
   MagickBooleanType
     status;
 
+  StringInfo
+    *clone_profile;
+
   assert(image != (Image *) NULL);
   assert(image->signature == MagickCoreSignature);
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(TraceEvent,GetMagickModule(),"%s",image->filename);
+  clone_profile=CloneStringInfo(profile);
+  PatchCorruptProfile(name,clone_profile);
   if ((LocaleCompare(name,"xmp") == 0) &&
-      (ValidateXMPProfile(profile) == MagickFalse))
+      (ValidateXMPProfile(image,clone_profile,exception) == MagickFalse))
     {
-      (void) ThrowMagickException(exception,GetMagickModule(),ImageWarning,
-        "CorruptImageProfile","`%s'",name);
+      clone_profile=DestroyStringInfo(clone_profile);
       return(MagickTrue);
     }
   if (image->profiles == (SplayTreeInfo *) NULL)
@@ -1889,14 +1961,14 @@ static MagickBooleanType SetImageProfileInternal(Image *image,const char *name,
   (void) CopyMagickString(key,name,MagickPathExtent);
   LocaleLower(key);
   status=AddValueToSplayTree((SplayTreeInfo *) image->profiles,
-    ConstantString(key),CloneStringInfo(profile));
+    ConstantString(key),clone_profile);
   if (status != MagickFalse)
     {
       if (LocaleCompare(name,"8bim") == 0)
-        GetProfilesFromResourceBlock(image,profile,exception);
+        GetProfilesFromResourceBlock(image,clone_profile,exception);
       else
         if (recursive == MagickFalse)
-          WriteTo8BimProfile(image,name,profile);
+          WriteTo8BimProfile(image,name,clone_profile);
     }
   return(status);
 }
@@ -2245,7 +2317,7 @@ MagickBooleanType SyncExifProfile(Image *image,StringInfo *profile)
       int
         components;
 
-      register unsigned char
+      unsigned char
         *p,
         *q;
 
@@ -2376,4 +2448,148 @@ MagickPrivate MagickBooleanType SyncImageProfiles(Image *image)
     if (SyncExifProfile(image,profile) == MagickFalse)
       status=MagickFalse;
   return(status);
+}
+
+static void UpdateClipPath(unsigned char *blob,size_t length,
+  const size_t old_columns,const size_t old_rows,
+  const RectangleInfo *new_geometry)
+{
+  ssize_t
+    i;
+
+  ssize_t
+    knot_count,
+    selector;
+
+  knot_count=0;
+  while (length != 0)
+  {
+    selector=(ssize_t) ReadProfileMSBShort(&blob,&length);
+    switch (selector)
+    {
+      case 0:
+      case 3:
+      {
+        if (knot_count != 0)
+          {
+            blob+=24;
+            length-=MagickMin(24,(ssize_t) length);
+            break;
+          }
+        /*
+          Expected subpath length record.
+        */
+        knot_count=(ssize_t) ReadProfileMSBShort(&blob,&length);
+        blob+=22;
+        length-=MagickMin(22,(ssize_t) length);
+        break;
+      }
+      case 1:
+      case 2:
+      case 4:
+      case 5:
+      {
+        if (knot_count == 0)
+          {
+            /*
+              Unexpected subpath knot.
+            */
+            blob+=24;
+            length-=MagickMin(24,(ssize_t) length);
+            break;
+          }
+        /*
+          Add sub-path knot
+        */
+        for (i=0; i < 3; i++)
+        {
+          double
+            x,
+            y;
+
+          signed int
+            xx,
+            yy;
+
+          y=(double) ReadProfileMSBLong(&blob,&length);
+          y=y*old_rows/4096/4096;
+          y-=new_geometry->y;
+          yy=(signed int) ((y*4096*4096)/new_geometry->height);
+          WriteProfileLong(MSBEndian,(size_t) yy,blob-4);
+          x=(double) ReadProfileMSBLong(&blob,&length);
+          x=x*old_columns/4096/4096;
+          x-=new_geometry->x;
+          xx=(signed int) ((x*4096*4096)/new_geometry->width);
+          WriteProfileLong(MSBEndian,(size_t) xx,blob-4);
+        }
+        knot_count--;
+        break;
+      }
+      case 6:
+      case 7:
+      case 8:
+      default:
+      {
+        blob+=24;
+        length-=MagickMin(24,(ssize_t) length);
+        break;
+      }
+    }
+  }
+}
+
+MagickPrivate void Update8BIMClipPath(const Image *image,
+  const size_t old_columns,const size_t old_rows,
+  const RectangleInfo *new_geometry)
+{
+  const StringInfo
+    *profile;
+
+  size_t
+    length;
+
+  ssize_t
+    count,
+    id;
+
+  unsigned char
+    *info;
+
+  assert(image != (Image *) NULL);
+  assert(new_geometry != (RectangleInfo *) NULL);
+  profile=GetImageProfile(image,"8bim");
+  if (profile == (StringInfo *) NULL)
+    return;
+  length=GetStringInfoLength(profile);
+  info=GetStringInfoDatum(profile);
+  while (length > 0)
+  {
+    if (ReadProfileByte(&info,&length) != (unsigned char) '8')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'B')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'I')
+      continue;
+    if (ReadProfileByte(&info,&length) != (unsigned char) 'M')
+      continue;
+    id=(ssize_t) ReadProfileMSBShort(&info,&length);
+    count=(ssize_t) ReadProfileByte(&info,&length);
+    if ((count != 0) && ((size_t) count <= length))
+      {
+        info+=count;
+        length-=count;
+      }
+    if ((count & 0x01) == 0)
+      (void) ReadProfileByte(&info,&length);
+    count=(ssize_t) ReadProfileMSBLong(&info,&length);
+    if ((count < 0) || ((size_t) count > length))
+      {
+        length=0;
+        continue;
+      }
+    if ((id > 1999) && (id < 2999))
+      UpdateClipPath(info,(size_t) count,old_columns,old_rows,new_geometry);
+    info+=count;
+    length-=MagickMin(count,(ssize_t) length);
+  }
 }

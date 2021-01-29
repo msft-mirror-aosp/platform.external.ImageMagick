@@ -30,7 +30,7 @@ Image Settings:
   \-decipher filename   convert cipher pixels to plain pixels
   \-define format:option
                        define one or more image format options
-  \-delay value         display the next image after pausing
+  \-delay centiseconds  display the next image after pausing
   \-density geometry    horizontal and vertical density of the image
   \-depth value         image depth
   \-direction type      render text right-to-left or left-to-right
@@ -127,6 +127,8 @@ Image Operators:
   \-auto-threshold method
                        automatically perform image thresholding
   \-bench iterations    measure performance
+  \-bilateral-blur geometry     
+                        non-linear, edge-preserving, and noise-reducing smoothing filter
   \-black-threshold value
                        force all pixels below the threshold into black
   \-blue-shift          simulate a scene at nighttime in the moonlight
@@ -271,6 +273,7 @@ Image Operators:
   \-wave geometry       alter an image along a sine wave
   \-wavelet-denoise threshold
                         removes noise from the image using a wavelet transform
+  \-white-balance       automagically adjust white balance of image
   \-white-threshold value
                        force all pixels above the threshold into white
 

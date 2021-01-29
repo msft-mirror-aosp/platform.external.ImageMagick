@@ -17,7 +17,7 @@
 %                                December 1996                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -42,6 +42,7 @@
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
 #include "MagickCore/client.h"
 #include "MagickCore/exception-private.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/locale_.h"
 #include "MagickCore/log.h"
 #include "MagickCore/magick.h"
@@ -321,39 +322,6 @@ BOOL WINAPI DllMain(HINSTANCE handle,DWORD reason,LPVOID lpvReserved)
 }
 #endif
 
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%   E x i t                                                                   %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  Exit() calls TerminateProcess for Win95.
-%
-%  The format of the exit method is:
-%
-%      int Exit(int status)
-%
-%  A description of each parameter follows:
-%
-%    o status: an integer value representing the status of the terminating
-%      process.
-%
-*/
-MagickPrivate int Exit(int status)
-{
-  if (IsWindows95())
-    {
-      TerminateProcess(GetCurrentProcess(),(unsigned int) status);
-      return(0);
-    }
-  exit(status);
-}
-
 #if !defined(__MINGW32__)
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -420,36 +388,6 @@ MagickPrivate int gettimeofday (struct timeval *time_value,
   return(0);
 }
 #endif
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%   I s W i n d o w s 9 5                                                     %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  IsWindows95() returns true if the system is Windows 95.
-%
-%  The format of the IsWindows95 method is:
-%
-%      int IsWindows95()
-%
-*/
-MagickPrivate int IsWindows95()
-{
-  OSVERSIONINFO
-    version_info;
-
-  version_info.dwOSVersionInfoSize=sizeof(version_info);
-  if (GetVersionEx(&version_info) &&
-      (version_info.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS))
-    return(1);
-  return(0);
-}
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -556,8 +494,6 @@ MagickPrivate int NTCloseDirectory(DIR *entry)
 */
 MagickPrivate int NTCloseLibrary(void *handle)
 {
-  if (IsWindows95())
-    return(FreeLibrary((HINSTANCE) handle));
   return(!(FreeLibrary((HINSTANCE) handle)));
 }
 
@@ -1110,7 +1046,8 @@ static int NTGetRegistryValue(HKEY root,const char *key,DWORD flags,
 }
 
 static int NTLocateGhostscript(DWORD flags,int *root_index,
-  const char **product_family,int *major_version,int *minor_version)
+  const char **product_family,int *major_version,int *minor_version,
+  int *patch_version)
 {
   int
     i;
@@ -1171,19 +1108,24 @@ static int NTLocateGhostscript(DWORD flags,int *root_index,
           {
             int
               major,
-              minor;
+              minor,
+              patch;
 
             major=0;
             minor=0;
-            if (sscanf(key,"%d.%d",&major,&minor) != 2)
-              continue;
-            if ((major > *major_version) || ((major == *major_version) &&
-                (minor > *minor_version)))
+            patch=0;
+            if (sscanf(key,"%d.%d.%d",&major,&minor,&patch) != 3)
+              if (sscanf(key,"%d.%d",&major,&minor) != 2)
+                continue;
+            if ((major > *major_version) ||
+               ((major == *major_version) && (minor > *minor_version)) ||
+               ((minor == *minor_version) && (patch > *patch_version)))
               {
                 *root_index=j;
                 *product_family=products[i];
                 *major_version=major;
                 *minor_version=minor;
+                *patch_version=patch;
                 status=MagickTrue;
               }
          }
@@ -1195,9 +1137,10 @@ static int NTLocateGhostscript(DWORD flags,int *root_index,
     {
       *major_version=0;
       *minor_version=0;
+      *patch_version=0;
     }
   (void) LogMagickEvent(ConfigureEvent,GetMagickModule(),"Ghostscript (%s) "
-    "version %d.%02d",*product_family,*major_version,*minor_version);
+    "version %d.%d.%d",*product_family,*major_version,*minor_version,*patch_version);
   return(status);
 }
 
@@ -1221,6 +1164,7 @@ static int NTGhostscriptGetString(const char *name,BOOL *is_64_bit,char *value,
     flags = 0,
     major_version = 0,
     minor_version = 0,
+    patch_version = 0,
     root_index = 0;
 
   /*
@@ -1233,16 +1177,6 @@ static int NTGhostscriptGetString(const char *name,BOOL *is_64_bit,char *value,
       directory=GetEnvironmentValue("MAGICK_GHOSTSCRIPT_PATH");
       if (directory != (char *) NULL)
         {
-          (void) FormatLocaleString(buffer,MagickPathExtent,"%s%sgsdll32.dll",
-            directory,DirectorySeparator);
-          if (IsPathAccessible(buffer) != MagickFalse)
-            {
-              directory=DestroyString(directory);
-              (void) CopyMagickString(value,buffer,length);
-              if (is_64_bit != NULL)
-                *is_64_bit=FALSE;
-              return(TRUE);
-            }
           (void) FormatLocaleString(buffer,MagickPathExtent,"%s%sgsdll64.dll",
             directory,DirectorySeparator);
           if (IsPathAccessible(buffer) != MagickFalse)
@@ -1251,6 +1185,16 @@ static int NTGhostscriptGetString(const char *name,BOOL *is_64_bit,char *value,
               (void) CopyMagickString(value,buffer,length);
               if (is_64_bit != NULL)
                 *is_64_bit=TRUE;
+              return(TRUE);
+            }
+          (void) FormatLocaleString(buffer,MagickPathExtent,"%s%sgsdll32.dll",
+            directory,DirectorySeparator);
+          if (IsPathAccessible(buffer) != MagickFalse)
+            {
+              directory=DestroyString(directory);
+              (void) CopyMagickString(value,buffer,length);
+              if (is_64_bit != NULL)
+                *is_64_bit=FALSE;
               return(TRUE);
             }
           return(FALSE);
@@ -1266,21 +1210,21 @@ static int NTGhostscriptGetString(const char *name,BOOL *is_64_bit,char *value,
       flags=KEY_WOW64_32KEY;
 #endif
       (void) NTLocateGhostscript(flags,&root_index,&product_family,
-        &major_version,&minor_version);
+        &major_version,&minor_version,&patch_version);
       if (product_family == NULL)
 #if defined(_WIN64)
         flags=KEY_WOW64_32KEY;
       else
         is_64_bit_version=TRUE;
 #else
-        flags=KEY_WOW64_64KEY;
+      flags=KEY_WOW64_64KEY;
 #endif
 #endif
     }
   if (product_family == NULL)
     {
       (void) NTLocateGhostscript(flags,&root_index,&product_family,
-      &major_version,&minor_version);
+        &major_version,&minor_version,&patch_version);
 #if !defined(_WIN64)
       is_64_bit_version=TRUE;
 #endif
@@ -1289,17 +1233,21 @@ static int NTGhostscriptGetString(const char *name,BOOL *is_64_bit,char *value,
     return(FALSE);
   if (is_64_bit != NULL)
     *is_64_bit=is_64_bit_version;
-  (void) FormatLocaleString(buffer,MagickPathExtent,"SOFTWARE\\%s\\%d.%02d",
-    product_family,major_version,minor_version);
   extent=(int) length;
-  if (NTGetRegistryValue(registry_roots[root_index].hkey,buffer,flags,name,value,&extent) == 0)
+  (void) FormatLocaleString(buffer,MagickPathExtent,"SOFTWARE\\%s\\%d.%d.%d",
+    product_family,major_version,minor_version,patch_version);
+  if (NTGetRegistryValue(registry_roots[root_index].hkey,buffer,flags,name,value,&extent) != 0)
     {
-      (void) LogMagickEvent(ConfigureEvent,GetMagickModule(),
-        "registry: \"%s\\%s\\%s\"=\"%s\"",registry_roots[root_index].name,
-        buffer,name,value);
-      return(TRUE);
+      extent=(int) length;
+      (void) FormatLocaleString(buffer,MagickPathExtent,"SOFTWARE\\%s\\%d.%02d",
+        product_family,major_version,minor_version);
+      if (NTGetRegistryValue(registry_roots[root_index].hkey,buffer,flags,name,value,&extent) != 0)
+        return(FALSE);
     }
-  return(FALSE);
+  (void) LogMagickEvent(ConfigureEvent,GetMagickModule(),
+    "registry: \"%s\\%s\\%s\"=\"%s\"",registry_roots[root_index].name,
+    buffer,name,value);
+  return(TRUE);
 }
 
 MagickPrivate int NTGhostscriptDLL(char *path,int length)
@@ -1370,7 +1318,7 @@ MagickPrivate const GhostInfo *NTGhostscriptDLLVectors(void)
 %
 %  The format of the NTGhostscriptEXE method is:
 %
-%      int NTGhostscriptEXE(char *path,int length)
+%      void NTGhostscriptEXE(char *path,int length)
 %
 %  A description of each parameter follows:
 %
@@ -1379,9 +1327,9 @@ MagickPrivate const GhostInfo *NTGhostscriptDLLVectors(void)
 %    o length: length of buffer.
 %
 */
-MagickPrivate int NTGhostscriptEXE(char *path,int length)
+MagickPrivate void NTGhostscriptEXE(char *path,int length)
 {
-  register char
+  char
     *p;
 
   static char
@@ -1390,7 +1338,6 @@ MagickPrivate int NTGhostscriptEXE(char *path,int length)
   static BOOL
     is_64_bit_version = FALSE;
 
-  (void) CopyMagickString(path,"gswin32c.exe",length);
   if (*program == '\0')
     {
       if (ghost_semaphore == (SemaphoreInfo *) NULL)
@@ -1402,7 +1349,13 @@ MagickPrivate int NTGhostscriptEXE(char *path,int length)
               sizeof(program)) == FALSE)
             {
               UnlockSemaphoreInfo(ghost_semaphore);
-              return(FALSE);
+#if defined(_WIN64)
+              (void) CopyMagickString(program,"gswin64c.exe",sizeof(program));
+#else
+              (void) CopyMagickString(program,"gswin32c.exe",sizeof(program));
+#endif
+              (void) CopyMagickString(path,program,length);
+              return;
             }
           p=strrchr(program,'\\');
           if (p != (char *) NULL)
@@ -1416,7 +1369,6 @@ MagickPrivate int NTGhostscriptEXE(char *path,int length)
       UnlockSemaphoreInfo(ghost_semaphore);
     }
   (void) CopyMagickString(path,program,length);
-  return(TRUE);
 }
 
 /*
@@ -1451,7 +1403,7 @@ MagickPrivate int NTGhostscriptFonts(char *path,int length)
     *directory,
     filename[MagickPathExtent];
 
-  register char
+  char
     *p,
     *q;
 
@@ -1713,6 +1665,7 @@ MagickExport MagickBooleanType NTLongPathsEnabled()
           long_paths_enabled=0;
           return(MagickFalse);
         }
+      size=0;
       status=RegQueryValueExA(registry_key,"LongPathsEnabled",0,&type,
         (LPBYTE) &value,&size);
       RegCloseKey(registry_key);
@@ -1950,7 +1903,7 @@ MagickPrivate void *NTOpenLibrary(const char *filename)
   char
     path[MagickPathExtent];
 
-  register const char
+  const char
     *p,
     *q;
 
@@ -2349,9 +2302,7 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
     local_command[MagickPathExtent];
 
   DWORD
-    bytes_read,
-    child_status,
-    size;
+    child_status;
 
   int
     status;
@@ -2368,6 +2319,9 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
 
   SECURITY_ATTRIBUTES
     sa;
+
+  size_t
+    output_offset;
 
   STARTUPINFO
     startup_info;
@@ -2424,9 +2378,47 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
       CleanupOutputHandles;
       return(-1);
     }
+  if (output != (char *) NULL)
+    *output='\0';
   if (asynchronous != MagickFalse)
     return(status == 0);
-  status=WaitForSingleObject(process_info.hProcess,INFINITE);
+  output_offset=0;
+  status=STATUS_TIMEOUT;
+  while (status == STATUS_TIMEOUT)
+  {
+    DWORD
+      size;
+
+    status=WaitForSingleObject(process_info.hProcess,1000);
+    size=0;
+    if (read_output != (HANDLE) NULL)
+      if (!PeekNamedPipe(read_output,NULL,0,NULL,&size,NULL))
+        break;
+    while (size > 0)
+    {
+      char
+        buffer[MagickPathExtent];
+
+      DWORD
+        bytes_read;
+
+      if (ReadFile(read_output,buffer,sizeof(buffer)-1,&bytes_read,NULL))
+        {
+          size_t
+            count;
+
+          count=MagickMin(MagickPathExtent-1-output_offset,bytes_read);
+          if (count > 0)
+            {
+              CopyMagickString(output+output_offset,buffer,count);
+              output[count]='\0';
+              output_offset=count;
+            }
+        }
+      if (!PeekNamedPipe(read_output,NULL,0,NULL,&size,NULL))
+        break;
+    }
+  }
   if (status != WAIT_OBJECT_0)
     {
       CopyLastError;
@@ -2442,10 +2434,6 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
     }
   CloseHandle(process_info.hProcess);
   CloseHandle(process_info.hThread);
-  if (read_output != (HANDLE) NULL)
-    if (PeekNamedPipe(read_output,(LPVOID) NULL,0,(LPDWORD) NULL,&size,(LPDWORD) NULL))
-      if ((size > 0) && (ReadFile(read_output,output,MagickPathExtent-1,&bytes_read,NULL)))
-        output[bytes_read]='\0';
   CleanupOutputHandles;
   return((int) child_status);
 }

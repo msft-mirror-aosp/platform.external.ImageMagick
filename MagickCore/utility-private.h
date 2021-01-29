@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -68,7 +68,8 @@ static inline wchar_t *create_wchar_path(const char *utf8)
     *wideChar;
 
   count=MultiByteToWideChar(CP_UTF8,0,utf8,-1,NULL,0);
-  if ((count > MAX_PATH) && (NTLongPathsEnabled() == MagickFalse))
+  if ((count > MAX_PATH) && (strncmp(utf8,"\\\\?\\",4) != 0) &&
+      (NTLongPathsEnabled() == MagickFalse))
     {
       char
         buffer[MagickPathExtent];

@@ -20,7 +20,7 @@
 %                               October 2003                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -403,10 +403,10 @@ static Image *ReadCINImage(const ImageInfo *image_info,ExceptionInfo *exception)
   QuantumType
     quantum_type;
 
-  register ssize_t
+  ssize_t
     i;
 
-  register Quantum
+  Quantum
     *q;
 
   size_t
@@ -921,10 +921,10 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   QuantumType
     quantum_type;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1209,13 +1209,6 @@ static MagickBooleanType WriteCINImage(const ImageInfo *image_info,Image *image,
   quantum_type=RGBQuantum;
   pixels=(unsigned char *) GetQuantumPixels(quantum_info);
   length=GetBytesPerRow(image->columns,3,image->depth,MagickTrue);
-DisableMSCWarning(4127)
-  if (0)
-RestoreMSCWarning
-    {
-      quantum_type=GrayQuantum;
-      length=GetBytesPerRow(image->columns,1,image->depth,MagickTrue);
-    }
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);

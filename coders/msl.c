@@ -19,7 +19,7 @@
 %                               December 2001                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -660,7 +660,7 @@ static void MSLStartElement(void *context,const xmlChar *tag,
   RectangleInfo
     geometry;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1955,10 +1955,10 @@ static void MSLStartElement(void *context,const xmlChar *tag,
                         opacity,
                         y;
 
-                      register ssize_t
+                      ssize_t
                         x;
 
-                      register Quantum
+                      Quantum
                         *q;
 
                       CacheView
@@ -3418,7 +3418,7 @@ static void MSLStartElement(void *context,const xmlChar *tag,
                       msl_info->image[n]=next_image;
                     else
                       {
-                        register Image
+                        Image
                           *p;
 
                         /*
@@ -4452,7 +4452,7 @@ static void MSLStartElement(void *context,const xmlChar *tag,
                     name[MagickPathExtent],
                     filename[MagickPathExtent];
 
-                  register char
+                  char
                     *p;
 
                   StringInfo
@@ -4464,7 +4464,7 @@ static void MSLStartElement(void *context,const xmlChar *tag,
                     if ((*p == ':') && (IsPathDirectory(keyword) < 0) &&
                         (IsPathAccessible(keyword) == MagickFalse))
                       {
-                        register char
+                        char
                           *q;
 
                         /*
@@ -7532,10 +7532,10 @@ static void MSLCharacters(void *context,const xmlChar *c,int length)
   MSLInfo
     *msl_info;
 
-  register char
+  char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -7847,15 +7847,15 @@ static MagickBooleanType ProcessMSLScript(const ImageInfo *image_info,
   */
   (void) memset(&msl_info,0,sizeof(msl_info));
   msl_info.exception=exception;
-  msl_info.image_info=(ImageInfo **) AcquireMagickMemory(
+  msl_info.image_info=(ImageInfo **) AcquireQuantumMemory(1,
     sizeof(*msl_info.image_info));
-  msl_info.draw_info=(DrawInfo **) AcquireMagickMemory(
+  msl_info.draw_info=(DrawInfo **) AcquireQuantumMemory(1,
     sizeof(*msl_info.draw_info));
   /* top of the stack is the MSL file itself */
   msl_info.image=(Image **) AcquireMagickMemory(sizeof(*msl_info.image));
-  msl_info.attributes=(Image **) AcquireMagickMemory(
+  msl_info.attributes=(Image **) AcquireQuantumMemory(1,
     sizeof(*msl_info.attributes));
-  msl_info.group_info=(MSLGroupInfo *) AcquireMagickMemory(
+  msl_info.group_info=(MSLGroupInfo *) AcquireQuantumMemory(1,
     sizeof(*msl_info.group_info));
   if ((msl_info.image_info == (ImageInfo **) NULL) ||
       (msl_info.draw_info == (DrawInfo **) NULL) ||
@@ -8133,7 +8133,7 @@ static MagickBooleanType SetMSLAttributes(MSLInfo *msl_info,const char *keyword,
         }
       if (LocaleCompare(keyword,"authenticate") == 0)
         {
-          (void) CloneString(&image_info->density,value);
+          (void) SetImageOption(image_info,keyword,value);
           break;
         }
       ThrowMSLException(OptionError,"UnrecognizedAttribute",keyword);

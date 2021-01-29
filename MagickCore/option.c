@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -228,6 +228,7 @@ static const OptionInfo
     { "  authenticate", 0, UndefinedOptionFlag, MagickFalse },
     { "  background", 0, UndefinedOptionFlag, MagickFalse },
     { "  bias", 0, UndefinedOptionFlag, MagickFalse },
+    { "  bilateral-blur", 0, UndefinedOptionFlag, MagickFalse },
     { "  black-point-compensation", 0, UndefinedOptionFlag, MagickFalse },
     { "  blue-primary", 0, UndefinedOptionFlag, MagickFalse },
     { "  bordercolor", 0, UndefinedOptionFlag, MagickFalse },
@@ -461,9 +462,11 @@ static const OptionInfo
   ColorspaceOptions[] =
   {
     { "Undefined", UndefinedColorspace, UndefinedOptionFlag, MagickTrue },
+    { "Adobe98", Adobe98Colorspace, UndefinedOptionFlag, MagickFalse },
     { "CIELab", LabColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMY", CMYColorspace, UndefinedOptionFlag, MagickFalse },
     { "CMYK", CMYKColorspace, UndefinedOptionFlag, MagickFalse },
+    { "DisplayP3", DisplayP3Colorspace, UndefinedOptionFlag, MagickFalse },
     { "Gray", GRAYColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCL", HCLColorspace, UndefinedOptionFlag, MagickFalse },
     { "HCLp", HCLpColorspace, UndefinedOptionFlag, MagickFalse },
@@ -482,6 +485,7 @@ static const OptionInfo
     { "Log", LogColorspace, UndefinedOptionFlag, MagickFalse },
     { "Luv", LuvColorspace, UndefinedOptionFlag, MagickFalse },
     { "OHTA", OHTAColorspace, UndefinedOptionFlag, MagickFalse },
+    { "ProPhoto", ProPhotoColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec601YCbCr", Rec601YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "Rec709YCbCr", Rec709YCbCrColorspace, UndefinedOptionFlag, MagickFalse },
     { "RGB", RGBColorspace, UndefinedOptionFlag, MagickFalse },
@@ -580,6 +584,8 @@ static const OptionInfo
     { "-bench", 1L, GenesisOptionFlag, MagickFalse },
     { "+bias", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-bias", 1L, ImageInfoOptionFlag, MagickFalse },
+    { "+bilateral-blur", 1L, DeprecateOptionFlag, MagickTrue },
+    { "-bilateral-blur", 1L, SimpleOperatorFlag, MagickFalse },
     { "-black-point-compensation", 0L, ImageInfoOptionFlag, MagickFalse },
     { "+black-point-compensation", 0L, ImageInfoOptionFlag, MagickFalse },
     { "+black-threshold", 0L, DeprecateOptionFlag, MagickTrue },
@@ -1120,6 +1126,8 @@ static const OptionInfo
     { "-wavelet-denoise", 1L, SimpleOperatorFlag, MagickFalse },
     { "+weight", 1L, DeprecateOptionFlag, MagickTrue },
     { "-weight", 1L, DrawInfoOptionFlag, MagickFalse },
+    { "+white-balance", 0L, DeprecateOptionFlag, MagickTrue },
+    { "-white-balance", 0L, SimpleOperatorFlag, MagickFalse },
     { "+white-point", 0L, ImageInfoOptionFlag, MagickFalse },
     { "-white-point", 1L, ImageInfoOptionFlag, MagickFalse },
     { "+white-threshold", 1L, DeprecateOptionFlag, MagickTrue },
@@ -1214,6 +1222,7 @@ static const OptionInfo
     { "Plus", PlusCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Reflect", ReflectCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Replace", ReplaceCompositeOp, UndefinedOptionFlag, MagickFalse },
+    { "RMSE", RMSECompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Saturate", SaturateCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "Screen", ScreenCompositeOp, UndefinedOptionFlag, MagickFalse },
     { "SoftBurn", SoftBurnCompositeOp, UndefinedOptionFlag, MagickFalse },
@@ -1354,6 +1363,7 @@ static const OptionInfo
     { "Exponential", ExponentialEvaluateOperator, UndefinedOptionFlag, MagickFalse },
     { "GaussianNoise", GaussianNoiseEvaluateOperator, UndefinedOptionFlag, MagickFalse },
     { "ImpulseNoise", ImpulseNoiseEvaluateOperator, UndefinedOptionFlag, MagickFalse },
+    { "InverseLog", InverseLogEvaluateOperator, UndefinedOptionFlag, MagickFalse },
     { "LaplacianNoise", LaplacianNoiseEvaluateOperator, UndefinedOptionFlag, MagickFalse },
     { "LeftShift", LeftShiftEvaluateOperator, UndefinedOptionFlag, MagickFalse },
     { "Log", LogEvaluateOperator, UndefinedOptionFlag, MagickFalse },
@@ -2015,7 +2025,6 @@ static const OptionInfo
   {
     { "Undefined", UndefinedStyle, UndefinedOptionFlag, MagickTrue },
     { "Any", AnyStyle, UndefinedOptionFlag, MagickFalse },
-    { "Bold", BoldStyle, UndefinedOptionFlag, MagickFalse },
     { "Italic", ItalicStyle, UndefinedOptionFlag, MagickFalse },
     { "Normal", NormalStyle, UndefinedOptionFlag, MagickFalse },
     { "Oblique", ObliqueStyle, UndefinedOptionFlag, MagickFalse },
@@ -2196,7 +2205,7 @@ MagickExport MagickBooleanType DefineImageOption(ImageInfo *image_info,
     key[MagickPathExtent],
     value[MagickPathExtent];
 
-  register char
+  char
     *p;
 
   assert(image_info != (ImageInfo *) NULL);
@@ -2448,13 +2457,13 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -2541,7 +2550,7 @@ MagickExport ssize_t GetCommandOptionFlags(const CommandOption option,
 */
 MagickExport const OptionInfo *GetCommandOptionInfo(const char *option)
 {
-  register ssize_t
+  ssize_t
     i;
 
   for (i=0; CommandOptions[i].mnemonic != (char *) NULL; i++)
@@ -2580,7 +2589,7 @@ MagickExport char **GetCommandOptions(const CommandOption option)
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2698,7 +2707,7 @@ MagickExport const char *CommandOptionToMnemonic(const CommandOption option,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   option_info=GetOptionInfo(option);
@@ -2751,7 +2760,7 @@ MagickExport MagickBooleanType IsOptionMember(const char *option,
   MagickBooleanType
     member;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -2818,7 +2827,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
   const OptionInfo
     *option_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   magick_unreferenced(exception);
@@ -2861,7 +2870,7 @@ MagickExport MagickBooleanType ListCommandOptions(FILE *file,
 */
 MagickExport ssize_t ParseChannelOption(const char *channels)
 {
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -2999,13 +3008,13 @@ MagickExport ssize_t ParseCommandOption(const CommandOption option,
   MagickBooleanType
     negate;
 
-  register char
+  char
     *q;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t

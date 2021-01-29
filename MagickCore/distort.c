@@ -18,7 +18,7 @@
 %                                 June 2007                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -377,7 +377,7 @@ static double *GenerateCoefficients(const Image *image,
   double
     *coeff;
 
-  register size_t
+  size_t
     i;
 
   size_t
@@ -1121,7 +1121,7 @@ static double *GenerateCoefficients(const Image *image,
       size_t
         nterms;   /* number of polynomial terms per number_values */
 
-      register ssize_t
+      ssize_t
         j;
 
       MagickBooleanType
@@ -1540,8 +1540,8 @@ static double *GenerateCoefficients(const Image *image,
 %    o exception: return any errors or warnings in this structure.
 %
 */
-MagickExport Image *DistortResizeImage(const Image *image,
-  const size_t columns,const size_t rows,ExceptionInfo *exception)
+MagickExport Image *DistortResizeImage(const Image *image,const size_t columns,
+  const size_t rows,ExceptionInfo *exception)
 {
 #define DistortResizeImageTag  "Distort/Image"
 
@@ -1588,18 +1588,15 @@ MagickExport Image *DistortResizeImage(const Image *image,
   if (image->alpha_trait == UndefinedPixelTrait)
     {
       /*
-        Image has not transparency channel, so we free to use it
+        Image has no alpha channel, so we are free to use it.
       */
       (void) SetImageAlphaChannel(tmp_image,SetAlphaChannel,exception);
       resize_image=DistortImage(tmp_image,AffineDistortion,12,distort_args,
         MagickTrue,exception),
-
       tmp_image=DestroyImage(tmp_image);
       if (resize_image == (Image *) NULL)
         return((Image *) NULL);
-
-      (void) SetImageAlphaChannel(resize_image,DeactivateAlphaChannel,
-        exception);
+      (void) SetImageAlphaChannel(resize_image,OffAlphaChannel,exception);
     }
   else
     {
@@ -2048,21 +2045,22 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
 
   /* Verbose output */
   if (IsStringTrue(GetImageArtifact(image,"verbose")) != MagickFalse) {
-    register ssize_t
+    ssize_t
        i;
     char image_gen[MagickPathExtent];
     const char *lookup;
 
     /* Set destination image size and virtual offset */
     if ( bestfit || viewport_given ) {
-      (void) FormatLocaleString(image_gen, MagickPathExtent,"  -size %.20gx%.20g "
-        "-page %+.20g%+.20g xc: +insert \\\n",(double) geometry.width,
-        (double) geometry.height,(double) geometry.x,(double) geometry.y);
-      lookup="v.p{ xx-v.page.x-.5, yy-v.page.y-.5 }";
+      (void) FormatLocaleString(image_gen,MagickPathExtent,
+        "  -size %.20gx%.20g -page %+.20g%+.20g xc: +insert \\\n",
+        (double) geometry.width,(double) geometry.height,(double) geometry.x,
+        (double) geometry.y);
+      lookup="v.p{xx-v.page.x-0.5,yy-v.page.y-0.5}";
     }
     else {
       image_gen[0] = '\0';             /* no destination to generate */
-      lookup = "p{ xx-page.x-.5, yy-page.y-.5 }"; /* simplify lookup */
+      lookup = "p{xx-page.x-0.5,yy-page.y-0.5}"; /* simplify lookup */
     }
 
     switch (method)
@@ -2083,21 +2081,32 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
           }
         InvertAffineCoefficients(coeff, inverse);
         CoefficientsToAffineArgs(inverse);
-        (void) FormatLocaleFile(stderr, "Affine Projection:\n");
+        (void) FormatLocaleFile(stderr, "Affine projection:\n");
         (void) FormatLocaleFile(stderr,
-          "  -distort AffineProjection \\\n      '");
+          "  -distort AffineProjection \\\n    '");
         for (i=0; i < 5; i++)
-          (void) FormatLocaleFile(stderr, "%lf,", inverse[i]);
-        (void) FormatLocaleFile(stderr, "%lf'\n", inverse[5]);
+          (void) FormatLocaleFile(stderr, "%.*g,",GetMagickPrecision(),
+            inverse[i]);
+        (void) FormatLocaleFile(stderr, "%.*g'\n",GetMagickPrecision(),
+          inverse[5]);
+        (void) FormatLocaleFile(stderr,
+          "Equivalent scale, rotation(deg), translation:\n");
+        (void) FormatLocaleFile(stderr,"  %.*g,%.*g,%.*g,%.*g\n",
+          GetMagickPrecision(),sqrt(inverse[0]*inverse[0]+
+          inverse[1]*inverse[1]),GetMagickPrecision(),
+          RadiansToDegrees(atan2(inverse[1],inverse[0])),
+          GetMagickPrecision(),inverse[4],GetMagickPrecision(),inverse[5]);
         inverse=(double *) RelinquishMagickMemory(inverse);
-        (void) FormatLocaleFile(stderr, "Affine Distort, FX Equivelent:\n");
+        (void) FormatLocaleFile(stderr,"Affine distort, FX equivalent:\n");
         (void) FormatLocaleFile(stderr, "%s", image_gen);
         (void) FormatLocaleFile(stderr,
           "  -fx 'ii=i+page.x+0.5; jj=j+page.y+0.5;\n");
-        (void) FormatLocaleFile(stderr,"       xx=%+lf*ii %+lf*jj %+lf;\n",
-          coeff[0],coeff[1],coeff[2]);
-        (void) FormatLocaleFile(stderr,"       yy=%+lf*ii %+lf*jj %+lf;\n",
-          coeff[3],coeff[4],coeff[5]);
+        (void) FormatLocaleFile(stderr,"       xx=%+.*g*ii %+.*g*jj %+.*g;\n",
+          GetMagickPrecision(),coeff[0],GetMagickPrecision(),coeff[1],
+          GetMagickPrecision(),coeff[2]);
+        (void) FormatLocaleFile(stderr,"       yy=%+.*g*ii %+.*g*jj %+.*g;\n",
+          GetMagickPrecision(),coeff[3],GetMagickPrecision(),coeff[4],
+          GetMagickPrecision(),coeff[5]);
         (void) FormatLocaleFile(stderr,"       %s' \\\n",lookup);
         break;
       }
@@ -2479,10 +2488,10 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
         d,
         s;  /* transform destination image x,y  to source image x,y */
 
-      register ssize_t
+      ssize_t
         i;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
       q=QueueCacheViewAuthenticPixels(distort_view,0,j,distort_image->columns,1,
@@ -2622,7 +2631,7 @@ MagickExport Image *DistortImage(const Image *image, DistortMethod method,
           case PolynomialDistortion:
           {
             /* multi-ordered polynomial */
-            register ssize_t
+            ssize_t
               k;
 
             ssize_t
@@ -3093,7 +3102,7 @@ MagickExport Image *SparseColorImage(const Image *image,
     switch (sparse_method) {
       case BarycentricColorInterpolate:
       {
-        register ssize_t x=0;
+        ssize_t x=0;
         (void) FormatLocaleFile(stderr, "Barycentric Sparse Color:\n");
         if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
           (void) FormatLocaleFile(stderr, "  -channel R -fx '%+lf*i %+lf*j %+lf' \\\n",
@@ -3116,7 +3125,7 @@ MagickExport Image *SparseColorImage(const Image *image,
       }
       case BilinearColorInterpolate:
       {
-        register ssize_t x=0;
+        ssize_t x=0;
         (void) FormatLocaleFile(stderr, "Bilinear Sparse Color\n");
         if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
           (void) FormatLocaleFile(stderr, "   -channel R -fx '%+lf*i %+lf*j %+lf*i*j %+lf;\n",
@@ -3190,10 +3199,10 @@ MagickExport Image *SparseColorImage(const Image *image,
       PixelInfo
         pixel;    /* pixel to assign to distorted image */
 
-      register ssize_t
+      ssize_t
         i;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
       q=GetCacheViewAuthenticPixels(sparse_view,0,j,sparse_image->columns,
@@ -3211,7 +3220,7 @@ MagickExport Image *SparseColorImage(const Image *image,
         {
           case BarycentricColorInterpolate:
           {
-            register ssize_t x=0;
+            ssize_t x=0;
             if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
               pixel.red     = coeff[x]*i +coeff[x+1]*j
                               +coeff[x+2], x+=3;
@@ -3233,7 +3242,7 @@ MagickExport Image *SparseColorImage(const Image *image,
           }
           case BilinearColorInterpolate:
           {
-            register ssize_t x=0;
+            ssize_t x=0;
             if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
               pixel.red     = coeff[x]*i     + coeff[x+1]*j +
                               coeff[x+2]*i*j + coeff[x+3], x+=4;
@@ -3275,7 +3284,7 @@ MagickExport Image *SparseColorImage(const Image *image,
               pixel.alpha=0.0;
             denominator = 0.0;
             for(k=0; k<number_arguments; k+=2+number_colors) {
-              register ssize_t x=(ssize_t) k+2;
+              ssize_t x=(ssize_t) k+2;
               double weight =
                   ((double)i-arguments[ k ])*((double)i-arguments[ k ])
                 + ((double)j-arguments[k+1])*((double)j-arguments[k+1]);
@@ -3325,7 +3334,7 @@ MagickExport Image *SparseColorImage(const Image *image,
                   fabs((double)i-arguments[ k ])
                 + fabs((double)j-arguments[k+1]);
               if ( distance < minimum ) {
-                register ssize_t x=(ssize_t) k+2;
+                ssize_t x=(ssize_t) k+2;
                 if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
                   pixel.red=arguments[x++];
                 if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
@@ -3360,7 +3369,7 @@ MagickExport Image *SparseColorImage(const Image *image,
                   ((double)i-arguments[ k ])*((double)i-arguments[ k ])
                 + ((double)j-arguments[k+1])*((double)j-arguments[k+1]);
               if ( distance < minimum ) {
-                register ssize_t x=(ssize_t) k+2;
+                ssize_t x=(ssize_t) k+2;
                 if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
                   pixel.red=arguments[x++];
                 if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)

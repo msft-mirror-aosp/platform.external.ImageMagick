@@ -18,7 +18,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -244,13 +244,13 @@ static MagickBooleanType SerializeImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register unsigned char
+  unsigned char
     *q;
 
   ssize_t
@@ -267,6 +267,7 @@ static MagickBooleanType SerializeImage(const ImageInfo *image_info,
   if (*pixel_info == (MemoryInfo *) NULL)
     ThrowWriterException(ResourceLimitError,"MemoryAllocationFailed");
   q=(unsigned char *) GetVirtualMemoryBlob(*pixel_info);
+  (void) memset(q,0,*length*sizeof(*q));
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     p=GetVirtualPixels(image,0,y,image->columns,1,exception);
@@ -308,13 +309,13 @@ static MagickBooleanType SerializeImageChannel(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register unsigned char
+  unsigned char
     *q;
 
   size_t
@@ -385,13 +386,13 @@ static MagickBooleanType SerializeImageIndexes(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     x;
 
-  register unsigned char
+  unsigned char
     *q;
 
   ssize_t
@@ -450,7 +451,7 @@ static MagickBooleanType WritePS3MaskImage(const ImageInfo *image_info,
   MemoryInfo
     *pixel_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -854,7 +855,7 @@ static MagickBooleanType WritePS3Image(const ImageInfo *image_info,Image *image,
     media_info,
     page_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   SegmentInfo

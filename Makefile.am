@@ -1,4 +1,4 @@
-#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -107,7 +107,6 @@ TOP_EXTRA_DIST = \
   magick.sh.in \
   Magickshr.opt \
   NEWS.txt \
-  Platforms.txt \
   README.txt \
   index.html \
   version.sh \
@@ -240,9 +239,7 @@ dist-hook:
 
 # Install HTML files
 pkgdocdir = $(DOCUMENTATION_PATH)
-DOCDIRSDOXYGEN = www/api/MagickCore www/api/MagickWand
-DOCDIRSMANUAL = images images/patterns www www/assets www/api www/source www/Magick++
-DOCDIRS= $(DOCDIRSMANUAL) $(DOCDIRSDOXYGEN)
+DOCDIRS = images images/patterns www www/assets www/api www/source www/Magick++
 
 if INSTALL_DOC
 HTML_INSTALL_DATA_TARGETS = install-data-html
@@ -286,7 +283,7 @@ magick-version: MagickCore/version.h
 	fi ; \
 	touch magick-version
 
-${srcdir}/configure: ${srcdir}/version.sh
+MagickCore/version.h:	$(top_srcdir)/ChangeLog $(top_srcdir)/version.sh
 
 # Automagically reconfigure libtool
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
@@ -332,7 +329,7 @@ $(DIST_WINDOWS_SRC_ZIP) $(DIST_WINDOWS_SRC_7ZIP) windows-dist:
 	  chmod -R u+w $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
 	  rm -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM) ; \
 	fi
-	git clone git@git.imagemagick.org:repos/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
+	git clone -b master https://github.com/ImageMagick/ImageMagick.git $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)
 if ZIP_DELEGATE
 	rm -f $(DIST_WINDOWS_SRC_ZIP)
 	$(ZIP) -r -9 -q  $(DIST_WINDOWS_SRC_ZIP) $(PACKAGE_NAME)-$(PACKAGE_VERSION)$(PACKAGE_VERSION_ADDENDUM)

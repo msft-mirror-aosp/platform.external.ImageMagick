@@ -18,7 +18,7 @@
 %                                 July 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -91,7 +91,7 @@
   Define declarations.
 */
 #define BezierQuantum  200
-#define PrimitiveExtentPad  2048
+#define PrimitiveExtentPad  2053
 #define MaxBezierCoordinates  67108864
 #define ThrowPointExpectedException(token,exception) \
 { \
@@ -206,7 +206,7 @@ static MagickBooleanType
   TraceSquareLinecap(PrimitiveInfo *,const size_t,const double);
 
 static PrimitiveInfo
-  *TraceStrokePolygon(const Image *,const DrawInfo *,const PrimitiveInfo *);
+  *TraceStrokePolygon(const DrawInfo *,const PrimitiveInfo *,ExceptionInfo *);
 
 static ssize_t
   TracePath(MVGInfo *,const char *,ExceptionInfo *);
@@ -335,7 +335,7 @@ MagickExport DrawInfo *CloneDrawInfo(const ImageInfo *image_info,
     (void) CloneString(&clone_info->server_name,draw_info->server_name);
   if (draw_info->dash_pattern != (double *) NULL)
     {
-      register ssize_t
+      ssize_t
         x;
 
       for (x=0; fabs(draw_info->dash_pattern[x]) >= MagickEpsilon; x++) ;
@@ -400,11 +400,12 @@ MagickExport DrawInfo *CloneDrawInfo(const ImageInfo *image_info,
 %
 %  The format of the ConvertPathToPolygon method is:
 %
-%      PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
+%      PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info,
+%        ExceptionInfo *excetion)
 %
 %  A description of each parameter follows:
 %
-%    o Method ConvertPathToPolygon returns the path in a more efficient sorted
+%    o ConvertPathToPolygon() returns the path in a more efficient sorted
 %      rendering form of type PolygonInfo.
 %
 %    o draw_info: Specifies a pointer to an DrawInfo structure.
@@ -414,6 +415,22 @@ MagickExport DrawInfo *CloneDrawInfo(const ImageInfo *image_info,
 %
 */
 
+static PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
+{
+  ssize_t
+    i;
+
+  if (polygon_info->edges != (EdgeInfo *) NULL)
+    {
+      for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
+        if (polygon_info->edges[i].points != (PointInfo *) NULL)
+          polygon_info->edges[i].points=(PointInfo *)
+            RelinquishMagickMemory(polygon_info->edges[i].points);
+      polygon_info->edges=(EdgeInfo *) RelinquishMagickMemory(
+        polygon_info->edges);
+    }
+  return((PolygonInfo *) RelinquishMagickMemory(polygon_info));
+}
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
@@ -428,7 +445,7 @@ static int DrawCompareEdges(const void *p_edge,const void *q_edge)
     return(1); \
 }
 
-  register const PointInfo
+  const PointInfo
     *p,
     *q;
 
@@ -452,10 +469,10 @@ static int DrawCompareEdges(const void *p_edge,const void *q_edge)
 
 static void LogPolygonInfo(const PolygonInfo *polygon_info)
 {
-  register EdgeInfo
+  EdgeInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -485,7 +502,7 @@ static void ReversePoints(PointInfo *points,const size_t number_points)
   PointInfo
     point;
 
-  register ssize_t
+  ssize_t
     i;
 
   for (i=0; i < (ssize_t) (number_points >> 1); i++)
@@ -496,7 +513,8 @@ static void ReversePoints(PointInfo *points,const size_t number_points)
   }
 }
 
-static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
+static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info,
+  ExceptionInfo *exception)
 {
   long
     direction,
@@ -512,7 +530,7 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
   SegmentInfo
     bounds;
 
-  register ssize_t
+  ssize_t
     i,
     n;
 
@@ -529,12 +547,20 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
   */
   polygon_info=(PolygonInfo *) AcquireMagickMemory(sizeof(*polygon_info));
   if (polygon_info == (PolygonInfo *) NULL)
-    return((PolygonInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PolygonInfo *) NULL);
+    }
   number_edges=16;
   polygon_info->edges=(EdgeInfo *) AcquireQuantumMemory(number_edges,
     sizeof(*polygon_info->edges));
   if (polygon_info->edges == (EdgeInfo *) NULL)
-    return((PolygonInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(DestroyPolygonInfo(polygon_info));
+    }
   (void) memset(polygon_info->edges,0,number_edges*
     sizeof(*polygon_info->edges));
   direction=0;
@@ -570,7 +596,12 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
                   polygon_info->edges,(size_t) number_edges,
                   sizeof(*polygon_info->edges));
                 if (polygon_info->edges == (EdgeInfo *) NULL)
-                  return((PolygonInfo *) NULL);
+                  {
+                    (void) ThrowMagickException(exception,GetMagickModule(),
+                      ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                    points=(PointInfo *) RelinquishMagickMemory(points);
+                    return(DestroyPolygonInfo(polygon_info));
+                  }
               }
             polygon_info->edges[edge].number_points=(size_t) n;
             polygon_info->edges[edge].scanline=(-1.0);
@@ -586,6 +617,7 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
             points=(PointInfo *) NULL;
             ghostline=MagickFalse;
             edge++;
+            polygon_info->number_edges=edge;
           }
         if (points == (PointInfo *) NULL)
           {
@@ -593,7 +625,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
             points=(PointInfo *) AcquireQuantumMemory((size_t) number_points,
               sizeof(*points));
             if (points == (PointInfo *) NULL)
-              return((PolygonInfo *) NULL);
+              {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                return(DestroyPolygonInfo(polygon_info));
+              }
           }
         ghostline=path_info[i].code == GhostlineCode ? MagickTrue : MagickFalse;
         point=path_info[i].point;
@@ -624,7 +660,12 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
               polygon_info->edges,(size_t) number_edges,
               sizeof(*polygon_info->edges));
             if (polygon_info->edges == (EdgeInfo *) NULL)
-              return((PolygonInfo *) NULL);
+              {
+                (void) ThrowMagickException(exception,GetMagickModule(),
+                  ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                points=(PointInfo *) RelinquishMagickMemory(points);
+                return(DestroyPolygonInfo(polygon_info));
+              }
           }
         polygon_info->edges[edge].number_points=(size_t) n;
         polygon_info->edges[edge].scanline=(-1.0);
@@ -637,11 +678,17 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
         polygon_info->edges[edge].bounds=bounds;
         polygon_info->edges[edge].bounds.y1=points[0].y;
         polygon_info->edges[edge].bounds.y2=points[n-1].y;
+        polygon_info->number_edges=edge+1;
+        points=(PointInfo *) NULL;
         number_points=16;
         points=(PointInfo *) AcquireQuantumMemory((size_t) number_points,
           sizeof(*points));
         if (points == (PointInfo *) NULL)
-          return((PolygonInfo *) NULL);
+          {
+            (void) ThrowMagickException(exception,GetMagickModule(),
+              ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+            return(DestroyPolygonInfo(polygon_info));
+          }
         n=1;
         ghostline=MagickFalse;
         points[0]=point;
@@ -658,7 +705,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
         points=(PointInfo *) ResizeQuantumMemory(points,(size_t) number_points,
           sizeof(*points));
         if (points == (PointInfo *) NULL)
-          return((PolygonInfo *) NULL);
+          {
+            (void) ThrowMagickException(exception,GetMagickModule(),
+              ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+            return(DestroyPolygonInfo(polygon_info));
+          }
       }
     point=path_info[i].point;
     points[n]=point;
@@ -681,7 +732,11 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
                 polygon_info->edges,(size_t) number_edges,
                 sizeof(*polygon_info->edges));
               if (polygon_info->edges == (EdgeInfo *) NULL)
-                return((PolygonInfo *) NULL);
+                {
+                  (void) ThrowMagickException(exception,GetMagickModule(),
+                    ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+                  return(DestroyPolygonInfo(polygon_info));
+                }
             }
           polygon_info->edges[edge].number_points=(size_t) n;
           polygon_info->edges[edge].scanline=(-1.0);
@@ -694,11 +749,36 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
           polygon_info->edges[edge].bounds=bounds;
           polygon_info->edges[edge].bounds.y1=points[0].y;
           polygon_info->edges[edge].bounds.y2=points[n-1].y;
+          points=(PointInfo *) NULL;
           ghostline=MagickFalse;
           edge++;
+          polygon_info->number_edges=edge;
         }
     }
   polygon_info->number_edges=edge;
+  polygon_info->edges=(EdgeInfo *) ResizeQuantumMemory(polygon_info->edges,
+    polygon_info->number_edges,sizeof(*polygon_info->edges));
+  if (polygon_info->edges == (EdgeInfo *) NULL)
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(DestroyPolygonInfo(polygon_info));
+    }
+  for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
+  {
+    EdgeInfo
+      *edge_info;
+
+    edge_info=polygon_info->edges+i;
+    edge_info->points=(PointInfo *) ResizeQuantumMemory(edge_info->points,
+      edge_info->number_points,sizeof(*edge_info->points));
+    if (edge_info->points == (PointInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonInfo(polygon_info));
+      }
+  }
   qsort(polygon_info->edges,(size_t) polygon_info->number_edges,
     sizeof(*polygon_info->edges),DrawCompareEdges);
   if (IsEventLogging() != MagickFalse)
@@ -723,23 +803,22 @@ static PolygonInfo *ConvertPathToPolygon(const PathInfo *path_info)
 %  The format of the ConvertPrimitiveToPath method is:
 %
 %      PathInfo *ConvertPrimitiveToPath(const DrawInfo *draw_info,
-%        const PrimitiveInfo *primitive_info)
+%        const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
-%    o Method ConvertPrimitiveToPath returns a vector path structure of type
+%    o ConvertPrimitiveToPath() returns a vector path structure of type
 %      PathInfo.
 %
 %    o draw_info: a structure of type DrawInfo.
 %
 %    o primitive_info: Specifies a pointer to an PrimitiveInfo structure.
 %
-%
 */
 
 static void LogPathInfo(const PathInfo *path_info)
 {
-  register const PathInfo
+  const PathInfo
     *p;
 
   (void) LogMagickEvent(DrawEvent,GetMagickModule(),"    begin vector-path");
@@ -752,7 +831,8 @@ static void LogPathInfo(const PathInfo *path_info)
   (void) LogMagickEvent(DrawEvent,GetMagickModule(),"    end vector-path");
 }
 
-static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info)
+static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info,
+  ExceptionInfo *exception)
 {
   MagickBooleanType
     closed_subpath;
@@ -767,7 +847,7 @@ static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info)
     p,
     q;
 
-  register ssize_t
+  ssize_t
     i,
     n;
 
@@ -793,7 +873,11 @@ static PathInfo *ConvertPrimitiveToPath(const PrimitiveInfo *primitive_info)
   path_info=(PathInfo *) AcquireQuantumMemory((size_t) (3UL*i+1UL),
     sizeof(*path_info));
   if (path_info == (PathInfo *) NULL)
-    return((PathInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PathInfo *) NULL);
+    }
   coordinates=0;
   closed_subpath=MagickFalse;
   n=0;
@@ -932,81 +1016,6 @@ MagickExport DrawInfo *DestroyDrawInfo(DrawInfo *draw_info)
 %                                                                             %
 %                                                                             %
 %                                                                             %
-+   D e s t r o y E d g e                                                     %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  DestroyEdge() destroys the specified polygon edge.
-%
-%  The format of the DestroyEdge method is:
-%
-%      ssize_t DestroyEdge(PolygonInfo *polygon_info,const int edge)
-%
-%  A description of each parameter follows:
-%
-%    o polygon_info: Specifies a pointer to an PolygonInfo structure.
-%
-%    o edge: the polygon edge number to destroy.
-%
-*/
-static size_t DestroyEdge(PolygonInfo *polygon_info,
-  const size_t edge)
-{
-  assert(edge < polygon_info->number_edges);
-  polygon_info->edges[edge].points=(PointInfo *) RelinquishMagickMemory(
-    polygon_info->edges[edge].points);
-  polygon_info->number_edges--;
-  if (edge < polygon_info->number_edges)
-    (void) memmove(polygon_info->edges+edge,polygon_info->edges+edge+1,
-      (size_t) (polygon_info->number_edges-edge)*sizeof(*polygon_info->edges));
-  return(polygon_info->number_edges);
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
-+   D e s t r o y P o l y g o n I n f o                                       %
-%                                                                             %
-%                                                                             %
-%                                                                             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  DestroyPolygonInfo() destroys the PolygonInfo data structure.
-%
-%  The format of the DestroyPolygonInfo method is:
-%
-%      PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
-%
-%  A description of each parameter follows:
-%
-%    o polygon_info: Specifies a pointer to an PolygonInfo structure.
-%
-*/
-static PolygonInfo *DestroyPolygonInfo(PolygonInfo *polygon_info)
-{
-  register ssize_t
-    i;
-
-  if (polygon_info->edges != (EdgeInfo *) NULL)
-    {
-      for (i=0; i < (ssize_t) polygon_info->number_edges; i++)
-        polygon_info->edges[i].points=(PointInfo *)
-          RelinquishMagickMemory(polygon_info->edges[i].points);
-      polygon_info->edges=(EdgeInfo *) RelinquishMagickMemory(
-        polygon_info->edges);
-    }
-  return((PolygonInfo *) RelinquishMagickMemory(polygon_info));
-}
-
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                                                             %
-%                                                                             %
-%                                                                             %
 %     D r a w A f f i n e I m a g e                                           %
 %                                                                             %
 %                                                                             %
@@ -1040,7 +1049,7 @@ static SegmentInfo AffineEdge(const Image *image,const AffineMatrix *affine,
     intercept,
     z;
 
-  register double
+  double
     x;
 
   SegmentInfo
@@ -1161,7 +1170,7 @@ MagickExport MagickBooleanType DrawAffineImage(Image *image,
     min,
     max;
 
-  register ssize_t
+  ssize_t
     i;
 
   SegmentInfo
@@ -1224,8 +1233,8 @@ MagickExport MagickBooleanType DrawAffineImage(Image *image,
   edge.y2=MagickMin(max.y,(double) image->rows-1.0);
   inverse_affine=InverseAffineMatrix(affine);
   GetPixelInfo(image,&zero);
-  start=(ssize_t) ceil(edge.y1-0.5);
-  stop=(ssize_t) floor(edge.y2+0.5);
+  start=CastDoubleToLong(ceil(edge.y1-0.5));
+  stop=CastDoubleToLong(floor(edge.y2+0.5));
   source_view=AcquireVirtualCacheView(source,exception);
   image_view=AcquireAuthenticCacheView(image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -1241,10 +1250,10 @@ MagickExport MagickBooleanType DrawAffineImage(Image *image,
     PointInfo
       point;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     SegmentInfo
@@ -1253,18 +1262,21 @@ MagickExport MagickBooleanType DrawAffineImage(Image *image,
     ssize_t
       x_offset;
 
+    if (status == MagickFalse)
+      continue;
     inverse_edge=AffineEdge(source,&inverse_affine,(double) y,&edge);
     if (inverse_edge.x2 < inverse_edge.x1)
       continue;
-    q=GetCacheViewAuthenticPixels(image_view,(ssize_t) ceil(inverse_edge.x1-
-      0.5),y,(size_t) (floor(inverse_edge.x2+0.5)-ceil(inverse_edge.x1-0.5)+1),
-      1,exception);
+    q=GetCacheViewAuthenticPixels(image_view,CastDoubleToLong(
+      ceil(inverse_edge.x1-0.5)),y,(size_t) CastDoubleToLong(floor(
+      inverse_edge.x2+0.5)-ceil(inverse_edge.x1-0.5)+1),1,exception);
     if (q == (Quantum *) NULL)
       continue;
     pixel=zero;
     composite=zero;
     x_offset=0;
-    for (x=(ssize_t) ceil(inverse_edge.x1-0.5); x <= (ssize_t) floor(inverse_edge.x2+0.5); x++)
+    for (x=CastDoubleToLong(ceil(inverse_edge.x1-0.5));
+         x <= CastDoubleToLong(floor(inverse_edge.x2+0.5)); x++)
     {
       point.x=(double) x*inverse_affine.sx+y*inverse_affine.ry+
         inverse_affine.tx;
@@ -1321,13 +1333,6 @@ MagickExport MagickBooleanType DrawAffineImage(Image *image,
 %
 */
 
-static inline double SaneStrokeWidth(const Image *image,
-  const DrawInfo *draw_info)
-{
-  return(MagickMin((double) draw_info->stroke_width,
-    (2.0*sqrt(2.0)+MagickEpsilon)*MagickMax(image->columns,image->rows)));
-}
-
 static MagickBooleanType DrawBoundingRectangles(Image *image,
   const DrawInfo *draw_info,const PolygonInfo *polygon_info,
   ExceptionInfo *exception)
@@ -1349,7 +1354,7 @@ static MagickBooleanType DrawBoundingRectangles(Image *image,
   PrimitiveInfo
     primitive_info[6];
 
-  register ssize_t
+  ssize_t
     i;
 
   SegmentInfo
@@ -1384,7 +1389,7 @@ static MagickBooleanType DrawBoundingRectangles(Image *image,
         resolution.y=resolution.x;
     }
   mid=(resolution.x/96.0)*ExpandAffine(&clone_info->affine)*
-    SaneStrokeWidth(image,clone_info)/2.0;
+    clone_info->stroke_width/2.0;
   bounds.x1=0.0;
   bounds.y1=0.0;
   bounds.x2=0.0;
@@ -1755,11 +1760,11 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
   PrimitiveInfo
     *dash_polygon;
 
-  register double
+  double
     dx,
     dy;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1777,7 +1782,11 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
   dash_polygon=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     (2UL*number_vertices+32UL),sizeof(*dash_polygon));
   if (dash_polygon == (PrimitiveInfo *) NULL)
-    return(MagickFalse);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return(MagickFalse);
+    }
   (void) memset(dash_polygon,0,(2UL*number_vertices+32UL)*
     sizeof(*dash_polygon));
   clone_info=CloneDrawInfo((ImageInfo *) NULL,draw_info);
@@ -1817,8 +1826,8 @@ static MagickBooleanType DrawDashPolygon(const DrawInfo *draw_info,
     dx=primitive_info[i].point.x-primitive_info[i-1].point.x;
     dy=primitive_info[i].point.y-primitive_info[i-1].point.y;
     maximum_length=hypot(dx,dy);
-    if (maximum_length > MaxBezierCoordinates)
-      break;
+    if (maximum_length > (double) (MaxBezierCoordinates >> 2))
+      continue;
     if (fabs(length) < MagickEpsilon)
       {
         if (fabs(draw_info->dash_pattern[n]) >= MagickEpsilon)
@@ -2050,10 +2059,10 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
       composite,
       pixel;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       i,
       x;
 
@@ -2081,8 +2090,8 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
         case UndefinedSpread:
         case PadSpread:
         {
-          if ((x != (ssize_t) ceil(gradient_vector->x1-0.5)) ||
-              (y != (ssize_t) ceil(gradient_vector->y1-0.5)))
+          if ((x != CastDoubleToLong(ceil(gradient_vector->x1-0.5))) ||
+              (y != CastDoubleToLong(ceil(gradient_vector->y1-0.5))))
             {
               offset=GetStopColorOffset(gradient,x,y);
               if (gradient->type != RadialGradient)
@@ -2109,8 +2118,8 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
         }
         case ReflectSpread:
         {
-          if ((x != (ssize_t) ceil(gradient_vector->x1-0.5)) ||
-              (y != (ssize_t) ceil(gradient_vector->y1-0.5)))
+          if ((x != CastDoubleToLong(ceil(gradient_vector->x1-0.5))) ||
+              (y != CastDoubleToLong(ceil(gradient_vector->y1-0.5))))
             {
               offset=GetStopColorOffset(gradient,x,y);
               if (gradient->type != RadialGradient)
@@ -2151,8 +2160,8 @@ MagickExport MagickBooleanType DrawGradientImage(Image *image,
 
           antialias=MagickFalse;
           repeat=0.0;
-          if ((x != (ssize_t) ceil(gradient_vector->x1-0.5)) ||
-              (y != (ssize_t) ceil(gradient_vector->y1-0.5)))
+          if ((x != CastDoubleToLong(ceil(gradient_vector->x1-0.5))) ||
+              (y != CastDoubleToLong(ceil(gradient_vector->y1-0.5))))
             {
               offset=GetStopColorOffset(gradient,x,y);
               if (gradient->type == LinearGradient)
@@ -2263,25 +2272,21 @@ static MagickBooleanType CheckPrimitiveExtent(MVGInfo *mvg_info,
   /*
     Check if there is enough storage for drawing pimitives.
   */
-  extent=(double) mvg_info->offset+pad+PrimitiveExtentPad;
+  extent=(double) mvg_info->offset+pad+PrimitiveExtentPad+1;
   quantum=sizeof(**mvg_info->primitive_info);
-  if (((extent*quantum) < (double) SSIZE_MAX) &&
-      ((extent*quantum) < (double) GetMaxMemoryRequest()))
+  if (extent <= (double) *mvg_info->extent)
+    return(MagickTrue);
+  *mvg_info->primitive_info=(PrimitiveInfo *) ResizeQuantumMemory(
+    *mvg_info->primitive_info,(size_t) extent,quantum);
+  if (*mvg_info->primitive_info != (PrimitiveInfo *) NULL)
     {
-      if (extent <= (double) *mvg_info->extent)
-        return(MagickTrue);
-      *mvg_info->primitive_info=(PrimitiveInfo *) ResizeQuantumMemory(
-        *mvg_info->primitive_info,(size_t) extent,quantum);
-      if (*mvg_info->primitive_info != (PrimitiveInfo *) NULL)
-        {
-          register ssize_t
-            i;
+      ssize_t
+        i;
 
-          *mvg_info->extent=(size_t) extent;
-          for (i=mvg_info->offset+1; i < (ssize_t) extent; i++)
-            (*mvg_info->primitive_info)[i].primitive=UndefinedPrimitive;
-          return(MagickTrue);
-        }
+      *mvg_info->extent=(size_t) extent;
+      for (i=mvg_info->offset+1; i < (ssize_t) extent; i++)
+        (*mvg_info->primitive_info)[i].primitive=UndefinedPrimitive;
+      return(MagickTrue);
     }
   /*
     Reallocation failed, allocate a primitive to facilitate unwinding.
@@ -2298,7 +2303,22 @@ static MagickBooleanType CheckPrimitiveExtent(MVGInfo *mvg_info,
   return(MagickFalse);
 }
 
-MagickExport int MVGMacroCompare(const void *target,const void *source)
+static inline double GetDrawValue(const char *magick_restrict string,
+  char **magick_restrict sentinal)
+{
+  char
+    **magick_restrict q;
+
+  double
+    value;
+
+  q=sentinal;
+  value=InterpretLocaleValue(string,q);
+  sentinal=q;
+  return(value);
+}
+
+static int MVGMacroCompare(const void *target,const void *source)
 {
   const char
     *p,
@@ -2342,7 +2362,7 @@ static SplayTreeInfo *GetMVGMacros(const char *primitive)
       break;
     if (LocaleCompare("push",token) == 0)
       {
-        register const char
+        const char
           *end,
           *start;
 
@@ -2407,7 +2427,7 @@ static inline MagickBooleanType IsPoint(const char *point)
   double
     value;
 
-  value=StringToDouble(point,&p);
+  value=GetDrawValue(point,&p);
   return((fabs(value) < MagickEpsilon) && (p == point) ? MagickFalse :
     MagickTrue);
 }
@@ -2470,10 +2490,10 @@ static MagickBooleanType RenderMVGContent(Image *image,
   PrimitiveType
     primitive_type;
 
-  register const char
+  const char
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -2612,37 +2632,37 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("affine",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            affine.sx=StringToDouble(token,&next_token);
+            affine.sx=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.rx=StringToDouble(token,&next_token);
+            affine.rx=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.ry=StringToDouble(token,&next_token);
+            affine.ry=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.sy=StringToDouble(token,&next_token);
+            affine.sy=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.tx=StringToDouble(token,&next_token);
+            affine.tx=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.ty=StringToDouble(token,&next_token);
+            affine.ty=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -2695,7 +2715,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
             if (LocaleCompare(token,graphic_context[n]->id) == 0)
               break;
             mvg_class=(const char *) GetValueFromSplayTree(macros,token);
-            if (mvg_class != (const char *) NULL)
+            if ((mvg_class != (const char *) NULL) && (p > primitive))
               {
                 char
                   *elements;
@@ -2816,6 +2836,11 @@ static MagickBooleanType RenderMVGContent(Image *image,
               MagickComplianceOptions,MagickFalse,token);
             break;
           }
+        if (LocaleCompare("currentColor",keyword) == 0)
+          {
+            (void) GetNextToken(q,&q,extent,token);
+            break;
+          }
         status=MagickFalse;
         break;
       }
@@ -2909,7 +2934,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
               break;
             factor=strchr(token,'%') != (char *) NULL ? 0.01 : 1.0;
             opacity=MagickMin(MagickMax(factor*
-              StringToDouble(token,&next_token),0.0),1.0);
+              GetDrawValue(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             if (graphic_context[n]->compliance == SVGCompliance)
@@ -2957,7 +2982,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("font-size",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->pointsize=StringToDouble(token,&next_token);
+            graphic_context[n]->pointsize=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3055,7 +3080,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("interline-spacing",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->interline_spacing=StringToDouble(token,
+            graphic_context[n]->interline_spacing=GetDrawValue(token,
               &next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
@@ -3064,7 +3089,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("interword-spacing",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->interword_spacing=StringToDouble(token,
+            graphic_context[n]->interword_spacing=GetDrawValue(token,
               &next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
@@ -3079,7 +3104,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("kerning",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->kerning=StringToDouble(token,&next_token);
+            graphic_context[n]->kerning=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3099,7 +3124,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
             clone_info->text=AcquireString(" ");
             status&=GetTypeMetrics(image,clone_info,&metrics,exception);
             graphic_context[n]->kerning=metrics.width*
-              StringToDouble(token,&next_token);
+              GetDrawValue(token,&next_token);
             clone_info=DestroyDrawInfo(clone_info);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
@@ -3139,6 +3164,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
               }
             break;
           }
+        status=MagickFalse;
         break;
       }
       case 'o':
@@ -3159,7 +3185,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
               break;
             factor=strchr(token,'%') != (char *) NULL ? 0.01 : 1.0;
             opacity=MagickMin(MagickMax(factor*
-              StringToDouble(token,&next_token),0.0),1.0);
+              GetDrawValue(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             if (graphic_context[n]->compliance == SVGCompliance)
@@ -3318,25 +3344,25 @@ static MagickBooleanType RenderMVGContent(Image *image,
                 (void) GetNextToken(q,&q,extent,token);
                 (void) CopyMagickString(type,token,MagickPathExtent);
                 (void) GetNextToken(q,&q,extent,token);
-                segment.x1=StringToDouble(token,&next_token);
+                segment.x1=GetDrawValue(token,&next_token);
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                segment.y1=StringToDouble(token,&next_token);
+                segment.y1=GetDrawValue(token,&next_token);
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                segment.x2=StringToDouble(token,&next_token);
+                segment.x2=GetDrawValue(token,&next_token);
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                segment.y2=StringToDouble(token,&next_token);
+                segment.y2=GetDrawValue(token,&next_token);
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 if (LocaleCompare(type,"radial") == 0)
@@ -3427,26 +3453,28 @@ static MagickBooleanType RenderMVGContent(Image *image,
                 (void) GetNextToken(q,&q,extent,token);
                 (void) CopyMagickString(name,token,MagickPathExtent);
                 (void) GetNextToken(q,&q,extent,token);
-                bounds.x=(ssize_t) ceil(StringToDouble(token,&next_token)-0.5);
+                bounds.x=CastDoubleToLong(ceil(GetDrawValue(token,
+                  &next_token)-0.5));
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                bounds.y=(ssize_t) ceil(StringToDouble(token,&next_token)-0.5);
+                bounds.y=CastDoubleToLong(ceil(GetDrawValue(token,
+                  &next_token)-0.5));
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                bounds.width=(size_t) floor(StringToDouble(token,&next_token)+
-                  0.5);
+                bounds.width=(size_t) CastDoubleToLong(floor(GetDrawValue(
+                  token,&next_token)+0.5));
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
                 (void) GetNextToken(q,&q,extent,token);
                 if (*token == ',')
                   (void) GetNextToken(q,&q,extent,token);
-                bounds.height=(size_t) floor(StringToDouble(token,&next_token)+
+                bounds.height=(size_t) floor(GetDrawValue(token,&next_token)+
                   0.5);
                 if (token == next_token)
                   ThrowPointExpectedException(token,exception);
@@ -3502,7 +3530,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("rotate",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            angle=StringToDouble(token,&next_token);
+            angle=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             affine.sx=cos(DegreesToRadians(fmod((double) angle,360.0)));
@@ -3525,13 +3553,13 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("scale",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            affine.sx=StringToDouble(token,&next_token);
+            affine.sx=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.sy=StringToDouble(token,&next_token);
+            affine.sy=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3539,7 +3567,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("skewX",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            angle=StringToDouble(token,&next_token);
+            angle=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             affine.ry=sin(DegreesToRadians(angle));
@@ -3548,7 +3576,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("skewY",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            angle=StringToDouble(token,&next_token);
+            angle=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             affine.rx=(-tan(DegreesToRadians(angle)/2.0));
@@ -3579,7 +3607,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
             stops[number_stops-1].color=stop_color;
             (void) GetNextToken(q,&q,extent,token);
             factor=strchr(token,'%') != (char *) NULL ? 0.01 : 1.0;
-            stops[number_stops-1].offset=factor*StringToDouble(token,
+            stops[number_stops-1].offset=factor*GetDrawValue(token,
               &next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
@@ -3649,7 +3677,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
                   (void) GetNextToken(q,&q,extent,token);
                   if (*token == ',')
                     (void) GetNextToken(q,&q,extent,token);
-                  graphic_context[n]->dash_pattern[j]=StringToDouble(token,
+                  graphic_context[n]->dash_pattern[j]=GetDrawValue(token,
                     &next_token);
                   if (token == next_token)
                     ThrowPointExpectedException(token,exception);
@@ -3669,7 +3697,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("stroke-dashoffset",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->dash_offset=StringToDouble(token,&next_token);
+            graphic_context[n]->dash_offset=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3721,7 +3749,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
               break;
             factor=strchr(token,'%') != (char *) NULL ? 0.01 : 1.0;
             opacity=MagickMin(MagickMax(factor*
-              StringToDouble(token,&next_token),0.0),1.0);
+              GetDrawValue(token,&next_token),0.0),1.0);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             if (graphic_context[n]->compliance == SVGCompliance)
@@ -3740,7 +3768,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
             (void) GetNextToken(q,&q,extent,token);
             if (graphic_context[n]->clip_path != MagickFalse)
               break;
-            graphic_context[n]->stroke_width=StringToDouble(token,&next_token);
+            graphic_context[n]->stroke_width=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3804,13 +3832,13 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("translate",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            affine.tx=StringToDouble(token,&next_token);
+            affine.tx=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            affine.ty=StringToDouble(token,&next_token);
+            affine.ty=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             cursor=0.0;
@@ -3841,6 +3869,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
               }
             break;
           }
+        status=MagickFalse;
         break;
       }
       case 'v':
@@ -3849,29 +3878,29 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("viewbox",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->viewbox.x=(ssize_t) ceil(StringToDouble(token,
-              &next_token)-0.5);
+            graphic_context[n]->viewbox.x=CastDoubleToLong(ceil(
+              GetDrawValue(token,&next_token)-0.5));
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->viewbox.y=(ssize_t) ceil(StringToDouble(token,
-              &next_token)-0.5);
+            graphic_context[n]->viewbox.y=CastDoubleToLong(ceil(
+              GetDrawValue(token,&next_token)-0.5));
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->viewbox.width=(size_t) floor(StringToDouble(
-              token,&next_token)+0.5);
+            graphic_context[n]->viewbox.width=(size_t) CastDoubleToLong(
+              floor(GetDrawValue(token,&next_token)+0.5));
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(q,&q,extent,token);
             if (*token == ',')
               (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->viewbox.height=(size_t) floor(StringToDouble(
-              token,&next_token)+0.5);
+            graphic_context[n]->viewbox.height=(size_t) CastDoubleToLong(
+              floor(GetDrawValue(token,&next_token)+0.5));
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             break;
@@ -3885,7 +3914,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
         if (LocaleCompare("word-spacing",keyword) == 0)
           {
             (void) GetNextToken(q,&q,extent,token);
-            graphic_context[n]->interword_spacing=StringToDouble(token,
+            graphic_context[n]->interword_spacing=GetDrawValue(token,
               &next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
@@ -3963,13 +3992,13 @@ static MagickBooleanType RenderMVGContent(Image *image,
       if (IsPoint(q) == MagickFalse)
         break;
       (void) GetNextToken(q,&q,extent,token);
-      point.x=StringToDouble(token,&next_token);
+      point.x=GetDrawValue(token,&next_token);
       if (token == next_token)
         ThrowPointExpectedException(token,exception);
       (void) GetNextToken(q,&q,extent,token);
       if (*token == ',')
         (void) GetNextToken(q,&q,extent,token);
-      point.y=StringToDouble(token,&next_token);
+      point.y=GetDrawValue(token,&next_token);
       if (token == next_token)
         ThrowPointExpectedException(token,exception);
       (void) GetNextToken(q,(const char **) NULL,extent,token);
@@ -4035,7 +4064,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
 
         alpha=bounds.x2-bounds.x1;
         beta=bounds.y2-bounds.y1;
-        radius=hypot((double) alpha,(double) beta);
+        radius=hypot(alpha,beta);
         coordinates*=5.0;
         coordinates+=2.0*((size_t) ceil((double) MagickPI*radius))+6.0*
           BezierQuantum+360.0;
@@ -4043,8 +4072,8 @@ static MagickBooleanType RenderMVGContent(Image *image,
       }
       case BezierPrimitive:
       {
-        coordinates=(double) (BezierQuantum*primitive_info[j].coordinates);
-        if (primitive_info[j].coordinates > (107*BezierQuantum))
+        coordinates=(BezierQuantum*(double) primitive_info[j].coordinates);
+        if (primitive_info[j].coordinates > (108*BezierQuantum))
           {
             (void) ThrowMagickException(exception,GetMagickModule(),DrawError,
               "TooManyBezierCoordinates","`%s'",token);
@@ -4067,7 +4096,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
           double
             value;
 
-          value=StringToDouble(s,&t);
+          value=GetDrawValue(s,&t);
           (void) value;
           if (s == t)
             {
@@ -4079,21 +4108,6 @@ static MagickBooleanType RenderMVGContent(Image *image,
         for (s=token; *s != '\0'; s++)
           if (strspn(s,"AaCcQqSsTt") != 0)
             coordinates+=(20.0*BezierQuantum)+360.0;
-        break;
-      }
-      case CirclePrimitive:
-      case ArcPrimitive:
-      case EllipsePrimitive:
-      {
-        double
-          alpha,
-          beta,
-          radius;
-
-        alpha=bounds.x2-bounds.x1;
-        beta=bounds.y2-bounds.y1;
-        radius=hypot(alpha,beta);
-        coordinates=2.0*(ceil(MagickPI*radius))+6.0*BezierQuantum+360.0;
         break;
       }
       default:
@@ -4137,11 +4151,21 @@ static MagickBooleanType RenderMVGContent(Image *image,
       }
       case LinePrimitive:
       {
+        double
+          dx,
+          dy,
+          maximum_length;
+
         if (primitive_info[j].coordinates != 2)
           {
             status=MagickFalse;
             break;
           }
+        dx=primitive_info[i].point.x-primitive_info[i-1].point.x;
+        dy=primitive_info[i].point.y-primitive_info[i-1].point.y;
+        maximum_length=hypot(dx,dy);
+        if (maximum_length > (MaxBezierCoordinates/100.0))
+          ThrowPointExpectedException(keyword,exception);
         status&=TraceLine(primitive_info+j,primitive_info[j].point,
           primitive_info[j+1].point);
         i=(ssize_t) (j+primitive_info[j].coordinates);
@@ -4191,7 +4215,7 @@ static MagickBooleanType RenderMVGContent(Image *image,
       {
         if (primitive_info[j].coordinates != 3)
           {
-            primitive_type=UndefinedPrimitive;
+            status=MagickFalse;
             break;
           }
         status&=TraceArc(&mvg_info,primitive_info[j].point,
@@ -4347,12 +4371,23 @@ static MagickBooleanType RenderMVGContent(Image *image,
       }
     }
     mvg_info.offset=i;
+    if (status == 0)
+      break;
+    primitive_info[i].primitive=UndefinedPrimitive;
     if ((image->debug != MagickFalse) && (q > p))
       (void) LogMagickEvent(DrawEvent,GetMagickModule(),"  %.*s",(int) (q-p-1),
         p);
-    if (status == MagickFalse)
+    /*
+      Sanity check.
+    */
+    status&=CheckPrimitiveExtent(&mvg_info,(size_t)
+      ExpandAffine(&graphic_context[n]->affine));
+    if (status == 0)
       break;
-    primitive_info[i].primitive=UndefinedPrimitive;
+    status&=CheckPrimitiveExtent(&mvg_info,(size_t)
+      graphic_context[n]->stroke_width);
+    if (status == 0)
+      break;
     if (i == 0)
       continue;
     /*
@@ -4520,8 +4555,10 @@ MagickExport MagickBooleanType DrawPatternPath(Image *image,
     (void) LogMagickEvent(DrawEvent,GetMagickModule(),
       "begin pattern-path %s %s",name,geometry);
   clone_info=CloneDrawInfo((ImageInfo *) NULL,draw_info);
-  clone_info->fill_pattern=NewImageList();
-  clone_info->stroke_pattern=NewImageList();
+  if (clone_info->fill_pattern != (Image *) NULL)
+    clone_info->fill_pattern=DestroyImage(clone_info->fill_pattern);
+  if (clone_info->stroke_pattern != (Image *) NULL)
+    clone_info->stroke_pattern=DestroyImage(clone_info->stroke_pattern);
   (void) FormatLocaleString(property,MagickPathExtent,"%s-type",name);
   type=GetImageArtifact(image,property);
   if (type != (const char *) NULL)
@@ -4568,7 +4605,7 @@ MagickExport MagickBooleanType DrawPatternPath(Image *image,
 
 static PolygonInfo **DestroyPolygonThreadSet(PolygonInfo **polygon_info)
 {
-  register ssize_t
+  ssize_t
     i;
 
   assert(polygon_info != (PolygonInfo **) NULL);
@@ -4580,7 +4617,7 @@ static PolygonInfo **DestroyPolygonThreadSet(PolygonInfo **polygon_info)
 }
 
 static PolygonInfo **AcquirePolygonThreadSet(
-  const PrimitiveInfo *primitive_info)
+  const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 {
   PathInfo
     *magick_restrict path_info;
@@ -4588,7 +4625,7 @@ static PolygonInfo **AcquirePolygonThreadSet(
   PolygonInfo
     **polygon_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -4598,19 +4635,82 @@ static PolygonInfo **AcquirePolygonThreadSet(
   polygon_info=(PolygonInfo **) AcquireQuantumMemory(number_threads,
     sizeof(*polygon_info));
   if (polygon_info == (PolygonInfo **) NULL)
-    return((PolygonInfo **) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PolygonInfo **) NULL);
+    }
   (void) memset(polygon_info,0,number_threads*sizeof(*polygon_info));
-  path_info=ConvertPrimitiveToPath(primitive_info);
+  path_info=ConvertPrimitiveToPath(primitive_info,exception);
   if (path_info == (PathInfo *) NULL)
     return(DestroyPolygonThreadSet(polygon_info));
-  for (i=0; i < (ssize_t) number_threads; i++)
-  {
-    polygon_info[i]=ConvertPathToPolygon(path_info);
-    if (polygon_info[i] == (PolygonInfo *) NULL)
+  polygon_info[0]=ConvertPathToPolygon(path_info,exception);
+  if (polygon_info[0] == (PolygonInfo *) NULL)
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
       return(DestroyPolygonThreadSet(polygon_info));
+    }
+  for (i=1; i < (ssize_t) number_threads; i++)
+  {
+    EdgeInfo
+      *edge_info;
+
+    ssize_t
+      j;
+
+    polygon_info[i]=(PolygonInfo *) AcquireMagickMemory(
+      sizeof(*polygon_info[i]));
+    if (polygon_info[i] == (PolygonInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonThreadSet(polygon_info));
+      }
+    polygon_info[i]->number_edges=0;
+    edge_info=polygon_info[0]->edges;
+    polygon_info[i]->edges=(EdgeInfo *) AcquireQuantumMemory(
+      polygon_info[0]->number_edges,sizeof(*edge_info));
+    if (polygon_info[i]->edges == (EdgeInfo *) NULL)
+      {
+        (void) ThrowMagickException(exception,GetMagickModule(),
+          ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+        return(DestroyPolygonThreadSet(polygon_info));
+      }
+    (void) memcpy(polygon_info[i]->edges,edge_info,
+      polygon_info[0]->number_edges*sizeof(*edge_info));
+    for (j=0; j < (ssize_t) polygon_info[i]->number_edges; j++)
+      polygon_info[i]->edges[j].points=(PointInfo *) NULL;
+    polygon_info[i]->number_edges=polygon_info[0]->number_edges;
+    for (j=0; j < (ssize_t) polygon_info[i]->number_edges; j++)
+    {
+      edge_info=polygon_info[0]->edges+j;
+      polygon_info[i]->edges[j].points=(PointInfo *) AcquireQuantumMemory(
+        edge_info->number_points,sizeof(*edge_info));
+      if (polygon_info[i]->edges[j].points == (PointInfo *) NULL)
+        {
+          (void) ThrowMagickException(exception,GetMagickModule(),
+            ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+          return(DestroyPolygonThreadSet(polygon_info));
+        }
+      (void) memcpy(polygon_info[i]->edges[j].points,edge_info->points,
+        edge_info->number_points*sizeof(*edge_info->points));
+    }
   }
   path_info=(PathInfo *) RelinquishMagickMemory(path_info);
   return(polygon_info);
+}
+
+static size_t DestroyEdge(PolygonInfo *polygon_info,const ssize_t edge)
+{
+  assert(edge < (ssize_t) polygon_info->number_edges);
+  polygon_info->edges[edge].points=(PointInfo *) RelinquishMagickMemory(
+    polygon_info->edges[edge].points);
+  polygon_info->number_edges--;
+  if (edge < (ssize_t) polygon_info->number_edges)
+    (void) memmove(polygon_info->edges+edge,polygon_info->edges+edge+1,
+      (size_t) (polygon_info->number_edges-edge)*sizeof(*polygon_info->edges));
+  return(polygon_info->number_edges);
 }
 
 static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
@@ -4626,13 +4726,13 @@ static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
   PointInfo
     delta;
 
-  register const PointInfo
+  const PointInfo
     *q;
 
-  register EdgeInfo
+  EdgeInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -4651,7 +4751,7 @@ static double GetFillAlpha(PolygonInfo *polygon_info,const double mid,
       break;
     if ((double) y > (p->bounds.y2+mid+0.5))
       {
-        (void) DestroyEdge(polygon_info,(size_t) j);
+        (void) DestroyEdge(polygon_info,j);
         continue;
       }
     if (((double) x <= (p->bounds.x1-mid-0.5)) ||
@@ -4791,6 +4891,9 @@ static MagickBooleanType DrawPolygonPrimitive(Image *image,
   CacheView
     *image_view;
 
+  const char
+    *artifact;
+
   MagickBooleanType
     fill,
     status;
@@ -4801,10 +4904,10 @@ static MagickBooleanType DrawPolygonPrimitive(Image *image,
   PolygonInfo
     **magick_restrict polygon_info;
 
-  register EdgeInfo
+  EdgeInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   SegmentInfo
@@ -4827,26 +4930,18 @@ static MagickBooleanType DrawPolygonPrimitive(Image *image,
   /*
     Compute bounding box.
   */
-  polygon_info=AcquirePolygonThreadSet(primitive_info);
+  polygon_info=AcquirePolygonThreadSet(primitive_info,exception);
   if (polygon_info == (PolygonInfo **) NULL)
     return(MagickFalse);
-DisableMSCWarning(4127)
-  if (0)
-    {
-      status=DrawBoundingRectangles(image,draw_info,polygon_info[0],exception);
-      if (status == MagickFalse)
-        {
-          polygon_info=DestroyPolygonThreadSet(polygon_info);
-          return(status);
-        }
-    }
-RestoreMSCWarning
   if (image->debug != MagickFalse)
     (void) LogMagickEvent(DrawEvent,GetMagickModule(),"    begin draw-polygon");
   fill=(primitive_info->method == FillToBorderMethod) ||
     (primitive_info->method == FloodfillMethod) ? MagickTrue : MagickFalse;
-  mid=ExpandAffine(&draw_info->affine)*SaneStrokeWidth(image,draw_info)/2.0;
+  mid=ExpandAffine(&draw_info->affine)*draw_info->stroke_width/2.0;
   bounds=polygon_info[0]->edges[0].bounds;
+  artifact=GetImageArtifact(image,"draw:render-bounding-rectangles");
+  if (IsStringTrue(artifact) != MagickFalse)
+    (void) DrawBoundingRectangles(image,draw_info,polygon_info[0],exception);
   for (i=1; i < (ssize_t) polygon_info[0]->number_edges; i++)
   {
     p=polygon_info[0]->edges+i;
@@ -4886,8 +4981,8 @@ RestoreMSCWarning
       /*
         Draw point.
       */
-      start_y=(ssize_t) ceil(bounds.y1-0.5);
-      stop_y=(ssize_t) floor(bounds.y2+0.5);
+      start_y=CastDoubleToLong(ceil(bounds.y1-0.5));
+      stop_y=CastDoubleToLong(floor(bounds.y2+0.5));
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
       #pragma omp parallel for schedule(static) shared(status) \
         magick_number_threads(image,image,stop_y-start_y+1,1)
@@ -4900,10 +4995,10 @@ RestoreMSCWarning
         PixelInfo
           pixel;
 
-        register ssize_t
+        ssize_t
           x;
 
-        register Quantum
+        Quantum
           *magick_restrict q;
 
         ssize_t
@@ -4912,8 +5007,8 @@ RestoreMSCWarning
 
         if (status == MagickFalse)
           continue;
-        start_x=(ssize_t) ceil(bounds.x1-0.5);
-        stop_x=(ssize_t) floor(bounds.x2+0.5);
+        start_x=CastDoubleToLong(ceil(bounds.x1-0.5));
+        stop_x=CastDoubleToLong(floor(bounds.x2+0.5));
         x=start_x;
         q=GetCacheViewAuthenticPixels(image_view,x,y,(size_t) (stop_x-x+1),1,
           exception);
@@ -4925,8 +5020,8 @@ RestoreMSCWarning
         GetPixelInfo(image,&pixel);
         for ( ; x <= stop_x; x++)
         {
-          if ((x == (ssize_t) ceil(primitive_info->point.x-0.5)) &&
-              (y == (ssize_t) ceil(primitive_info->point.y-0.5)))
+          if ((x == CastDoubleToLong(ceil(primitive_info->point.x-0.5))) &&
+              (y == CastDoubleToLong(ceil(primitive_info->point.y-0.5))))
             {
               GetFillColor(draw_info,x-start_x,y-start_y,&pixel,exception);
               SetPixelViaPixelInfo(image,&pixel,q);
@@ -4947,8 +5042,8 @@ RestoreMSCWarning
   /*
     Draw polygon or line.
   */
-  start_y=(ssize_t) ceil(bounds.y1-0.5);
-  stop_y=(ssize_t) floor(bounds.y2+0.5);
+  start_y=CastDoubleToLong(ceil(bounds.y1-0.5));
+  stop_y=CastDoubleToLong(floor(bounds.y2+0.5));
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(static) shared(status) \
     magick_number_threads(image,image,stop_y-start_y+1,1)
@@ -4958,10 +5053,10 @@ RestoreMSCWarning
     const int
       id = GetOpenMPThreadId();
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     ssize_t
@@ -4970,8 +5065,8 @@ RestoreMSCWarning
 
     if (status == MagickFalse)
       continue;
-    start_x=(ssize_t) ceil(bounds.x1-0.5);
-    stop_x=(ssize_t) floor(bounds.x2+0.5);
+    start_x=CastDoubleToLong(ceil(bounds.x1-0.5));
+    stop_x=CastDoubleToLong(floor(bounds.x2+0.5));
     q=GetCacheViewAuthenticPixels(image_view,start_x,y,(size_t) (stop_x-start_x+
       1),1,exception);
     if (q == (Quantum *) NULL)
@@ -5046,16 +5141,6 @@ RestoreMSCWarning
 %    o exception: return any errors or warnings in this structure.
 %
 */
-
-static inline double ConstrainCoordinate(double x)
-{
-  if (x < (double) -(SSIZE_MAX-512))
-    return((double) -(SSIZE_MAX-512));
-  if (x > (double) (SSIZE_MAX-512))
-    return((double) (SSIZE_MAX-512));
-  return(x);
-}
-
 static void LogPrimitiveInfo(const PrimitiveInfo *primitive_info)
 {
   const char
@@ -5074,7 +5159,7 @@ static void LogPrimitiveInfo(const PrimitiveInfo *primitive_info)
     point,
     q;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -5082,8 +5167,8 @@ static void LogPrimitiveInfo(const PrimitiveInfo *primitive_info)
     coordinates,
     y;
 
-  x=(ssize_t) ceil(primitive_info->point.x-0.5);
-  y=(ssize_t) ceil(primitive_info->point.y-0.5);
+  x=CastDoubleToLong(ceil(primitive_info->point.x-0.5));
+  y=CastDoubleToLong(ceil(primitive_info->point.y-0.5));
   switch (primitive_info->primitive)
   {
     case AlphaPrimitive:
@@ -5168,7 +5253,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
   MagickStatusType
     status;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -5196,8 +5281,8 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
       status&=SetImageMask(image,CompositePixelMask,draw_info->composite_mask,
         exception);
     }
-  x=(ssize_t) ceil(ConstrainCoordinate(primitive_info->point.x-0.5));
-  y=(ssize_t) ceil(ConstrainCoordinate(primitive_info->point.y-0.5));
+  x=CastDoubleToLong(ceil(primitive_info->point.x-0.5));
+  y=CastDoubleToLong(ceil(primitive_info->point.y-0.5));
   image_view=AcquireAuthenticCacheView(image,exception);
   switch (primitive_info->primitive)
   {
@@ -5213,7 +5298,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
           PixelInfo
             pixel;
 
-          register Quantum
+          Quantum
             *q;
 
           q=GetCacheViewAuthenticPixels(image_view,x,y,1,1,exception);
@@ -5235,7 +5320,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
           GetPixelInfo(image,&pixel);
           for (y=0; y < (ssize_t) image->rows; y++)
           {
-            register Quantum
+            Quantum
               *magick_restrict q;
 
             q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
@@ -5291,7 +5376,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
 
           for (y=0; y < (ssize_t) image->rows; y++)
           {
-            register Quantum
+            Quantum
               *magick_restrict q;
 
             q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
@@ -5323,7 +5408,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
           PixelInfo
             pixel;
 
-          register Quantum
+          Quantum
             *q;
 
           q=GetCacheViewAuthenticPixels(image_view,x,y,1,1,exception);
@@ -5345,7 +5430,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
             exception);
           for (y=0; y < (ssize_t) image->rows; y++)
           {
-            register Quantum
+            Quantum
               *magick_restrict q;
 
             q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
@@ -5397,7 +5482,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
           GetPixelInfo(image,&pixel);
           for (y=0; y < (ssize_t) image->rows; y++)
           {
-            register Quantum
+            Quantum
               *magick_restrict q;
 
             q=GetCacheViewAuthenticPixels(image_view,0,y,image->columns,1,
@@ -5453,7 +5538,17 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
           {
             (void) CopyMagickString(clone_info->filename,primitive_info->text,
               MagickPathExtent);
-            composite_images=ReadImage(clone_info,exception);
+            status&=SetImageInfo(clone_info,0,exception);
+            if ((LocaleNCompare(clone_info->magick,"http",4) == 0) ||
+                (LocaleCompare(clone_info->magick,"mpri") == 0))
+              (void) CopyMagickString(clone_info->filename,primitive_info->text,
+                MagickPathExtent);
+            if (clone_info->size != (char *) NULL)
+              clone_info->size=DestroyString(clone_info->size);
+            if (clone_info->extract != (char *) NULL)
+              clone_info->extract=DestroyString(clone_info->extract);
+            if (*clone_info->filename != '\0')
+              composite_images=ReadImage(clone_info,exception);
           }
       clone_info=DestroyImageInfo(clone_info);
       if (composite_images == (Image *) NULL)
@@ -5465,8 +5560,8 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
       composite_images=DestroyImageList(composite_images);
       (void) SetImageProgressMonitor(composite_image,(MagickProgressMonitor)
         NULL,(void *) NULL);
-      x1=(ssize_t) ceil(primitive_info[1].point.x-0.5);
-      y1=(ssize_t) ceil(primitive_info[1].point.y-0.5);
+      x1=CastDoubleToLong(ceil(primitive_info[1].point.x-0.5));
+      y1=CastDoubleToLong(ceil(primitive_info[1].point.y-0.5));
       if (((x1 != 0L) && (x1 != (ssize_t) composite_image->columns)) ||
           ((y1 != 0L) && (y1 != (ssize_t) composite_image->rows)))
         {
@@ -5510,7 +5605,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
       PixelInfo
         fill_color;
 
-      register Quantum
+      Quantum
         *q;
 
       if ((y < 0) || (y >= (ssize_t) image->rows))
@@ -5575,7 +5670,7 @@ MagickExport MagickBooleanType DrawPrimitive(Image *image,
             status&=DrawDashPolygon(draw_info,primitive_info,image,exception);
           break;
         }
-      mid=ExpandAffine(&draw_info->affine)*SaneStrokeWidth(image,draw_info)/2.0;
+      mid=ExpandAffine(&draw_info->affine)*draw_info->stroke_width/2.0;
       if ((mid > 1.0) &&
           ((draw_info->stroke.alpha != (Quantum) TransparentAlpha) ||
            (draw_info->stroke_pattern != (Image *) NULL)))
@@ -5667,7 +5762,7 @@ static MagickBooleanType DrawRoundLinecap(Image *image,
   PrimitiveInfo
     linecap[5];
 
-  register ssize_t
+  ssize_t
     i;
 
   for (i=0; i < 4; i++)
@@ -5697,7 +5792,7 @@ static MagickBooleanType DrawStrokePolygon(Image *image,
   PrimitiveInfo
     *stroke_polygon;
 
-  register const PrimitiveInfo
+  const PrimitiveInfo
     *p,
     *q;
 
@@ -5722,7 +5817,7 @@ static MagickBooleanType DrawStrokePolygon(Image *image,
   {
     if (p->coordinates == 1)
       continue;
-    stroke_polygon=TraceStrokePolygon(image,draw_info,p);
+    stroke_polygon=TraceStrokePolygon(draw_info,p,exception);
     if (stroke_polygon == (PrimitiveInfo *) NULL)
       {
         status=0;
@@ -5878,20 +5973,20 @@ MagickExport void GetDrawInfo(const ImageInfo *image_info,DrawInfo *draw_info)
       MagickFalse,option);
   option=GetImageOption(clone_info,"interline-spacing");
   if (option != (const char *) NULL)
-    draw_info->interline_spacing=StringToDouble(option,&next_token);
+    draw_info->interline_spacing=GetDrawValue(option,&next_token);
   option=GetImageOption(clone_info,"interword-spacing");
   if (option != (const char *) NULL)
-    draw_info->interword_spacing=StringToDouble(option,&next_token);
+    draw_info->interword_spacing=GetDrawValue(option,&next_token);
   option=GetImageOption(clone_info,"kerning");
   if (option != (const char *) NULL)
-    draw_info->kerning=StringToDouble(option,&next_token);
+    draw_info->kerning=GetDrawValue(option,&next_token);
   option=GetImageOption(clone_info,"stroke");
   if (option != (const char *) NULL)
     (void) QueryColorCompliance(option,AllCompliance,&draw_info->stroke,
       exception);
   option=GetImageOption(clone_info,"strokewidth");
   if (option != (const char *) NULL)
-    draw_info->stroke_width=StringToDouble(option,&next_token);
+    draw_info->stroke_width=GetDrawValue(option,&next_token);
   option=GetImageOption(clone_info,"style");
   if (option != (const char *) NULL)
     draw_info->style=(StyleType) ParseCommandOption(MagickStyleOptions,
@@ -5946,7 +6041,7 @@ static inline double Permutate(const ssize_t n,const ssize_t k)
   double
     r;
 
-  register ssize_t
+  ssize_t
     i;
 
   r=1.0;
@@ -6007,17 +6102,17 @@ static MagickBooleanType TraceArcPath(MVGInfo *mvg_info,const PointInfo start,
     points[3],
     radii;
 
-  register double
+  double
     cosine,
     sine;
 
   PrimitiveInfo
     *primitive_info;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -6075,8 +6170,8 @@ static MagickBooleanType TraceArcPath(MVGInfo *mvg_info,const PointInfo start,
   else
     if ((theta > 0.0) && (sweep == MagickFalse))
       theta-=2.0*MagickPI;
-  arc_segments=(size_t) ceil(fabs((double) (theta/(0.5*MagickPI+
-    MagickEpsilon))));
+  arc_segments=(size_t) CastDoubleToLong(ceil(fabs((double) (theta/(0.5*
+    MagickPI+MagickEpsilon)))));
   status=MagickTrue;
   p=primitive_info;
   for (i=0; i < (ssize_t) arc_segments; i++)
@@ -6152,10 +6247,10 @@ static MagickBooleanType TraceBezier(MVGInfo *mvg_info,
   PrimitiveInfo
     *primitive_info;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     j;
 
@@ -6173,7 +6268,7 @@ static MagickBooleanType TraceBezier(MVGInfo *mvg_info,
     for (j=i+1; j < (ssize_t) number_coordinates; j++)
     {
       alpha=fabs(primitive_info[j].point.x-primitive_info[i].point.x);
-      if (alpha > (double) SSIZE_MAX)
+      if (alpha > (double) LONG_MAX)
         {
           (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
             ResourceLimitError,"MemoryAllocationFailed","`%s'","");
@@ -6182,7 +6277,7 @@ static MagickBooleanType TraceBezier(MVGInfo *mvg_info,
       if (alpha > (double) quantum)
         quantum=(size_t) alpha;
       alpha=fabs(primitive_info[j].point.y-primitive_info[i].point.y);
-      if (alpha > (double) SSIZE_MAX)
+      if (alpha > (double) LONG_MAX)
         {
           (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
             ResourceLimitError,"MemoryAllocationFailed","`%s'","");
@@ -6311,10 +6406,10 @@ static MagickBooleanType TraceEllipse(MVGInfo *mvg_info,const PointInfo center,
   PrimitiveInfo
     *primitive_info;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   /*
@@ -6334,7 +6429,7 @@ static MagickBooleanType TraceEllipse(MVGInfo *mvg_info,const PointInfo center,
     y+=360.0;
   angle.y=DegreesToRadians(y);
   coordinates=ceil((angle.y-angle.x)/step+1.0);
-  if (coordinates > (double) SSIZE_MAX)
+  if (coordinates > (108.0*BezierQuantum))
     {
       (void) ThrowMagickException(mvg_info->exception,GetMagickModule(),
         ResourceLimitError,"MemoryAllocationFailed","`%s'","");
@@ -6425,10 +6520,10 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
   PrimitiveType
     primitive_type;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *q;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -6479,19 +6574,19 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          arc.x=StringToDouble(token,&next_token);
+          arc.x=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          arc.y=StringToDouble(token,&next_token);
+          arc.y=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          angle=StringToDouble(token,&next_token);
+          angle=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
@@ -6507,13 +6602,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          x=StringToDouble(token,&next_token);
+          x=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          y=StringToDouble(token,&next_token);
+          y=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           end.x=(double) (attribute == (int) 'A' ? x : point.x+x);
@@ -6545,13 +6640,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            x=StringToDouble(token,&next_token);
+            x=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            y=StringToDouble(token,&next_token);
+            y=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             end.x=(double) (attribute == (int) 'C' ? x : point.x+x);
@@ -6581,7 +6676,7 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          x=StringToDouble(token,&next_token);
+          x=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           point.x=(double) (attribute == (int) 'H' ? x: point.x+x);
@@ -6610,13 +6705,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          x=StringToDouble(token,&next_token);
+          x=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          y=StringToDouble(token,&next_token);
+          y=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           point.x=(double) (attribute == (int) 'L' ? x : point.x+x);
@@ -6655,13 +6750,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          x=StringToDouble(token,&next_token);
+          x=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          y=StringToDouble(token,&next_token);
+          y=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           point.x=(double) (attribute == (int) 'M' ? x : point.x+x);
@@ -6697,13 +6792,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            x=StringToDouble(token,&next_token);
+            x=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            y=StringToDouble(token,&next_token);
+            y=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             if (*p == ',')
@@ -6743,13 +6838,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            x=StringToDouble(token,&next_token);
+            x=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            y=StringToDouble(token,&next_token);
+            y=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             if (*p == ',')
@@ -6795,13 +6890,13 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            x=StringToDouble(token,&next_token);
+            x=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             (void) GetNextToken(p,&p,MagickPathExtent,token);
             if (*token == ',')
               (void) GetNextToken(p,&p,MagickPathExtent,token);
-            y=StringToDouble(token,&next_token);
+            y=GetDrawValue(token,&next_token);
             if (token == next_token)
               ThrowPointExpectedException(token,exception);
             end.x=(double) (attribute == (int) 'T' ? x : point.x+x);
@@ -6842,7 +6937,7 @@ static ssize_t TracePath(MVGInfo *mvg_info,const char *path,
           (void) GetNextToken(p,&p,MagickPathExtent,token);
           if (*token == ',')
             (void) GetNextToken(p,&p,MagickPathExtent,token);
-          y=StringToDouble(token,&next_token);
+          y=GetDrawValue(token,&next_token);
           if (token == next_token)
             ThrowPointExpectedException(token,exception);
           point.y=(double) (attribute == (int) 'V' ? y : point.y+y);
@@ -6912,10 +7007,10 @@ static MagickBooleanType TraceRectangle(PrimitiveInfo *primitive_info,
   PointInfo
     point;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   p=primitive_info;
@@ -6959,10 +7054,10 @@ static MagickBooleanType TraceRoundRectangle(MVGInfo *mvg_info,
   PrimitiveInfo
     *primitive_info;
 
-  register PrimitiveInfo
+  PrimitiveInfo
     *p;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -7036,11 +7131,11 @@ static MagickBooleanType TraceSquareLinecap(PrimitiveInfo *primitive_info,
   double
     distance;
 
-  register double
+  double
     dx,
     dy;
 
-  register ssize_t
+  ssize_t
     i;
 
   ssize_t
@@ -7079,34 +7174,40 @@ static MagickBooleanType TraceSquareLinecap(PrimitiveInfo *primitive_info,
   return(MagickTrue);
 }
 
-static PrimitiveInfo *TraceStrokePolygon(const Image *image,
-  const DrawInfo *draw_info,const PrimitiveInfo *primitive_info)
+static PrimitiveInfo *TraceStrokePolygon(const DrawInfo *draw_info,
+  const PrimitiveInfo *primitive_info,ExceptionInfo *exception)
 {
 #define MaxStrokePad  (6*BezierQuantum+360)
 #define CheckPathExtent(pad_p,pad_q) \
 {   \
-  if ((ssize_t) (p+(pad_p)) >= (ssize_t) extent_p) \
-    { \
-      if (~extent_p < (pad_p)) \
-        stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p); \
-      else \
-        { \
-          extent_p+=(pad_p); \
-          stroke_p=(PointInfo *) ResizeQuantumMemory(stroke_p,extent_p+ \
-            MaxStrokePad,sizeof(*stroke_p)); \
-        } \
-    } \
-  if ((ssize_t) (q+(pad_q)) >= (ssize_t) extent_q) \
-    { \
-      if (~extent_q < (pad_q)) \
-        stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q); \
-      else \
-        { \
-          extent_q+=(pad_q); \
-          stroke_q=(PointInfo *) ResizeQuantumMemory(stroke_q,extent_q+ \
-            MaxStrokePad,sizeof(*stroke_q)); \
-        } \
-    } \
+  if ((pad_p) > MaxBezierCoordinates) \
+    stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p); \
+  else \
+    if ((ssize_t) (p+(pad_p)) >= (ssize_t) extent_p) \
+      { \
+        if (~extent_p < (pad_p)) \
+          stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p); \
+        else \
+          { \
+            extent_p+=(pad_p); \
+            stroke_p=(PointInfo *) ResizeQuantumMemory(stroke_p,extent_p+ \
+              MaxStrokePad,sizeof(*stroke_p)); \
+          } \
+      } \
+  if ((pad_q) > MaxBezierCoordinates) \
+    stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q); \
+  else \
+    if ((ssize_t) (q+(pad_q)) >= (ssize_t) extent_q) \
+      { \
+        if (~extent_q < (pad_q)) \
+          stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q); \
+        else \
+          { \
+            extent_q+=(pad_q); \
+            stroke_q=(PointInfo *) ResizeQuantumMemory(stroke_q,extent_q+ \
+              MaxStrokePad,sizeof(*stroke_q)); \
+          } \
+      } \
   if ((stroke_p == (PointInfo *) NULL) || (stroke_q == (PointInfo *) NULL)) \
     { \
       if (stroke_p != (PointInfo *) NULL) \
@@ -7115,6 +7216,8 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
         stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q); \
       polygon_primitive=(PrimitiveInfo *) \
         RelinquishMagickMemory(polygon_primitive); \
+      (void) ThrowMagickException(exception,GetMagickModule(), \
+        ResourceLimitError,"MemoryAllocationFailed","`%s'",""); \
       return((PrimitiveInfo *) NULL); \
     } \
 }
@@ -7147,7 +7250,7 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
     *polygon_primitive,
     *stroke_polygon;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -7176,7 +7279,11 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
   polygon_primitive=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     number_vertices+2UL,sizeof(*polygon_primitive));
   if (polygon_primitive == (PrimitiveInfo *) NULL)
-    return((PrimitiveInfo *) NULL);
+    {
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      return((PrimitiveInfo *) NULL);
+    }
   (void) memcpy(polygon_primitive,primitive_info,(size_t) number_vertices*
     sizeof(*polygon_primitive));
   offset.x=primitive_info[number_vertices-1].point.x-primitive_info[0].point.x;
@@ -7233,6 +7340,8 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
         stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
       polygon_primitive=(PrimitiveInfo *)
         RelinquishMagickMemory(polygon_primitive);
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
       return((PrimitiveInfo *) NULL);
     }
   slope.p=0.0;
@@ -7257,7 +7366,7 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
         slope.p=dy.p/dx.p;
         inverse_slope.p=(-1.0/slope.p);
       }
-  mid=ExpandAffine(&draw_info->affine)*SaneStrokeWidth(image,draw_info)/2.0;
+  mid=ExpandAffine(&draw_info->affine)*draw_info->stroke_width/2.0;
   miterlimit=(double) (draw_info->miterlimit*draw_info->miterlimit*mid*mid);
   if ((draw_info->linecap == SquareCap) && (closed_path == MagickFalse))
     (void) TraceSquareLinecap(polygon_primitive,number_vertices,mid);
@@ -7417,8 +7526,8 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
           theta.q=atan2(box_q[2].y-center.y,box_q[2].x-center.x);
           if (theta.q < theta.p)
             theta.q+=2.0*MagickPI;
-          arc_segments=(size_t) ceil((double) ((theta.q-theta.p)/
-            (2.0*sqrt((double) (1.0/mid)))));
+          arc_segments=(size_t) CastDoubleToLong(ceil((double) ((theta.
+            q-theta.p)/(2.0*sqrt((double) (1.0/mid))))));
           CheckPathExtent(MaxStrokePad,arc_segments+MaxStrokePad);
           stroke_q[q].x=box_q[1].x;
           stroke_q[q].y=box_q[1].y;
@@ -7490,8 +7599,8 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
           theta.q=atan2(box_p[2].y-center.y,box_p[2].x-center.x);
           if (theta.p < theta.q)
             theta.p+=2.0*MagickPI;
-          arc_segments=(size_t) ceil((double) ((theta.p-theta.q)/
-            (2.0*sqrt((double) (1.0/mid)))));
+          arc_segments=(size_t) CastDoubleToLong(ceil((double) ((theta.p-
+            theta.q)/(2.0*sqrt((double) (1.0/mid))))));
           CheckPathExtent(arc_segments+MaxStrokePad,MaxStrokePad);
           stroke_p[p++]=box_p[1];
           for (j=1; j < (ssize_t) arc_segments; j++)
@@ -7526,36 +7635,43 @@ static PrimitiveInfo *TraceStrokePolygon(const Image *image,
   */
   stroke_polygon=(PrimitiveInfo *) AcquireQuantumMemory((size_t)
     (p+q+2UL*closed_path+2UL),sizeof(*stroke_polygon));
-  if (stroke_polygon != (PrimitiveInfo *) NULL)
+  if (stroke_polygon == (PrimitiveInfo *) NULL)
     {
-      for (i=0; i < (ssize_t) p; i++)
-      {
-        stroke_polygon[i]=polygon_primitive[0];
-        stroke_polygon[i].point=stroke_p[i];
-      }
-      if (closed_path != MagickFalse)
-        {
-          stroke_polygon[i]=polygon_primitive[0];
-          stroke_polygon[i].point=stroke_polygon[0].point;
-          i++;
-        }
-      for ( ; i < (ssize_t) (p+q+closed_path); i++)
-      {
-        stroke_polygon[i]=polygon_primitive[0];
-        stroke_polygon[i].point=stroke_q[p+q+closed_path-(i+1)];
-      }
-      if (closed_path != MagickFalse)
-        {
-          stroke_polygon[i]=polygon_primitive[0];
-          stroke_polygon[i].point=stroke_polygon[p+closed_path].point;
-          i++;
-        }
+      (void) ThrowMagickException(exception,GetMagickModule(),
+        ResourceLimitError,"MemoryAllocationFailed","`%s'","");
+      stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p);
+      stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
+      polygon_primitive=(PrimitiveInfo *) RelinquishMagickMemory(
+        polygon_primitive);
+      return(stroke_polygon);
+    }
+  for (i=0; i < (ssize_t) p; i++)
+  {
+    stroke_polygon[i]=polygon_primitive[0];
+    stroke_polygon[i].point=stroke_p[i];
+  }
+  if (closed_path != MagickFalse)
+    {
       stroke_polygon[i]=polygon_primitive[0];
       stroke_polygon[i].point=stroke_polygon[0].point;
       i++;
-      stroke_polygon[i].primitive=UndefinedPrimitive;
-      stroke_polygon[0].coordinates=(size_t) (p+q+2*closed_path+1);
     }
+  for ( ; i < (ssize_t) (p+q+closed_path); i++)
+  {
+    stroke_polygon[i]=polygon_primitive[0];
+    stroke_polygon[i].point=stroke_q[p+q+closed_path-(i+1)];
+  }
+  if (closed_path != MagickFalse)
+    {
+      stroke_polygon[i]=polygon_primitive[0];
+      stroke_polygon[i].point=stroke_polygon[p+closed_path].point;
+      i++;
+    }
+  stroke_polygon[i]=polygon_primitive[0];
+  stroke_polygon[i].point=stroke_polygon[0].point;
+  i++;
+  stroke_polygon[i].primitive=UndefinedPrimitive;
+  stroke_polygon[0].coordinates=(size_t) (p+q+2*closed_path+1);
   stroke_p=(PointInfo *) RelinquishMagickMemory(stroke_p);
   stroke_q=(PointInfo *) RelinquishMagickMemory(stroke_q);
   polygon_primitive=(PrimitiveInfo *) RelinquishMagickMemory(polygon_primitive);

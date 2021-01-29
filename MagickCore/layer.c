@@ -16,7 +16,7 @@
 %                               January 2006                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -109,10 +109,10 @@ static void ClearBounds(Image *image,RectangleInfo *bounds,
     (void) SetImageAlphaChannel(image,OpaqueAlphaChannel,exception);
   for (y=0; y < (ssize_t) bounds->height; y++)
   {
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     q=GetAuthenticPixels(image,bounds->x,bounds->y+y,bounds->width,1,exception);
@@ -165,11 +165,11 @@ static void ClearBounds(Image *image,RectangleInfo *bounds,
 static MagickBooleanType IsBoundsCleared(const Image *image1,
   const Image *image2,RectangleInfo *bounds,ExceptionInfo *exception)
 {
-  register const Quantum
+  const Quantum
     *p,
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -233,7 +233,7 @@ MagickExport Image *CoalesceImages(const Image *image,ExceptionInfo *exception)
     *dispose_image,
     *previous;
 
-  register Image
+  Image
     *next;
 
   RectangleInfo
@@ -289,6 +289,9 @@ MagickExport Image *CoalesceImages(const Image *image,ExceptionInfo *exception)
   next=GetNextImageInList(next);
   for ( ; next != (Image *) NULL; next=GetNextImageInList(next))
   {
+    const char
+      *attribute;
+
     /*
       Determine the bounds that was overlaid in the previous image.
     */
@@ -337,9 +340,16 @@ MagickExport Image *CoalesceImages(const Image *image,ExceptionInfo *exception)
     previous=coalesce_image;
     coalesce_image=GetNextImageInList(coalesce_image);
     coalesce_image->background_color.alpha_trait=BlendPixelTrait;
-    (void) CompositeImage(coalesce_image,next,
-      next->alpha_trait != UndefinedPixelTrait ? OverCompositeOp : CopyCompositeOp,
-      MagickTrue,next->page.x,next->page.y,exception);
+    attribute=GetImageProperty(next,"webp:mux-blend",exception);
+    if (attribute == (const char *) NULL)
+      (void) CompositeImage(coalesce_image,next,
+        next->alpha_trait != UndefinedPixelTrait ? OverCompositeOp :
+        CopyCompositeOp,MagickTrue,next->page.x,next->page.y,exception);
+    else
+      (void) CompositeImage(coalesce_image,next,
+        LocaleCompare(attribute,"AtopBackgroundAlphaBlend") == 0 ?
+        OverCompositeOp : CopyCompositeOp,MagickTrue,next->page.x,next->page.y,
+        exception);
     (void) CloneImageProfiles(coalesce_image,next);
     (void) CloneImageProperties(coalesce_image,next);
     (void) CloneImageArtifacts(coalesce_image,next);
@@ -392,7 +402,7 @@ MagickExport Image *DisposeImages(const Image *images,ExceptionInfo *exception)
   RectangleInfo
     bounds;
 
-  register Image
+  Image
     *image,
     *next;
 
@@ -542,8 +552,7 @@ static MagickBooleanType ComparePixels(const LayerMethod method,
     Any change in pixel values
   */
   if (method == CompareAnyLayer)
-    return((MagickBooleanType)(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse));
-
+    return(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse ? MagickTrue : MagickFalse);
   o1 = (p->alpha_trait != UndefinedPixelTrait) ? p->alpha : OpaqueAlpha;
   o2 = (q->alpha_trait != UndefinedPixelTrait) ? q->alpha : OpaqueAlpha;
   /*
@@ -559,7 +568,8 @@ static MagickBooleanType ComparePixels(const LayerMethod method,
     {
       if (o2 < ((double) QuantumRange/2.0))
         return MagickFalse;
-      return((MagickBooleanType) (IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse));
+      return(IsFuzzyEquivalencePixelInfo(p,q) == MagickFalse ? MagickTrue :
+        MagickFalse);
     }
   return(MagickFalse);
 }
@@ -609,11 +619,11 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     pixel1,
     pixel2;
 
-  register const Quantum
+  const Quantum
     *p,
     *q;
 
-  register ssize_t
+  ssize_t
     x;
 
   ssize_t
@@ -634,7 +644,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -664,7 +674,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -683,7 +693,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -702,7 +712,7 @@ static RectangleInfo CompareImagesBounds(const Image *image1,
     {
       GetPixelInfoPixel(image1,p,&pixel1);
       GetPixelInfoPixel(image2,q,&pixel2);
-      if (ComparePixels(method,&pixel1,&pixel2))
+      if (ComparePixels(method,&pixel1,&pixel2) != MagickFalse)
         break;
       p+=GetPixelChannels(image1);
       q+=GetPixelChannels(image2);
@@ -763,10 +773,10 @@ MagickExport Image *CompareImagesLayers(const Image *image,
   RectangleInfo
     *bounds;
 
-  register const Image
+  const Image
     *next;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(image != (const Image *) NULL);
@@ -951,10 +961,10 @@ static Image *OptimizeLayerFrames(const Image *image,const LayerMethod method,
   DisposeType
     *disposals;
 
-  register const Image
+  const Image
     *curr;
 
-  register ssize_t
+  ssize_t
     i;
 
   assert(image != (const Image *) NULL);
@@ -1342,11 +1352,13 @@ static Image *OptimizeLayerFrames(const Image *image,const LayerMethod method,
     if ( disposals[i] == DelDispose ) {
       size_t time = 0;
       while ( disposals[i] == DelDispose ) {
-        time += curr->delay*1000/curr->ticks_per_second;
+        time +=(size_t) (curr->delay*1000*
+          PerceptibleReciprocal((double) curr->ticks_per_second));
         curr=GetNextImageInList(curr);
         i++;
       }
-      time += curr->delay*1000/curr->ticks_per_second;
+      time += (size_t)(curr->delay*1000*
+        PerceptibleReciprocal((double) curr->ticks_per_second));
       prev_image->ticks_per_second = 100L;
       prev_image->delay = time*prev_image->ticks_per_second/1000;
     }
@@ -1479,7 +1491,7 @@ MagickExport void OptimizeImageTransparency(const Image *image,
   Image
     *dispose_image;
 
-  register Image
+  Image
     *next;
 
   /*
@@ -1607,7 +1619,7 @@ MagickExport void RemoveDuplicateLayers(Image **images,ExceptionInfo *exception)
   RectangleInfo
     bounds;
 
-  register Image
+  Image
     *image,
     *next;
 
@@ -1633,8 +1645,10 @@ MagickExport void RemoveDuplicateLayers(Image **images,ExceptionInfo *exception)
         size_t
           time;
 
-        time=1000*image->delay*PerceptibleReciprocal(image->ticks_per_second);
-        time+=1000*next->delay*PerceptibleReciprocal(next->ticks_per_second);
+        time=(size_t) (1000.0*image->delay*
+          PerceptibleReciprocal((double) image->ticks_per_second));
+        time+=(size_t) (1000.0*next->delay*
+          PerceptibleReciprocal((double) next->ticks_per_second));
         next->ticks_per_second=100L;
         next->delay=time*image->ticks_per_second/1000;
         next->iterations=image->iterations;
@@ -1935,7 +1949,7 @@ MagickExport Image *MergeImageLayers(Image *image,const LayerMethod method,
   RectangleInfo
     page;
 
-  register const Image
+  const Image
     *next;
 
   size_t

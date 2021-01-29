@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -123,7 +123,12 @@ static Image *ReadLABELImage(const ImageInfo *image_info,
   image=AcquireImage(image_info,exception);
   (void) ResetImagePage(image,"0x0+0+0");
   if ((image->columns != 0) && (image->rows != 0))
-    (void) SetImageBackgroundColor(image,exception);
+    {
+      status=SetImageExtent(image,image->columns,image->rows,exception);
+      if (status == MagickFalse)
+        return(DestroyImageList(image));
+      (void) SetImageBackgroundColor(image,exception);
+    }
   label=InterpretImageProperties((ImageInfo *) image_info,image,
     image_info->filename,exception);
   if (label == (char *) NULL)

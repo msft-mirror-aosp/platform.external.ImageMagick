@@ -17,7 +17,7 @@
 %                                 March 2000                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -628,7 +628,7 @@ static MagickCLEnv AcquireMagickCLEnv(void)
     clEnv->cpu_score=MAGICKCORE_OPENCL_UNDEFINED_SCORE;
     clEnv->enabled=MagickTrue;
     option=getenv("MAGICK_OCL_DEVICE");
-    if ((option != (const char *) NULL) && (strcmp(option,"OFF") == 0))
+    if (IsStringFalse(option) != MagickFalse)
       clEnv->enabled=MagickFalse;
   }
   return clEnv;
@@ -806,7 +806,7 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
         /*
           Device element.
         */
-        device_benchmark=(MagickCLDeviceBenchmark *) AcquireMagickMemory(
+        device_benchmark=(MagickCLDeviceBenchmark *) AcquireQuantumMemory(1,
           sizeof(*device_benchmark));
         if (device_benchmark == (MagickCLDeviceBenchmark *) NULL)
           break;
@@ -985,7 +985,7 @@ static void AutoSelectOpenCLDevices(MagickCLEnv clEnv)
         SelectOpenCLDevice(clEnv,CL_DEVICE_TYPE_GPU);
       else if (strcmp(option,"CPU") == 0)
         SelectOpenCLDevice(clEnv,CL_DEVICE_TYPE_CPU);
-      else if (strcmp(option,"OFF") == 0)
+      else if (IsStringFalse(option) != MagickFalse)
         {
           for (i = 0; i < clEnv->number_devices; i++)
             clEnv->devices[i]->enabled=MagickFalse;
@@ -1289,7 +1289,7 @@ static void CacheOpenCLKernel(MagickCLDevice device,char *filename,
     CL_PROGRAM_BINARY_SIZES,sizeof(size_t),&binaryProgramSize,NULL);
   if (status != CL_SUCCESS)
     return;
-  binaryProgram=(unsigned char*) AcquireMagickMemory(binaryProgramSize);
+  binaryProgram=(unsigned char*) AcquireQuantumMemory(1,binaryProgramSize);
   if (binaryProgram == (unsigned char *) NULL)
     {
       (void) ThrowMagickException(exception,GetMagickModule(),
@@ -1436,7 +1436,7 @@ static cl_event* CopyOpenCLEvents(MagickCLCacheInfo first,
   cl_event
     *events;
 
-  register size_t
+  size_t
     i;
 
   size_t
@@ -1602,8 +1602,8 @@ MagickPrivate void DumpOpenCLProfileData()
 
       profile=device->profile_records[j];
       strcpy(indent,"                    ");
-      strncpy(indent,profile->kernel_name,MagickMin(strlen(
-        profile->kernel_name),strlen(indent)-1));
+      CopyMagickString(indent,profile->kernel_name,MagickMin(strlen(
+        profile->kernel_name),strlen(indent)));
       sprintf(buf,"%s %7d %7d %7d %7d",indent,(int) (profile->total/
         profile->count),(int) profile->count,(int) profile->min,
         (int) profile->max);
@@ -2176,7 +2176,7 @@ static MagickBooleanType HasOpenCLDevices(MagickCLEnv clEnv,
     (unsigned int)MAGICKCORE_QUANTUM_DEPTH);
 
   signature=StringSignature(options);
-  accelerateKernelsBuffer=(char*) AcquireMagickMemory(
+  accelerateKernelsBuffer=(char*) AcquireQuantumMemory(1,
     strlen(accelerateKernels)+strlen(accelerateKernels2)+1);
   if (accelerateKernelsBuffer == (char*) NULL)
     return(MagickFalse);
@@ -2287,7 +2287,7 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
     return;
   if (number_platforms == 0)
     return;
-  platforms=(cl_platform_id *) AcquireMagickMemory(number_platforms*
+  platforms=(cl_platform_id *) AcquireQuantumMemory(1,number_platforms*
     sizeof(cl_platform_id));
   if (platforms == (cl_platform_id *) NULL)
     return;
@@ -2408,7 +2408,7 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
 
       clEnv->devices[next]=device;
       (void) LogMagickEvent(AccelerateEvent,GetMagickModule(),
-        "Found device: %s",device->name);
+        "Found device: %s (%s)",device->name,device->platform_name);
     }
   }
   if (next != clEnv->number_devices)
@@ -2774,7 +2774,7 @@ MagickPrivate MagickBooleanType RecordProfileData(MagickCLDevice device,
       profile_record=AcquireCriticalMemory(sizeof(*profile_record));
       (void) memset(profile_record,0,sizeof(*profile_record));
       profile_record->kernel_name=name;
-      device->profile_records=ResizeMagickMemory(device->profile_records,(i+2)*
+      device->profile_records=ResizeQuantumMemory(device->profile_records,(i+2),
         sizeof(*device->profile_records));
       if (device->profile_records == (KernelProfileRecord *) NULL)
         ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -281,19 +281,23 @@ MagickExport Image *AcquireImage(const ImageInfo *image_info,
       flags=ParseGeometry(option,&geometry_info);
       if ((flags & GreaterValue) != 0)
         {
-          if (image->delay > (size_t) floor(geometry_info.rho+0.5))
-            image->delay=(size_t) floor(geometry_info.rho+0.5);
+          if ((double) image->delay > floor(geometry_info.rho+0.5))
+            image->delay=(size_t) CastDoubleToLong(floor(
+              geometry_info.rho+0.5));
         }
       else
         if ((flags & LessValue) != 0)
           {
-            if (image->delay < (size_t) floor(geometry_info.rho+0.5))
-              image->ticks_per_second=(ssize_t) floor(geometry_info.sigma+0.5);
+            if ((double) image->delay < floor(geometry_info.rho+0.5))
+              image->ticks_per_second=CastDoubleToLong(floor(
+                geometry_info.sigma+0.5));
           }
         else
-          image->delay=(size_t) floor(geometry_info.rho+0.5);
+          image->delay=(size_t) CastDoubleToLong(floor(
+            geometry_info.rho+0.5));
       if ((flags & SigmaValue) != 0)
-        image->ticks_per_second=(ssize_t) floor(geometry_info.sigma+0.5);
+        image->ticks_per_second=CastDoubleToLong(floor(
+          geometry_info.sigma+0.5));
     }
   option=GetImageOption(image_info,"dispose");
   if (option != (const char *) NULL)
@@ -442,7 +446,7 @@ MagickExport Image *AppendImages(const Image *images,
   RectangleInfo
     geometry;
 
-  register const Image
+  const Image
     *next;
 
   size_t
@@ -541,13 +545,13 @@ MagickExport Image *AppendImages(const Image *images,
       PixelInfo
         pixel;
 
-      register const Quantum
+      const Quantum
         *magick_restrict p;
 
-      register Quantum
+      Quantum
         *magick_restrict q;
 
-      register ssize_t
+      ssize_t
         x;
 
       if (status == MagickFalse)
@@ -728,6 +732,7 @@ MagickExport MagickBooleanType ClipImagePath(Image *image,const char *pathname,
   (void) FormatLocaleString(clip_mask->magick_filename,MagickPathExtent,
     "8BIM:1999,2998:%s\nPS",pathname);
   (void) SetImageMask(image,WritePixelMask,clip_mask,exception);
+  image->mask_trait=UpdatePixelTrait;
   clip_mask=DestroyImage(clip_mask);
   return(MagickTrue);
 }
@@ -876,15 +881,19 @@ MagickExport Image *CloneImage(const Image *image,const size_t columns,
   scale=1.0;
   if (image->columns != 0)
     scale=(double) columns/(double) image->columns;
-  clone_image->page.width=(size_t) floor(scale*image->page.width+0.5);
-  clone_image->page.x=(ssize_t) ceil(scale*image->page.x-0.5);
-  clone_image->tile_offset.x=(ssize_t) ceil(scale*image->tile_offset.x-0.5);
+  clone_image->page.width=(size_t) CastDoubleToLong(floor(scale*
+    image->page.width+0.5));
+  clone_image->page.x=CastDoubleToLong(ceil(scale*image->page.x-0.5));
+  clone_image->tile_offset.x=CastDoubleToLong(ceil(scale*
+    image->tile_offset.x-0.5));
   scale=1.0;
   if (image->rows != 0)
     scale=(double) rows/(double) image->rows;
-  clone_image->page.height=(size_t) floor(scale*image->page.height+0.5);
-  clone_image->page.y=(ssize_t) ceil(scale*image->page.y-0.5);
-  clone_image->tile_offset.y=(ssize_t) ceil(scale*image->tile_offset.y-0.5);
+  clone_image->page.height=(size_t) CastDoubleToLong(floor(scale*
+    image->page.height+0.5));
+  clone_image->page.y=CastDoubleToLong(ceil(scale*image->page.y-0.5));
+  clone_image->tile_offset.y=CastDoubleToLong(ceil(scale*
+    image->tile_offset.y-0.5));
   clone_image->cache=ClonePixelCache(image->cache);
   if (SetImageExtent(clone_image,columns,rows,exception) == MagickFalse)
     clone_image=DestroyImage(clone_image);
@@ -1072,13 +1081,13 @@ MagickExport MagickBooleanType CopyImagePixels(Image *image,
     MagickBooleanType
       sync;
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register ssize_t
+    ssize_t
       x;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1094,7 +1103,7 @@ MagickExport MagickBooleanType CopyImagePixels(Image *image,
       }
     for (x=0; x < (ssize_t) geometry->width; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1467,13 +1476,13 @@ MagickExport Image *GetImageMask(const Image *image,const PixelMask type,
   mask_view=AcquireAuthenticCacheView(mask_image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1637,7 +1646,7 @@ MagickExport size_t InterpretImageFilename(const ImageInfo *image_info,
   MagickBooleanType
     canonical;
 
-  register const char
+  const char
     *p;
 
   ssize_t
@@ -1686,10 +1695,10 @@ MagickExport size_t InterpretImageFilename(const ImageInfo *image_info,
         const char
           *option;
 
-        register char
+        char
           *r;
 
-        register ssize_t
+        ssize_t
           i;
 
         ssize_t
@@ -1808,10 +1817,10 @@ MagickExport MagickBooleanType IsHighDynamicRangeImage(const Image *image,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *p;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1824,7 +1833,7 @@ MagickExport MagickBooleanType IsHighDynamicRangeImage(const Image *image,
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1880,7 +1889,7 @@ MagickExport MagickBooleanType IsHighDynamicRangeImage(const Image *image,
 */
 MagickExport MagickBooleanType IsImageObject(const Image *image)
 {
-  register const Image
+  const Image
     *p;
 
   assert(image != (Image *) NULL);
@@ -1921,7 +1930,7 @@ MagickExport MagickBooleanType IsTaintImage(const Image *image)
     magick[MagickPathExtent],
     filename[MagickPathExtent];
 
-  register const Image
+  const Image
     *p;
 
   assert(image != (Image *) NULL);
@@ -2058,10 +2067,10 @@ MagickExport Image *NewMagickImage(const ImageInfo *image_info,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2258,10 +2267,10 @@ MagickExport MagickBooleanType ResetImagePixels(Image *image,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2337,10 +2346,10 @@ MagickExport MagickBooleanType SetImageAlpha(Image *image,const Quantum alpha,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2423,10 +2432,10 @@ MagickExport MagickBooleanType SetImageBackgroundColor(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2537,10 +2546,10 @@ MagickExport MagickBooleanType SetImageColor(Image *image,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2715,7 +2724,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  register const char
+  const char
     *p;
 
   ssize_t
@@ -2803,7 +2812,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
       MagickFormatType
         format_type;
 
-      register ssize_t
+      ssize_t
         i;
 
       static const char
@@ -2961,6 +2970,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
           (void) CloseBlob(image);
           if (status == MagickFalse)
             {
+              (void) RelinquishUniqueFileResource(component);
               image=DestroyImage(image);
               return(MagickFalse);
             }
@@ -2969,6 +2979,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
           status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);
           if (status == MagickFalse)
             {
+              (void) RelinquishUniqueFileResource(component);
               image=DestroyImage(image);
               return(MagickFalse);
             }
@@ -2976,7 +2987,7 @@ MagickExport MagickBooleanType SetImageInfo(ImageInfo *image_info,
             MagickPathExtent);
           image_info->temporary=MagickTrue;
         }
-      magick=(unsigned char *) AcquireMagickMemory(magick_size);
+      magick=(unsigned char *) AcquireQuantumMemory(1,magick_size);
       if (magick == (unsigned char *) NULL)
         {
           (void) CloseBlob(image);
@@ -3237,13 +3248,13 @@ MagickExport MagickBooleanType SetImageMask(Image *image,const PixelMask type,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -3393,10 +3404,10 @@ MagickExport MagickBooleanType SetImageRegionMask(Image *image,
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -3533,10 +3544,10 @@ static ssize_t SmushXGap(const Image *smush_image,const Image *images,
     left_geometry,
     right_geometry;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     y;
 
@@ -3604,10 +3615,10 @@ static ssize_t SmushYGap(const Image *smush_image,const Image *images,
     bottom_geometry,
     top_geometry;
 
-  register const Quantum
+  const Quantum
     *p;
 
-  register ssize_t
+  ssize_t
     i,
     x;
 
@@ -3684,7 +3695,7 @@ MagickExport Image *SmushImages(const Image *images,
   RectangleInfo
     geometry;
 
-  register const Image
+  const Image
     *next;
 
   size_t
@@ -3899,10 +3910,10 @@ MagickExport MagickBooleanType SyncImage(Image *image,ExceptionInfo *exception)
     Quantum
       index;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)

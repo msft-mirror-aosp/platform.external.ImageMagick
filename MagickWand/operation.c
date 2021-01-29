@@ -17,7 +17,7 @@
 %                               September 2011                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -40,6 +40,9 @@
 % The final goal is to allow the execution in a strict one option at a time
 % manner that is needed for 'pipelining and file scripting' of options in
 % IMv7.
+%
+% This the modern command-line parser as opposed to mogrify.c which embeds the
+% legacy parser.
 %
 % Anthony Thyssen, September 2011
 */
@@ -101,7 +104,7 @@ static MagickBooleanType MonitorProgress(const char *text,
   const char
     *locale_message;
 
-  register char
+  char
     *p;
 
   magick_unreferenced(client_data);
@@ -198,7 +201,7 @@ static Image *SparseColorOption(const Image *image,
   MagickBooleanType
     error;
 
-  register size_t
+  size_t
     x;
 
   size_t
@@ -906,15 +909,6 @@ WandPrivate void CLISettingOptionInfo(MagickCLI *cli_wand,
         }
       if (LocaleCompare("format",option+1) == 0)
         {
-          /* FUTURE: why the ping test, you could set ping after this! */
-          /*
-          register const char
-            *q;
-
-          for (q=strchr(arg1,'%'); q != (char *) NULL; q=strchr(q+1,'%'))
-            if (strchr("Agkrz@[#",*(q+1)) != (char *) NULL)
-              _image_info->ping=MagickFalse;
-          */
           (void) SetImageOption(_image_info,option+1,ArgOption(NULL));
           break;
         }
@@ -1223,7 +1217,7 @@ WandPrivate void CLISettingOptionInfo(MagickCLI *cli_wand,
         }
       if (LocaleCompare("ping",option+1) == 0)
         {
-          _image_info->ping = ArgBoolean;
+          _image_info->ping=ArgBoolean;
           break;
         }
       if (LocaleCompare("pointsize",option+1) == 0)
@@ -1837,6 +1831,24 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
     }
     case 'b':
     {
+      if (LocaleCompare("bilateral-blur",option+1) == 0)
+        {
+          flags=ParseGeometry(arg1,&geometry_info);
+          if ((flags & (RhoValue|SigmaValue)) == 0)
+            CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,arg1);
+          if ((flags & SigmaValue) == 0)
+            geometry_info.sigma=geometry_info.rho;
+          if ((flags & XiValue) == 0)
+            geometry_info.xi=1.0*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.sigma*geometry_info.sigma);
+          if ((flags & PsiValue) == 0)
+            geometry_info.psi=0.25*sqrt(geometry_info.rho*geometry_info.rho+
+              geometry_info.sigma*geometry_info.sigma);
+          new_image=BilateralBlurImage(_image,(size_t) geometry_info.rho,
+            (size_t) geometry_info.sigma,geometry_info.xi,geometry_info.psi,
+           _exception);
+          break;
+        }
       if (LocaleCompare("black-threshold",option+1) == 0)
         {
           if (IsGeometry(arg1) == MagickFalse)
@@ -2143,7 +2155,7 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
           KernelInfo
             *kernel_info;
 
-          register ssize_t
+          ssize_t
             j;
 
           kernel_info=AcquireKernelInfo(arg1,exception);
@@ -2353,6 +2365,18 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
     }
     case 'f':
     {
+      if (LocaleCompare("features",option+1) == 0)
+        {
+          CLIWandWarnReplaced("-version -define identify:features=");
+          if (*option == '+')
+            {
+              (void) DeleteImageArtifact(_image,"identify:features");
+              break;
+            }
+          (void) SetImageArtifact(_image,"identify:features",arg1);
+          (void) SetImageArtifact(_image,"verbose","true");
+          break;
+        }
       if (LocaleCompare("flip",option+1) == 0)
         {
           new_image=FlipImage(_image,_exception);
@@ -3640,6 +3664,11 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
             geometry_info.sigma,_exception);
           break;
         }
+      if (LocaleCompare("white-balance",option+1) == 0)
+        {
+          (void) WhiteBalanceImage(_image,_exception);
+          break;
+        }
       if (LocaleCompare("white-threshold",option+1) == 0)
         {
           if (IsGeometry(arg1) == MagickFalse)
@@ -4094,8 +4123,8 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
     {
       if (LocaleCompare("deconstruct",option+1) == 0)
         {
-          CLIWandWarnReplaced("-layer CompareAny");
-          (void) CLIListOperatorImages(cli_wand,"-layer","CompareAny",NULL);
+          CLIWandWarnReplaced("-layers CompareAny");
+          (void) CLIListOperatorImages(cli_wand,"-layers","CompareAny",NULL);
           break;
         }
       if (LocaleCompare("delete",option+1) == 0)

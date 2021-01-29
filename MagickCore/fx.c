@@ -18,7 +18,7 @@
 %                                                                             %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -186,7 +186,7 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
   FxInfo
     *fx_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   unsigned char
@@ -295,7 +295,7 @@ MagickPrivate FxInfo *AcquireFxInfo(const Image *images,const char *expression,
 */
 MagickPrivate FxInfo *DestroyFxInfo(FxInfo *fx_info)
 {
-  register ssize_t
+  ssize_t
     i;
 
   fx_info->exception=DestroyExceptionInfo(fx_info->exception);
@@ -365,7 +365,7 @@ static inline MagickBooleanType SetFxSymbolValue(
       *object=value;
       return(MagickTrue);
     }
-  object=(double *) AcquireQuantumMemory(1,sizeof(*object));
+  object=(double *) AcquireMagickMemory(sizeof(*object));
   if (object == (double *) NULL)
     {
       (void) ThrowMagickException(fx_info->exception,GetMagickModule(),
@@ -392,7 +392,7 @@ static double FxChannelStatistics(FxInfo *fx_info,Image *image,
   double
     statistic;
 
-  register const char
+  const char
     *p;
 
   channel_mask=UndefinedChannel;
@@ -455,6 +455,14 @@ static double FxChannelStatistics(FxInfo *fx_info,Image *image,
       (void) GetImageMean(image,&mean,&standard_deviation,exception);
       statistic=mean;
     }
+  if (LocaleNCompare(symbol,"median",6) == 0)
+    {
+      double
+        median;
+
+      (void) GetImageMedian(image,&median,exception);
+      statistic=median;
+    }
   if (LocaleNCompare(symbol,"minima",6) == 0)
     {
       double
@@ -499,7 +507,7 @@ static inline MagickBooleanType IsFxFunction(const char *expression,
   int
     c;
 
-  register size_t
+  size_t
     i;
 
   for (i=0; i <= length; i++)
@@ -507,16 +515,18 @@ static inline MagickBooleanType IsFxFunction(const char *expression,
       return(MagickFalse);
   c=expression[length];
   if ((LocaleNCompare(expression,name,length) == 0) &&
-      ((isspace(c) == 0) || (c == '(')))
+      ((isspace((int) ((unsigned char) c)) == 0) || (c == '(')))
     return(MagickTrue);
   return(MagickFalse);
 }
 
-static MagickOffsetType FxGCD(MagickOffsetType alpha,MagickOffsetType beta)
+static inline double FxGCD(const double alpha,const double beta)
 {
-  if (beta != 0)
-    return(FxGCD(beta,alpha % beta));
-  return(alpha);
+  if (alpha < beta) 
+    return(FxGCD(beta,alpha)); 
+  if (fabs(beta) < 0.001) 
+    return(alpha); 
+  return(FxGCD(beta,alpha-beta*floor(alpha/beta))); 
 }
 
 static inline const char *FxSubexpression(const char *expression,
@@ -525,7 +535,7 @@ static inline const char *FxSubexpression(const char *expression,
   const char
     *subexpression;
 
-  register ssize_t
+  ssize_t
     level;
 
   level=0;
@@ -555,6 +565,7 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
     symbol[MagickPathExtent];
 
   const char
+    *artifact,
     *p;
 
   const double
@@ -576,7 +587,7 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
   PointInfo
     point;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -1040,6 +1051,8 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
         return(FxChannelStatistics(fx_info,image,channel,symbol,exception));
       if (LocaleNCompare(symbol,"mean",4) == 0)
         return(FxChannelStatistics(fx_info,image,channel,symbol,exception));
+      if (LocaleNCompare(symbol,"median",6) == 0)
+        return(FxChannelStatistics(fx_info,image,channel,symbol,exception));
       if (LocaleNCompare(symbol,"minima",6) == 0)
         return(FxChannelStatistics(fx_info,image,channel,symbol,exception));
       if (LocaleCompare(symbol,"m") == 0)
@@ -1149,6 +1162,9 @@ static double FxGetSymbol(FxInfo *fx_info,const PixelChannel channel,
   value=GetFxSymbolValue(fx_info,symbol);
   if (value != (const double *) NULL)
     return(*value);
+  artifact=GetImageArtifact(image,symbol);
+  if (artifact != (const char *) NULL)
+    return(StringToDouble(artifact,(char **) NULL));
   (void) ThrowMagickException(exception,GetMagickModule(),OptionError,
     "UndefinedVariable","`%s'",symbol);
   (void) SetFxSymbolValue(fx_info,symbol,0.0);
@@ -1184,10 +1200,10 @@ static const char *FxOperatorPrecedence(const char *expression,
     precedence,
     target;
 
-  register const char
+  const char
     *subexpression;
 
-  register int
+  int
     c;
 
   size_t
@@ -1241,7 +1257,7 @@ static const char *FxOperatorPrecedence(const char *expression,
       case 'E':
       case 'e':
       {
-        if ((isdigit(c) != 0) &&
+        if ((isdigit((int) ((unsigned char) c)) != 0) &&
             ((LocaleNCompare(expression,"E+",2) == 0) ||
              (LocaleNCompare(expression,"E-",2) == 0)))
           {
@@ -1291,11 +1307,11 @@ static const char *FxOperatorPrecedence(const char *expression,
         }
         default:
         {
-          if (((c != 0) && ((isdigit(c) != 0) ||
+          if (((c != 0) && ((isdigit((int) ((unsigned char) c)) != 0) ||
                (strchr(")",c) != (char *) NULL))) &&
               (((islower((int) ((unsigned char) *expression)) != 0) ||
                (strchr("(",(int) ((unsigned char) *expression)) != (char *) NULL)) ||
-               ((isdigit(c) == 0) &&
+               ((isdigit((int) ((unsigned char) c)) == 0) &&
                 (isdigit((int) ((unsigned char) *expression)) != 0))) &&
               (strchr("xy",(int) ((unsigned char) *expression)) == (char *) NULL))
             precedence=MultiplyPrecedence;
@@ -1312,7 +1328,7 @@ static const char *FxOperatorPrecedence(const char *expression,
         case '-':
         {
           if ((strchr("(+-/*%:&^|<>~,",c) == (char *) NULL) ||
-              (isalpha(c) != 0))
+              (isalpha((int) ((unsigned char) c)) != 0))
             precedence=AdditionPrecedence;
           break;
         }
@@ -1471,7 +1487,7 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
     sans,
     value;
 
-  register const char
+  const char
     *p;
 
   *beta=0.0;
@@ -2263,14 +2279,13 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
         }
       if (IsFxFunction(expression,"gcd",3) != MagickFalse)
         {
-          MagickOffsetType
+          double
             gcd;
 
           alpha=FxEvaluateSubexpression(fx_info,channel,x,y,expression+3,
             depth+1,beta,exception);
-          gcd=FxGCD((MagickOffsetType) (alpha+0.5),(MagickOffsetType) (*beta+
-            0.5));
-          FxReturn((double) gcd);
+          gcd=FxGCD(alpha,*beta);
+          FxReturn(gcd);
         }
       if (LocaleCompare(expression,"g") == 0)
         FxReturn(FxGetSymbol(fx_info,channel,x,y,expression,depth+1,exception));
@@ -2724,7 +2739,7 @@ MagickPrivate MagickBooleanType FxEvaluateChannelExpression(FxInfo *fx_info,
 
 static FxInfo **DestroyFxThreadSet(FxInfo **fx_info)
 {
-  register ssize_t
+  ssize_t
     i;
 
   assert(fx_info != (FxInfo **) NULL);
@@ -2747,7 +2762,7 @@ static FxInfo **AcquireFxThreadSet(const Image *image,const char *expression,
   FxInfo
     **fx_info;
 
-  register ssize_t
+  ssize_t
     i;
 
   size_t
@@ -2845,13 +2860,13 @@ MagickExport Image *FxImage(const Image *image,const char *expression,
     const int
       id = GetOpenMPThreadId();
 
-    register const Quantum
+    const Quantum
       *magick_restrict p;
 
-    register Quantum
+    Quantum
       *magick_restrict q;
 
-    register ssize_t
+    ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2865,7 +2880,7 @@ MagickExport Image *FxImage(const Image *image,const char *expression,
       }
     for (x=0; x < (ssize_t) fx_image->columns; x++)
     {
-      register ssize_t
+      ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
