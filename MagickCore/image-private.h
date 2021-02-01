@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -49,6 +49,17 @@ extern "C" {
 #define TransparentColor  "#00000000"  /* transparent black */
 #define UndefinedCompressionQuality  0UL
 #define UndefinedTicksPerSecond  100L
+
+static inline ssize_t CastDoubleToLong(const double value)
+{
+  if (IsNaN(value) != 0)
+    return(0);
+  if (value > (double) LONG_MAX)
+    return((ssize_t) LONG_MAX);
+  if (value < (double) LONG_MIN)
+    return((ssize_t) LONG_MIN);
+  return((ssize_t) value);
+}
 
 static inline double DegreesToRadians(const double degrees)
 {
