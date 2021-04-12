@@ -2196,11 +2196,11 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
     error_info;
 
   png_bytep
-     ping_trans_alpha;
+     ping_trans_alpha = NULL;
 
   png_color_16p
-     ping_background,
-     ping_trans_color;
+     ping_background = (png_color_16p) NULL,
+     ping_trans_color = (png_color_16p) NULL;
 
   png_info
     *end_info,
@@ -3079,16 +3079,12 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
         ping_background->blue *= bkgd_scale;
 
         if (logging != MagickFalse)
-          {
-            if (logging != MagickFalse)
-              (void) LogMagickEvent(CoderEvent,GetMagickModule(),
-                 "    Reading PNG bKGD chunk, raw ping_background=(%d,%d,%d)\n"
-                 "    bkgd_scale=%d.  ping_background=(%d,%d,%d)",
-                 ping_background->red,ping_background->green,
-                 ping_background->blue,
-                 bkgd_scale,ping_background->red,
-                 ping_background->green,ping_background->blue);
-          }
+          (void) LogMagickEvent(CoderEvent,GetMagickModule(),
+              "    Reading PNG bKGD chunk, raw ping_background=(%d,%d,%d)\n"
+              "    bkgd_scale=%d.  ping_background=(%d,%d,%d)",
+              ping_background->red,ping_background->green,
+              ping_background->blue,bkgd_scale,ping_background->red,
+              ping_background->green,ping_background->blue);
 
         image->background_color.red=
             ScaleShortToQuantum(ping_background->red);
@@ -3110,7 +3106,8 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
     }
 #endif /* PNG_READ_bKGD_SUPPORTED */
 
-  if (png_get_valid(ping,ping_info,PNG_INFO_tRNS))
+  if ((png_get_valid(ping,ping_info,PNG_INFO_tRNS)) &&
+      (ping_trans_color != (png_color_16p) NULL))
     {
       /*
         Image has a tRNS chunk.
@@ -3826,8 +3823,10 @@ static Image *ReadOnePNGImage(MngInfo *mng_info,
               for (x=0; x < ping_num_trans; x++)
               {
                  image->colormap[x].alpha_trait=BlendPixelTrait;
-                 image->colormap[x].alpha =
-                   ScaleCharToQuantum((unsigned char)ping_trans_alpha[x]);
+                 image->colormap[x].alpha=OpaqueAlpha;
+                 if (ping_trans_alpha != (png_bytep) NULL)
+                   image->colormap[x].alpha=ScaleCharToQuantum(
+                     (unsigned char) ping_trans_alpha[x]);
               }
             }
 

@@ -192,7 +192,7 @@ static MagickBooleanType ConvertUsage(void)
       "  -deskew threshold    straighten an image\n"
       "  -despeckle           reduce the speckles within an image\n"
       "  -distort method args\n"
-      "                       distort images according to given method ad args\n"
+      "                       distort images according to given method and args\n"
       "  -draw string         annotate the image with a graphic primitive\n"
       "  -edge radius         apply a filter to detect edges in the image\n"
       "  -encipher filename   convert plain pixels to cipher pixels\n"
@@ -289,6 +289,7 @@ static MagickBooleanType ConvertUsage(void)
       "                       shadows\n"
       "  -sketch geometry     simulate a pencil sketch\n"
       "  -solarize threshold  negate all pixels above the threshold level\n"
+      "  -sort-pixels         sort each scanline in ascending order of intensity\n"
       "  -sparse-color method args\n"
       "                       fill in a image based on a few color points\n"
       "  -splice geometry     splice the background color into the image\n"
@@ -385,6 +386,7 @@ static MagickBooleanType ConvertUsage(void)
       "  -fuzz distance       colors within this distance are considered equal\n"
       "  -gravity type        horizontal and vertical text placement\n"
       "  -green-primary point chromaticity green primary point\n"
+      "  -illuminant type     reference illuminant\n"
       "  -intensity method    method to generate an intensity value from a pixel\n"
       "  -intent type         type of rendering intent when managing the image color\n"
       "  -interlace type      type of image interlacing scheme\n"
@@ -1820,6 +1822,23 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
           break;
         if (LocaleCompare("ift",option+1) == 0)
           break;
+        if (LocaleCompare("illuminant",option+1) == 0)
+          {
+            ssize_t
+              type;
+
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowConvertException(OptionError,"MissingArgument",option);
+            type=ParseCommandOption(MagickIlluminantOptions,MagickFalse,
+              argv[i]);
+            if (type < 0)
+              ThrowConvertException(OptionError,"UnrecognizedIlluminantMethod",
+                argv[i]);
+            break;
+          }
         if (LocaleCompare("implode",option+1) == 0)
           {
             if (*option == '+')
@@ -2864,6 +2883,8 @@ WandExport MagickBooleanType ConvertImageCommand(ImageInfo *image_info,
               ThrowConvertInvalidArgumentException(option,argv[i]);
             break;
           }
+        if (LocaleCompare("sort-pixels",option+1) == 0)
+          break;
         if (LocaleCompare("sparse-color",option+1) == 0)
           {
             ssize_t
