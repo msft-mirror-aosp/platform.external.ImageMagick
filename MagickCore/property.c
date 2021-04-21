@@ -1680,7 +1680,6 @@ static MagickBooleanType GetICCProperty(const Image *image,const char *property,
     *profile;
 
   magick_unreferenced(property);
-
   profile=GetImageProfile(image,"icc");
   if (profile == (StringInfo *) NULL)
     profile=GetImageProfile(image,"icm");
@@ -1964,8 +1963,8 @@ static char *TracePSClippath(const unsigned char *blob,size_t length)
         {
           y=(ssize_t) ReadPropertyMSBLong(&blob,&length);
           x=(ssize_t) ReadPropertyMSBLong(&blob,&length);
-          point[i].x=(double) x/4096/4096;
-          point[i].y=1.0-(double) y/4096/4096;
+          point[i].x=(double) x/4096.0/4096.0;
+          point[i].y=1.0-(double) y/4096.0/4096.0;
         }
         if (in_subpath == MagickFalse)
           {
@@ -2162,8 +2161,8 @@ static char *TraceSVGClippath(const unsigned char *blob,size_t length,
         {
           y=(ssize_t) ReadPropertyMSBLong(&blob,&length);
           x=(ssize_t) ReadPropertyMSBLong(&blob,&length);
-          point[i].x=(double) x*columns/4096/4096;
-          point[i].y=(double) y*rows/4096/4096;
+          point[i].x=(double) x*columns/4096.0/4096.0;
+          point[i].y=(double) y*rows/4096.0/4096.0;
         }
         if (in_subpath == MagickFalse)
           {
@@ -2616,14 +2615,18 @@ static const char *GetMagickPropertyLetter(ImageInfo *image_info,
     {
       WarnNoImageReturn("\"%%%c\"",letter);
       (void) FormatLocaleString(value,MagickPathExtent,"%.20g",
-        fabs(image->resolution.x) > MagickEpsilon ? image->resolution.x : 72.0);
+        fabs(image->resolution.x) > MagickEpsilon ? image->resolution.x :
+        image->units == PixelsPerCentimeterResolution ? DefaultResolution/2.54 :
+        DefaultResolution);
       break;
     }
     case 'y': /* Image vertical resolution (with units) */
     {
       WarnNoImageReturn("\"%%%c\"",letter);
       (void) FormatLocaleString(value,MagickPathExtent,"%.20g",
-        fabs(image->resolution.y) > MagickEpsilon ? image->resolution.y : 72.0);
+        fabs(image->resolution.y) > MagickEpsilon ? image->resolution.y :
+        image->units == PixelsPerCentimeterResolution ? DefaultResolution/2.54 :
+        DefaultResolution);
       break;
     }
     case 'z': /* Image depth as read in */
@@ -2890,7 +2893,7 @@ MagickExport const char *GetMagickProperty(ImageInfo *image_info,
         {
           WarnNoImageReturn("\"%%[%s]\"",property);
           image->colors=GetNumberColors(image,(FILE *) NULL,exception);
-          (void) FormatLocaleString(value,MaxTextExtent,"%.20g",(double)
+          (void) FormatLocaleString(value,MagickPathExtent,"%.20g",(double)
             image->colors);
           break;
         }
@@ -3189,7 +3192,7 @@ MagickExport const char *GetMagickProperty(ImageInfo *image_info,
                 page;
 
               (void) ParseAbsoluteGeometry(papersize,&page);
-              (void) FormatLocaleString(value,MaxTextExtent,"%.20gx%.20g",
+              (void) FormatLocaleString(value,MagickPathExtent,"%.20gx%.20g",
                 (double) page.width,(double) page.height);
             }
           break;
@@ -3519,7 +3522,7 @@ MagickExport char *InterpretImageProperties(ImageInfo *image_info,Image *image,
     { \
       extent+=length; \
       interpret_text=(char *) ResizeQuantumMemory(interpret_text,extent+ \
-        MaxTextExtent,sizeof(*interpret_text)); \
+        MagickPathExtent,sizeof(*interpret_text)); \
       if (interpret_text == (char *) NULL) \
         { \
           if (property_image != image) \
@@ -3539,7 +3542,7 @@ MagickExport char *InterpretImageProperties(ImageInfo *image_info,Image *image,
     { \
       extent+=length; \
       interpret_text=(char *) ResizeQuantumMemory(interpret_text,extent+ \
-        MaxTextExtent,sizeof(*interpret_text)); \
+        MagickPathExtent,sizeof(*interpret_text)); \
       if (interpret_text == (char *) NULL) \
         { \
           if (property_image != image) \
@@ -3560,7 +3563,7 @@ MagickExport char *InterpretImageProperties(ImageInfo *image_info,Image *image,
     { \
       extent+=length; \
       interpret_text=(char *) ResizeQuantumMemory(interpret_text,extent+ \
-        MaxTextExtent,sizeof(*interpret_text)); \
+        MagickPathExtent,sizeof(*interpret_text)); \
       if (interpret_text == (char *) NULL) \
         { \
           if (property_image != image) \
