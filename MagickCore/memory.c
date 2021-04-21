@@ -33,9 +33,36 @@
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  Segregate our memory requirements from any program that calls our API.  This
-%  should help reduce the risk of others changing our program state or causing
-%  memory corruption.
+%  We provide these memory allocators:
+%
+%    AcquireCriticalMemory(): allocate a small memory request with
+%      AcquireMagickMemory(), however, on fail throw a fatal exception and exit.
+%      Free the memory reserve with RelinquishMagickMemory().
+%    AcquireAlignedMemory(): allocate a small memory request that is aligned
+%      on a cache line.  On fail, return NULL for possible recovery.
+%      Free the memory reserve with RelinquishMagickMemory().
+%    AcquireMagickMemory()/ResizeMagickMemory(): allocate a small to medium
+%      memory request, typically with malloc()/realloc(). On fail, return NULL
+%      for possible recovery.  Free the memory reserve with
+%      RelinquishMagickMemory().
+%    AcquireQuantumMemory()/ResizeQuantumMemory(): allocate a small to medium
+%      memory request.  This is a secure memory allocator as it accepts two
+%      parameters, count and quantum, to ensure the request does not overflow.
+%      It also check to ensure the request does not exceed the maximum memory
+%      per the security policy.  Free the memory reserve with
+%      RelinquishMagickMemory().
+%    AcquireVirtualMemory(): allocate a large memory request either in heap,
+%      memory-mapped, or memory-mapped on disk depending on whether heap
+%      allocation fails or if the request exceeds the maximum memory policy.
+%      Free the memory reserve with RelinquishVirtualMemory().
+%    ResetMagickMemory(): fills the bytes of the memory area with a constant
+%      byte.
+%    
+%  In addition, we provide hooks for your own memory constructor/destructors.
+%  You can also utilize our internal custom allocator as follows: Segregate
+%  our memory requirements from any program that calls our API.  This should
+%  help reduce the risk of others changing our program state or causing memory
+%  corruption.
 %
 %  Our custom memory allocation manager implements a best-fit allocation policy
 %  using segregated free lists.  It uses a linear distribution of size classes
@@ -1035,7 +1062,7 @@ MagickExport size_t GetMaxMemoryRequest(void)
           value=DestroyString(value);
         }
     }
-  return(MagickMin(max_memory_request,LONG_MAX));
+  return(MagickMin(max_memory_request,MAGICK_SSIZE_MAX));
 }
 
 /*
@@ -1242,26 +1269,36 @@ MagickExport MemoryInfo *RelinquishVirtualMemory(MemoryInfo *memory_info)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  ResetMagickMemory() fills the first size bytes of the memory area pointed to
-%  by memory with the constant byte c.
+%  ResetMagickMemory() fills the first size bytes of the memory area pointed to %  by memory with the constant byte c.  We use a volatile pointer when
+%  updating the byte string.  Most compilers will avoid optimizing away access
+%  to a volatile pointer, even if the pointer appears to be unused after the
+%  call.
 %
 %  The format of the ResetMagickMemory method is:
 %
-%      void *ResetMagickMemory(void *memory,int byte,const size_t size)
+%      void *ResetMagickMemory(void *memory,int c,const size_t size)
 %
 %  A description of each parameter follows:
 %
 %    o memory: a pointer to a memory allocation.
 %
-%    o byte: set the memory to this value.
+%    o c: set the memory to this value.
 %
 %    o size: size of the memory to reset.
 %
 */
-MagickExport void *ResetMagickMemory(void *memory,int byte,const size_t size)
+MagickExport void *ResetMagickMemory(void *memory,int c,const size_t size)
 {
+  volatile unsigned char
+    *p = (volatile unsigned char *) memory;
+
+  size_t
+    n = size;
+
   assert(memory != (void *) NULL);
-  return(memset(memory,byte,size));
+  while (n-- != 0)
+  	*p++=(unsigned char) c;
+  return(memory);
 }
 
 /*

@@ -973,6 +973,12 @@ WandPrivate void CLISettingOptionInfo(MagickCLI *cli_wand,
     }
     case 'i':
     {
+      if (LocaleCompare("illuminant",option+1) == 0)
+        {
+          (void) SetImageOption(_image_info,"color:illuminant",
+            ArgOption(NULL));
+          break;
+        }
       if (LocaleCompare("intensity",option+1) == 0)
         {
           arg1 = ArgOption("undefined");
@@ -3429,17 +3435,22 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
           if (IsGeometry(arg1) == MagickFalse)
             CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,arg1);
           (void) SolarizeImage(_image,StringToDoubleInterval(arg1,(double)
-                 QuantumRange+1.0),_exception);
+             QuantumRange+1.0),_exception);
+          break;
+        }
+      if (LocaleCompare("sort-pixels",option+1) == 0)
+        {
+          (void) SortImagePixels(_image,_exception);
           break;
         }
       if (LocaleCompare("sparse-color",option+1) == 0)
         {
-          parse= ParseCommandOption(MagickSparseColorOptions,MagickFalse,arg1);
-          if ( parse < 0 )
+          parse=ParseCommandOption(MagickSparseColorOptions,MagickFalse,arg1);
+          if (parse < 0)
             CLIWandExceptArgBreak(OptionError,"UnrecognizedSparseColorMethod",
-                option,arg1);
+              option,arg1);
           new_image=SparseColorOption(_image,(SparseColorMethod)parse,arg2,
-               _exception);
+            _exception);
           break;
         }
       if (LocaleCompare("splice",option+1) == 0)
@@ -3608,8 +3619,8 @@ static MagickBooleanType CLISimpleOperatorImage(MagickCLI *cli_wand,
              three places!   ImageArtifact   ImageOption  _image_info->verbose
              Some how new images also get this artifact!
           */
-          (void) SetImageArtifact(_image,option+1,
-                           IfNormalOp ? "true" : "false" );
+          (void) SetImageArtifact(_image,option+1,IfNormalOp ? "true" :
+            "false" );
           break;
         }
       if (LocaleCompare("vignette",option+1) == 0)
@@ -4137,7 +4148,9 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
         }
       if (LocaleCompare("duplicate",option+1) == 0)
         {
-          if (IfNormalOp)
+          if (!IfNormalOp)
+            new_images=DuplicateImages(_images,1,"-1",_exception);
+          else
             {
               const char
                 *p;
@@ -4147,18 +4160,16 @@ WandPrivate MagickBooleanType CLIListOperatorImages(MagickCLI *cli_wand,
 
               if (IsGeometry(arg1) == MagickFalse)
                 CLIWandExceptArgBreak(OptionError,"InvalidArgument",option,
-                      arg1);
+                  arg1);
               number_duplicates=(size_t) StringToLong(arg1);
               p=strchr(arg1,',');
               if (p == (const char *) NULL)
                 new_images=DuplicateImages(_images,number_duplicates,"-1",
                   _exception);
               else
-                new_images=DuplicateImages(_images,number_duplicates,p,
+                new_images=DuplicateImages(_images,number_duplicates,p+1,
                   _exception);
             }
-          else
-            new_images=DuplicateImages(_images,1,"-1",_exception);
           AppendImageToList(&_images, new_images);
           new_images=(Image *) NULL;
           break;
