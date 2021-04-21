@@ -399,7 +399,7 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
     status;
 
   PixelInfo
-    target[3],
+    target[4],
     zero;
 
   RectangleInfo
@@ -433,8 +433,8 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
         *p,
         *q;
 
-      bounds.width=(ssize_t) image->columns;
-      bounds.height=(ssize_t) image->rows;
+      bounds.width=(size_t) image->columns;
+      bounds.height=(size_t) image->rows;
       bounds.x=0;
       bounds.y=0;
       edges=AcquireString(artifact);
@@ -471,6 +471,10 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
     exception);
   if (p != (const Quantum *) NULL)
     GetPixelInfoPixel(image,p,&target[2]);
+  p=GetCacheViewVirtualPixels(image_view,(ssize_t) image->columns-1,(ssize_t)
+    image->rows-1,1,1,exception);
+  if (p != (const Quantum *) NULL)
+    GetPixelInfoPixel(image,p,&target[3]);
   status=MagickTrue;
   GetPixelInfo(image,&zero);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -519,6 +523,13 @@ MagickExport RectangleInfo GetImageBoundingBox(const Image *image,
       if ((y > (ssize_t) bounding_box.height) &&
           (IsFuzzyEquivalencePixelInfo(&pixel,&target[2]) == MagickFalse))
         bounding_box.height=(size_t) y;
+      if ((x < (ssize_t) bounding_box.width) &&
+          (y > (ssize_t) bounding_box.height) &&
+          (IsFuzzyEquivalencePixelInfo(&pixel,&target[3]) == MagickFalse))
+        {
+          bounding_box.width=(size_t) x;
+          bounding_box.height=(size_t) y;
+        }
       p+=GetPixelChannels(image);
     }
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
@@ -644,6 +655,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
         gravity=WestGravity;
         edge_geometry.width=1;
         edge_geometry.height=0;
+        break;
       }
       case 1:
       {
@@ -652,6 +664,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
         gravity=EastGravity;
         edge_geometry.width=1;
         edge_geometry.height=0;
+        break;
       }
       case 2:
       {
@@ -659,6 +672,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
         gravity=NorthGravity;
         edge_geometry.width=0;
         edge_geometry.height=1;
+        break;
       }
       case 3:
       {
@@ -667,6 +681,7 @@ static PixelInfo GetEdgeBackgroundColor(const Image *image,
         gravity=SouthGravity;
         edge_geometry.width=0;
         edge_geometry.height=1;
+        break;
       }
     }
     GetPixelInfoPixel(image,p,background+i);
@@ -754,6 +769,7 @@ MagickExport PointInfo *GetImageConvexHull(const Image *image,
     status;
 
   MemoryInfo
+    *monotone_info,
     *vertices_info;
 
   PixelInfo
@@ -780,18 +796,19 @@ MagickExport PointInfo *GetImageConvexHull(const Image *image,
   *number_vertices=0;
   vertices_info=AcquireVirtualMemory(image->columns,image->rows*
     sizeof(*vertices));
-  monotone_chain=(PointInfo **) AcquireQuantumMemory(2*image->columns,2*
+  monotone_info=AcquireVirtualMemory(2*image->columns,2*
     image->rows*sizeof(*monotone_chain));
   if ((vertices_info == (MemoryInfo *) NULL) ||
-      (monotone_chain == (PointInfo **) NULL))
+      (monotone_info == (MemoryInfo *) NULL))
     {
-      if (monotone_chain != (PointInfo **) NULL)
-        monotone_chain=(PointInfo **) RelinquishMagickMemory(monotone_chain);
+      if (monotone_info != (MemoryInfo *) NULL)
+        monotone_info=(MemoryInfo *) RelinquishVirtualMemory(monotone_info);
       if (vertices_info != (MemoryInfo *) NULL)
         vertices_info=RelinquishVirtualMemory(vertices_info);
       return((PointInfo *) NULL);
     }
   vertices=(PointInfo *) GetVirtualMemoryBlob(vertices_info);
+  monotone_chain=(PointInfo **) GetVirtualMemoryBlob(monotone_info);
   image_view=AcquireVirtualCacheView(image,exception);
   background=GetEdgeBackgroundColor(image,image_view,exception);
   status=MagickTrue;
@@ -837,7 +854,7 @@ MagickExport PointInfo *GetImageConvexHull(const Image *image,
   if (convex_hull != (PointInfo *) NULL)
     for (n=0; n < *number_vertices; n++)
       convex_hull[n]=(*monotone_chain[n]);
-  monotone_chain=(PointInfo **) RelinquishMagickMemory(monotone_chain);
+  monotone_info=RelinquishVirtualMemory(monotone_info);
   vertices_info=RelinquishVirtualMemory(vertices_info);
   return(convex_hull);
 }
