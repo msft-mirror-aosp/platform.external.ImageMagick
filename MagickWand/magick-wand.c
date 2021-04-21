@@ -120,10 +120,7 @@ WandExport MagickWand *CloneMagickWand(const MagickWand *wand)
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  clone_wand=(MagickWand *) AcquireMagickMemory(sizeof(*clone_wand));
-  if (clone_wand == (MagickWand *) NULL)
-    ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
-      wand->name);
+  clone_wand=(MagickWand *) AcquireCriticalMemory(sizeof(*clone_wand));
   (void) memset(clone_wand,0,sizeof(*clone_wand));
   clone_wand->id=AcquireWandId();
   (void) FormatLocaleString(clone_wand->name,MagickPathExtent,"%s-%.20g",
@@ -419,8 +416,8 @@ WandExport char *MagickQueryConfigureOption(const char *option)
   value=(char *) NULL;
   if (number_options != 0)
     value=AcquireString(configure_info[0]->value);
-  configure_info=(const ConfigureInfo **)
-    RelinquishMagickMemory((void *) configure_info);
+  configure_info=(const ConfigureInfo **) RelinquishMagickMemory((void *)
+    configure_info);
   return(value);
 }
 
@@ -449,7 +446,6 @@ WandExport char *MagickQueryConfigureOption(const char *option)
 %    o pattern: Specifies a pointer to a text string containing a pattern.
 %
 %    o number_options:  Returns the number of configure options in the list.
-%
 %
 */
 WandExport char **MagickQueryConfigureOptions(const char *pattern,
@@ -702,7 +698,6 @@ WandExport double *MagickQueryMultilineFontMetrics(MagickWand *wand,
 %    o pattern: Specifies a pointer to a text string containing a pattern.
 %
 %    o number_fonts:  Returns the number of fonts in the list.
-%
 %
 */
 WandExport char **MagickQueryFonts(const char *pattern,
