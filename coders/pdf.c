@@ -368,36 +368,6 @@ static inline void CleanupPDFInfo(PDFInfo *pdf_info)
     pdf_info->profile=DestroyStringInfo(pdf_info->profile);
 }
 
-static char *SanitizeDelegateString(const char *source)
-{
-  char
-    *sanitize_source;
-
-  const char
-    *q;
-
-  char
-    *p;
-
-  static char
-#if defined(MAGICKCORE_WINDOWS_SUPPORT)
-    whitelist[] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
-      "$-_.+!;*(),{}|^~[]`\'><#%/?:@&=";
-#else
-    whitelist[] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
-      "$-_.+!;*(),{}|\\^~[]`\"><#%/?:@&=";
-#endif
-
-  sanitize_source=AcquireString(source);
-  p=sanitize_source;
-  q=sanitize_source+strlen(sanitize_source);
-  for (p+=strspn(p,whitelist); p != q; p+=strspn(p,whitelist))
-    *p='_';
-  return(sanitize_source);
-}
-
 static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
 {
   char
@@ -635,10 +605,10 @@ static Image *ReadPDFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       sanitize_passphrase=SanitizeDelegateString(option);
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
       (void) FormatLocaleString(passphrase,MagickPathExtent,
-        "\"-sPDFPassword=%s\" ",sanitize_passphrase);
+        "-sPDFPassword=\"%s\" ",sanitize_passphrase);
 #else
       (void) FormatLocaleString(passphrase,MagickPathExtent,
-        "'-sPDFPassword=%s' ",sanitize_passphrase);
+        "-sPDFPassword='%s' ",sanitize_passphrase);
 #endif
       sanitize_passphrase=DestroyString(sanitize_passphrase);
       (void) ConcatenateMagickString(options,passphrase,MagickPathExtent);
@@ -1249,9 +1219,8 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
     basename[MagickPathExtent],
     buffer[MagickPathExtent],
     *escape,
-    date[MagickPathExtent],
     **labels,
-    page_geometry[MagickPathExtent],
+    temp[MagickPathExtent],
     *url;
 
   CompressionType
@@ -1432,10 +1401,9 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
   if (LocaleCompare(image_info->magick,"PDFA") == 0)
     {
       char
-        create_date[MagickPathExtent],
-        modify_date[MagickPathExtent],
-        timestamp[MagickPathExtent],
-        xmp_profile[MagickPathExtent];
+        create_date[MagickTimeExtent],
+        modify_date[MagickTimeExtent],
+        timestamp[MagickTimeExtent];
 
       /*
         Write XMP object.
@@ -1449,15 +1417,15 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
       *modify_date='\0';
       value=GetImageProperty(image,"date:modify",exception);
       if (value != (const char *) NULL)
-        (void) CopyMagickString(modify_date,value,MagickPathExtent);
+        (void) CopyMagickString(modify_date,value,sizeof(modify_date));
       *create_date='\0';
       value=GetImageProperty(image,"date:create",exception);
       if (value != (const char *) NULL)
-        (void) CopyMagickString(create_date,value,MagickPathExtent);
-      (void) FormatMagickTime(GetMagickTime(),MagickPathExtent,timestamp);
+        (void) CopyMagickString(create_date,value,sizeof(create_date));
+      (void) FormatMagickTime(GetMagickTime(),sizeof(timestamp),timestamp);
       url=(char *) MagickAuthoritativeURL;
       escape=EscapeParenthesis(basename);
-      i=FormatLocaleString(xmp_profile,MagickPathExtent,XMPProfile,
+      i=FormatLocaleString(temp,MagickPathExtent,XMPProfile,
         XMPProfileMagick,modify_date,create_date,timestamp,url,escape,url);
       escape=DestroyString(escape);
       (void) FormatLocaleString(buffer,MagickPathExtent,"/Length %.20g\n",
@@ -1465,7 +1433,7 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
       (void) WriteBlobString(image,buffer);
       (void) WriteBlobString(image,"/Type /Metadata\n");
       (void) WriteBlobString(image,">>\nstream\n");
-      (void) WriteBlobString(image,xmp_profile);
+      (void) WriteBlobString(image,temp);
       (void) WriteBlobString(image,"\nendstream\n");
       (void) WriteBlobString(image,"endobj\n");
     }
@@ -1617,29 +1585,29 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
         resolution.y=(double) ((size_t) (100.0*2.54*resolution.y+0.5)/100.0);
       }
     SetGeometry(image,&geometry);
-    (void) FormatLocaleString(page_geometry,MagickPathExtent,"%.20gx%.20g",
+    (void) FormatLocaleString(temp,MagickPathExtent,"%.20gx%.20g",
       (double) image->columns,(double) image->rows);
     if (image_info->page != (char *) NULL)
-      (void) CopyMagickString(page_geometry,image_info->page,MagickPathExtent);
+      (void) CopyMagickString(temp,image_info->page,MagickPathExtent);
     else
       if ((image->page.width != 0) && (image->page.height != 0))
-        (void) FormatLocaleString(page_geometry,MagickPathExtent,
+        (void) FormatLocaleString(temp,MagickPathExtent,
           "%.20gx%.20g%+.20g%+.20g",(double) image->page.width,(double)
           image->page.height,(double) image->page.x,(double) image->page.y);
       else
         if ((image->gravity != UndefinedGravity) &&
             (LocaleCompare(image_info->magick,"PDF") == 0))
-          (void) CopyMagickString(page_geometry,PSPageGeometry,
+          (void) CopyMagickString(temp,PSPageGeometry,
             MagickPathExtent);
-    (void) ConcatenateMagickString(page_geometry,">",MagickPathExtent);
-    (void) ParseMetaGeometry(page_geometry,&geometry.x,&geometry.y,
+    (void) ConcatenateMagickString(temp,">",MagickPathExtent);
+    (void) ParseMetaGeometry(temp,&geometry.x,&geometry.y,
       &geometry.width,&geometry.height);
     scale.x=(double) (geometry.width*delta.x)/resolution.x;
     geometry.width=(size_t) floor(scale.x+0.5);
     scale.y=(double) (geometry.height*delta.y)/resolution.y;
     geometry.height=(size_t) floor(scale.y+0.5);
-    (void) ParseAbsoluteGeometry(page_geometry,&media_info);
-    (void) ParseGravityGeometry(image,page_geometry,&page_info,exception);
+    (void) ParseAbsoluteGeometry(temp,&media_info);
+    (void) ParseGravityGeometry(image,temp,&page_info,exception);
     if (image->gravity != UndefinedGravity)
       {
         geometry.x=(-page_info.x);
@@ -1685,12 +1653,14 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
       (double) object+3);
     (void) WriteBlobString(image,buffer);
     (void) FormatLocaleString(buffer,MagickPathExtent,
-      "/MediaBox [0 0 %g %g]\n",72.0*media_info.width/resolution.x,
-      72.0*media_info.height/resolution.y);
+      "/MediaBox [0 0 %g %g]\n",DefaultResolution*media_info.width*
+      PerceptibleReciprocal(resolution.x),DefaultResolution*media_info.height*
+      PerceptibleReciprocal(resolution.y));
     (void) WriteBlobString(image,buffer);
     (void) FormatLocaleString(buffer,MagickPathExtent,
-      "/CropBox [0 0 %g %g]\n",72.0*media_info.width/resolution.x,
-      72.0*media_info.height/resolution.y);
+      "/CropBox [0 0 %g %g]\n",DefaultResolution*media_info.width*
+      PerceptibleReciprocal(resolution.x),DefaultResolution*media_info.height*
+      PerceptibleReciprocal(resolution.y));
     (void) WriteBlobString(image,buffer);
     (void) FormatLocaleString(buffer,MagickPathExtent,"/Contents %.20g 0 R\n",
       (double) object+1);
@@ -3025,13 +2995,13 @@ static MagickBooleanType WritePDFImage(const ImageInfo *image_info,Image *image,
   (void) WriteBlobString(image,buffer);
   seconds=GetMagickTime();
   GetMagickUTCtime(&seconds,&utc_time);
-  (void) FormatLocaleString(date,MagickPathExtent,"D:%04d%02d%02d%02d%02d%02d",
+  (void) FormatLocaleString(temp,MagickPathExtent,"D:%04d%02d%02d%02d%02d%02d",
     utc_time.tm_year+1900,utc_time.tm_mon+1,utc_time.tm_mday,
     utc_time.tm_hour,utc_time.tm_min,utc_time.tm_sec);
   (void) FormatLocaleString(buffer,MagickPathExtent,"/CreationDate (%s)\n",
-    date);
+    temp);
   (void) WriteBlobString(image,buffer);
-  (void) FormatLocaleString(buffer,MagickPathExtent,"/ModDate (%s)\n",date);
+  (void) FormatLocaleString(buffer,MagickPathExtent,"/ModDate (%s)\n",temp);
   (void) WriteBlobString(image,buffer);
   url=(char *) MagickAuthoritativeURL;
   escape=EscapeParenthesis(url);

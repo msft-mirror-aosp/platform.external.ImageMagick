@@ -1924,7 +1924,7 @@ static MagickBooleanType ValidateXMPProfile(Image *image,
 static MagickBooleanType ValidateXMPProfile(Image *image,
   const StringInfo *profile,ExceptionInfo *exception)
 {
-  (void) ThrowMagickException(exception,GetMagickModule(),MissingDelegateError,
+  (void) ThrowMagickException(exception,GetMagickModule(),MissingDelegateWarning,
     "DelegateLibrarySupportNotBuiltIn","'%s' (XML)",image->filename);
   return(MagickFalse);
 }
@@ -2184,18 +2184,18 @@ static MagickBooleanType Sync8BimProfile(Image *image,StringInfo *profile)
     if ((id == 0x3ED) && (count == 16))
       {
         if (image->units == PixelsPerCentimeterResolution)
-          WriteProfileLong(MSBEndian,(unsigned int) (image->resolution.x*2.54*
-            65536.0),p);
+          WriteProfileLong(MSBEndian,(unsigned int) CastDoubleToLong(
+            image->resolution.x*2.54*65536.0),p);
         else
-          WriteProfileLong(MSBEndian,(unsigned int) (image->resolution.x*
-            65536.0),p);
+          WriteProfileLong(MSBEndian,(unsigned int) CastDoubleToLong(
+            image->resolution.x*65536.0),p);
         WriteProfileShort(MSBEndian,(unsigned short) image->units,p+4);
         if (image->units == PixelsPerCentimeterResolution)
-          WriteProfileLong(MSBEndian,(unsigned int) (image->resolution.y*2.54*
-            65536.0),p+8);
+          WriteProfileLong(MSBEndian,(unsigned int) CastDoubleToLong(
+            image->resolution.y*2.54*65536.0),p+8);
         else
-          WriteProfileLong(MSBEndian,(unsigned int) (image->resolution.y*
-            65536.0),p+8);
+          WriteProfileLong(MSBEndian,(unsigned int) CastDoubleToLong(
+            image->resolution.y*65536.0),p+8);
         WriteProfileShort(MSBEndian,(unsigned short) image->units,p+12);
       }
     p+=count;
@@ -2512,12 +2512,12 @@ static void UpdateClipPath(unsigned char *blob,size_t length,
             yy;
 
           y=(double) ReadProfileMSBLong(&blob,&length);
-          y=y*old_rows/4096/4096;
+          y=y*old_rows/4096.0/4096.0;
           y-=new_geometry->y;
           yy=(signed int) ((y*4096*4096)/new_geometry->height);
           WriteProfileLong(MSBEndian,(size_t) yy,blob-4);
           x=(double) ReadProfileMSBLong(&blob,&length);
-          x=x*old_columns/4096/4096;
+          x=x*old_columns/4096.0/4096.0;
           x-=new_geometry->x;
           xx=(signed int) ((x*4096*4096)/new_geometry->width);
           WriteProfileLong(MSBEndian,(size_t) xx,blob-4);
