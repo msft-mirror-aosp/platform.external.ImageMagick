@@ -428,7 +428,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
     if ((ps_info->photoshop_profile == (StringInfo *) NULL) &&
         (CompareMagickByteBuffer(&buffer,PhotoshopProfile,strlen(PhotoshopProfile)) != MagickFalse))
       {
-        size_t
+        unsigned long
           extent;
 
         unsigned char
@@ -439,7 +439,7 @@ static void ReadPSInfo(const ImageInfo *image_info,Image *image,
         */
         p=GetMagickByteBufferDatum(&buffer);
         extent=0;
-        count=(ssize_t) sscanf(p,PhotoshopProfile " %zu",&extent);
+        count=(ssize_t) sscanf(p,PhotoshopProfile " %lu",&extent);
         if ((count != 1) || (extent == 0))
           continue;
         if ((MagickSizeType) extent > GetBlobSize(image))
@@ -1337,7 +1337,7 @@ static MagickBooleanType WritePSImage(const ImageInfo *image_info,Image *image,
 
   char
     buffer[MagickPathExtent],
-    date[MagickPathExtent],
+    date[MagickTimeExtent],
     **labels,
     page_geometry[MagickPathExtent];
 
@@ -1516,7 +1516,7 @@ static MagickBooleanType WritePSImage(const ImageInfo *image_info,Image *image,
           image->filename);
         (void) WriteBlobString(image,buffer);
         timer=GetMagickTime();
-        (void) FormatMagickTime(timer,MagickPathExtent,date);
+        (void) FormatMagickTime(timer,sizeof(date),date);
         (void) FormatLocaleString(buffer,MagickPathExtent,
           "%%%%CreationDate: (%s)\n",date);
         (void) WriteBlobString(image,buffer);

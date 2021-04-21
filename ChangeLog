@@ -1,3 +1,143 @@
+2021-04-10  7.0.11-7  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-7 GIT revision 18617:2a0925961:20210411
+
+2021-04-09  7.0.11-7  <quetzlzacatenango@image...>
+  * constrain sub-image list.
+  * -layers optimize no longer produces broken output (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3520).
+
+2021-04-03  7.0.11-6  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-6 GIT revision 18588:ea711b44c:20210403
+
+2021-04-01  7.0.11-6  Dirk Lemstra <dirk@lem.....org>
+  * fix portable Windows build.
+
+2021-03-28  7.0.11-5  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-5 GIT revision 18569:b934dca6b:20210328
+
+2021-03-25  7.0.11-5  Dirk Lemstra <dirk@lem.....org>
+  * OpenCL will be disable by default, use the environment variable
+    MAGICK_OCL_DEVICE to turn it on or select the device to use.
+
+2021-03-24  7.0.11-5  <quetzlzacatenango@image...>
+  * eliminate extraneous spaces in AC_PATH_PROG (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3428).
+  * fix handling of non-square images with -fft option.
+  * enable FFTW support with --with-fftw configure script command-line option.
+
+2021-03-20  7.0.11-4  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-4 GIT revision 18551:474c73cba:20210320
+
+2021-03-13  7.0.11-4  <quetzlzacatenango@image...>
+  * support caption:split define (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/3389).
+  * avoid an omp deadlock with policy string
+
+2021-03-06  7.0.11-3  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-3 GIT revision 18521:10079791f:20210306
+
+2021-03-02  7.0.11-3  <quetzlzacatenango@image...>
+  * Eliminate multiple division by zero exceptions (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3339 and others).
+  * Use -define filename:literal=true to bypass interpretting embedded
+    formatting characters and instead use the filename literally.
+
+2021-02-27  7.0.11-2  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-2 GIT revision 18492:c524ed20c:20210227
+
+2021-02-25  7.0.11-2  Dirk Lemstra <dirk@lem.....org>
+  * decode HEIC images in sRGB instead of YCbCr.
+
+2021-02-25  7.0.11-2  <happyerc...@...>
+  * Division by zero error is possible if crafty file sets film-gamma property
+  * Check for overflow in thumbnail coder
+  * Prevent compiler from optimizing out buffer clearing in cipher
+
+2021-02-21  7.0.11-2  <quetzlzacatenango@image...>
+  * Clone properties from image stack.
+  * Set overall image depth statistic in Composite channel.
+
+2021-02-21  7.0.11-1  <quetzlzacatenango@image...>
+  * Clone properties from image stack.
+
+2021-02-21  7.0.11-1  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-1 GIT revision 18456:4de21b7b4:20210221
+
+2021-02-15  7.0.11-1  <quetzlzacatenango@image...>
+  * fix EXR crash (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3242).
+
+2021-02-13  7.0.11-0  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.11-0 GIT revision 18438:ff3ef50ab:20210213
+
+2021-02-10  7.0.11-0  <quetzlzacatenango@image...>
+  * bump minor version #
+  * allow reading multichannel PSD files with 1 or 2 channels.
+  * respect masks when computing SSIM metric (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/3212).
+
+2021-02-07  7.0.10-62  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-62 GIT revision 18418:f1e915f65:20210207
+
+2021-02-01  7.0.10-62  <quetzlzacatenango@image...>
+  * -trim not working as expected (reference
+    https://github.com/ImageMagick/ImageMagick/discussions/3172).
+  * possible undefined behavior (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3195).
+  * sanitize buggy ascender and descender values (reference
+    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=980202).
+
+2021-01-30  7.0.10-61  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-61 GIT revision 18360:d3bec838c:20210130
+
+2021-01-25  7.0.10-61  <quetzlzacatenango@image...>
+  * dng:decode element in delegates.xml quoted incorrectly (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3156).
+  * Extract GPS info from TIFF images (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3167).
+  * Revert tieing MagickFloatType to double (reference
+    https://github.com/ImageMagick/ImageMagick/pull/2832).
+
+2021-01-25  7.0.10-60  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-60 GIT revision 18347:9a84e249b:20210125
+
+2021-01-24  7.0.10-60  <quetzlzacatenango@image...>
+  * revert configure script for validating JXL delegate library.
+  * the distributed pixel cache now properly deserializes the image attributes.
+
+2021-01-24  7.0.10-59  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-59 GIT revision 18340:d30ae5272:20210124
+
+2021-01-20  7.0.10-59  <quetzlzacatenango@image...>
+  * strip EXIF marker from profile (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3140).
+  * add --enable-opencl to the configure command-line to enable OpenCL
+    support.
+  * generate histograms by comparing pixel components rather than color
+    (reference https://github.com/ImageMagick/ImageMagick/discussions/3142).
+
+2021-01-16  7.0.10-58  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-58 GIT revision 18277:8876652f5:20210116
+
+2021-01-11  7.0.10-58  <quetzlzacatenango@image...>
+  * identify the convex hull and minimum bounding box attributes of an image
+    with the -define identify:convex-hull=true define.
+  * set the quality to 100 to produce lossless HEIC images (reference
+    https://github.com/ImageMagick/ImageMagick/pull/3116).
+  * properly identify SVG images (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3117).
+  * duplicate operator: inverse range parameter working again (reference
+    https://github.com/ImageMagick/ImageMagick/issues/3113).
+  * Fix rounding error for CSS colors on i686 (reference
+    https://tracker.debian.org/pkg/imagemagick).
+
+2021-01-09  7.0.10-57  <quetzlzacatenango@image...>
+  * Release ImageMagick version 7.0.10-57 GIT revision 18221:2f611d533:20210109
+
+2021-01-08  7.0.10-57  <quetzlzacatenango@image...>
+  * update automake/autoconf configuration files.
+  * additional checks to prevent integer overflow.
+
 2021-01-05  7.0.10-56  <quetzlzacatenango@image...>
   * Release ImageMagick version 7.0.10-56 GIT revision 18192:2fb74f026:20210105
 

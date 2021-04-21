@@ -285,7 +285,6 @@ MagickPrivate XMLTreeInfo *AddPathToXMLTree(XMLTreeInfo *xml_info,
 %
 %  The format of the CanonicalXMLContent method is:
 %
-%
 %      char *CanonicalXMLContent(const char *content,
 %        const MagickBooleanType pedantic)
 %
@@ -696,7 +695,7 @@ MagickPrivate char *FileToXML(const char *filename,const size_t extent)
       (void) lseek(file,0,SEEK_SET);
       for (i=0; i < length; i+=count)
       {
-        count=read(file,xml+i,(size_t) MagickMin(length-i,(size_t) LONG_MAX));
+        count=read(file,xml+i,(size_t) MagickMin(length-i,(size_t) MAGICK_SSIZE_MAX));
         if (count <= 0)
           {
             count=0;
