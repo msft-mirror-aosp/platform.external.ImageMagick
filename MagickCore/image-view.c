@@ -405,8 +405,8 @@ MagickExport char *GetImageViewException(const ImageView *image_view,
   assert(image_view->signature == MagickCoreSignature);
   assert(severity != (ExceptionType *) NULL);
   *severity=image_view->exception->severity;
-  description=(char *) AcquireQuantumMemory(2UL*MagickPathExtent,
-    sizeof(*description));
+  description=(char *) AcquireQuantumMemory(MagickPathExtent,
+    2*sizeof(*description));
   if (description == (char *) NULL)
     ThrowFatalException(ResourceLimitFatalError,"MemoryAllocationFailed");
   *description='\0';
@@ -1184,8 +1184,6 @@ MagickExport MagickBooleanType UpdateImageViewIterator(ImageView *source,
     if (update(source,y,id,context) == MagickFalse)
       status=MagickFalse;
     status=SyncCacheViewAuthenticPixels(source->view,source->exception);
-    if (status == MagickFalse)
-      status=MagickFalse;
     if (source_image->progress_monitor != (MagickProgressMonitor) NULL)
       {
         MagickBooleanType

@@ -35,6 +35,7 @@ cc_library_static {
         "-DHAVE_CONFIG_H",
         "-Wall",
         "-Werror",
+        "-Wno-unused-function",
     ],
 
     header_libs: ["Magick_headers"],
