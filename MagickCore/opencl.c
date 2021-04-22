@@ -219,7 +219,7 @@ static inline MagickBooleanType MagickCreateDirectory(const char *path)
 #ifdef MAGICKCORE_WINDOWS_SUPPORT
   status=mkdir(path);
 #else
-  status=mkdir(path, 0777);
+  status=mkdir(path,0777);
 #endif
   return(status == 0 ? MagickTrue : MagickFalse);
 }
@@ -626,10 +626,15 @@ static MagickCLEnv AcquireMagickCLEnv(void)
     (void) memset(clEnv,0,sizeof(*clEnv));
     ActivateSemaphoreInfo(&clEnv->lock);
     clEnv->cpu_score=MAGICKCORE_OPENCL_UNDEFINED_SCORE;
-    clEnv->enabled=MagickTrue;
+    clEnv->enabled=MagickFalse;
     option=getenv("MAGICK_OCL_DEVICE");
-    if (IsStringFalse(option) != MagickFalse)
-      clEnv->enabled=MagickFalse;
+    if (option != (const char *) NULL)
+      {
+        if ((IsStringTrue(option) != MagickFalse) ||
+            (strcmp(option,"GPU") == 0) ||
+            (strcmp(option,"CPU") == 0))
+          clEnv->enabled=MagickTrue;
+      }
   }
   return clEnv;
 }
@@ -820,7 +825,7 @@ static void LoadOpenCLDeviceBenchmark(MagickCLEnv clEnv,const char *xml)
       {
         if (device_benchmark->score != MAGICKCORE_OPENCL_UNDEFINED_SCORE)
           {
-            if (LocaleCompare(device_benchmark->name, "CPU") == 0)
+            if (LocaleCompare(device_benchmark->name,"CPU") == 0)
               clEnv->cpu_score=device_benchmark->score;
             else
               {
@@ -985,12 +990,6 @@ static void AutoSelectOpenCLDevices(MagickCLEnv clEnv)
         SelectOpenCLDevice(clEnv,CL_DEVICE_TYPE_GPU);
       else if (strcmp(option,"CPU") == 0)
         SelectOpenCLDevice(clEnv,CL_DEVICE_TYPE_CPU);
-      else if (IsStringFalse(option) != MagickFalse)
-        {
-          for (i = 0; i < clEnv->number_devices; i++)
-            clEnv->devices[i]->enabled=MagickFalse;
-          clEnv->enabled=MagickFalse;
-        }
     }
 
   if (LoadOpenCLBenchmarks(clEnv) == MagickFalse)
@@ -2170,7 +2169,7 @@ static MagickBooleanType HasOpenCLDevices(MagickCLEnv clEnv,
     return(MagickTrue);
 
   /* Get additional options */
-  (void) FormatLocaleString(options,MaxTextExtent,CLOptions,
+  (void) FormatLocaleString(options,MagickPathExtent,CLOptions,
     (float)QuantumRange,(float)QuantumScale,(float)CLCharQuantumScale,
     (float)MagickEpsilon,(float)MagickPI,(unsigned int)MaxMap,
     (unsigned int)MAGICKCORE_QUANTUM_DEPTH);
@@ -2250,12 +2249,42 @@ static cl_uint GetOpenCLDeviceCount(MagickCLEnv clEnv,cl_platform_id platform)
   if (clEnv->library->clGetPlatformInfo(platform,CL_PLATFORM_VERSION,
         MagickPathExtent,version,NULL) != CL_SUCCESS)
     return(0);
-  if (strncmp(version, "OpenCL 1.0 ", 11) == 0)
+  if (strncmp(version,"OpenCL 1.0 ",11) == 0)
     return(0);
   if (clEnv->library->clGetDeviceIDs(platform,
         CL_DEVICE_TYPE_CPU|CL_DEVICE_TYPE_GPU,0,NULL,&num) != CL_SUCCESS)
     return(0);
   return(num);
+}
+
+static inline char *GetOpenCLPlatformString(cl_platform_id platform,
+  cl_platform_info param_name)
+{
+  char
+    *value;
+
+  size_t
+    length;
+
+  openCL_library->clGetPlatformInfo(platform,param_name,0,NULL,&length);
+  value=AcquireCriticalMemory(length*sizeof(*value));
+  openCL_library->clGetPlatformInfo(platform,param_name,length,value,NULL);
+  return(value);
+}
+
+static inline char *GetOpenCLDeviceString(cl_device_id device,
+  cl_device_info param_name)
+{
+  char
+    *value;
+
+  size_t
+    length;
+
+  openCL_library->clGetDeviceInfo(device,param_name,0,NULL,&length);
+  value=AcquireCriticalMemory(length*sizeof(*value));
+  openCL_library->clGetDeviceInfo(device,param_name,length,value,NULL);
+  return(value);
 }
 
 static void LoadOpenCLDevices(MagickCLEnv clEnv)
@@ -2298,11 +2327,20 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
     }
   for (i = 0; i < number_platforms; i++)
   {
-    number_devices=GetOpenCLDeviceCount(clEnv,platforms[i]);
+    char
+      *platform_name;
+
+    number_devices=0;
+    platform_name=GetOpenCLPlatformString(platforms[i],CL_PLATFORM_NAME);
+    /* NVIDIA is disabled by default due to reported access violation */
+    if (strncmp(platform_name,"NVIDIA",6) != 0)
+      {
+        number_devices=GetOpenCLDeviceCount(clEnv,platforms[i]);
+        clEnv->number_devices+=number_devices;
+      }
+    platform_name=(char *) RelinquishMagickMemory(platform_name);
     if (number_devices == 0)
       platforms[i]=(cl_platform_id) NULL;
-    else
-      clEnv->number_devices+=number_devices;
   }
   if (clEnv->number_devices == 0)
     {
@@ -2317,8 +2355,7 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
       platforms=(cl_platform_id *) RelinquishMagickMemory(platforms);
       return;
     }
-  (void) memset(clEnv->devices,0,clEnv->number_devices*
-    sizeof(MagickCLDevice));
+  (void) memset(clEnv->devices,0,clEnv->number_devices*sizeof(MagickCLDevice));
   devices=(cl_device_id *) AcquireQuantumMemory(clEnv->number_devices,
     sizeof(cl_device_id));
   if (devices == (cl_device_id *) NULL)
@@ -2327,6 +2364,7 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
       RelinquishMagickCLDevices(clEnv);
       return;
     }
+  (void) memset(devices,0,clEnv->number_devices*sizeof(cl_device_id));
   clEnv->number_contexts=(size_t) number_platforms;
   clEnv->contexts=(cl_context *) AcquireQuantumMemory(clEnv->number_contexts,
     sizeof(cl_context));
@@ -2337,6 +2375,7 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
       RelinquishMagickCLDevices(clEnv);
       return;
     }
+  (void) memset(clEnv->contexts,0,clEnv->number_contexts*sizeof(cl_context));
   next=0;
   for (i = 0; i < number_platforms; i++)
   {
@@ -2368,31 +2407,15 @@ static void LoadOpenCLDevices(MagickCLEnv clEnv)
       device->context=clEnv->contexts[i];
       device->deviceID=devices[j];
 
-      openCL_library->clGetPlatformInfo(platforms[i],CL_PLATFORM_NAME,0,NULL,
-        &length);
-      device->platform_name=AcquireCriticalMemory(length*
-        sizeof(*device->platform_name));
-      openCL_library->clGetPlatformInfo(platforms[i],CL_PLATFORM_NAME,length,
-        device->platform_name,NULL);
+      device->platform_name=GetOpenCLPlatformString(platforms[i],
+        CL_PLATFORM_NAME);
 
-      openCL_library->clGetPlatformInfo(platforms[i],CL_PLATFORM_VENDOR,0,NULL,
-        &length);
-      device->vendor_name=AcquireCriticalMemory(length*
-        sizeof(*device->vendor_name));
-      openCL_library->clGetPlatformInfo(platforms[i],CL_PLATFORM_VENDOR,length,
-        device->vendor_name,NULL);
+      device->vendor_name=GetOpenCLPlatformString(platforms[i],
+        CL_PLATFORM_VENDOR);
 
-      openCL_library->clGetDeviceInfo(devices[j],CL_DEVICE_NAME,0,NULL,
-        &length);
-      device->name=AcquireCriticalMemory(length*sizeof(*device->name));
-      openCL_library->clGetDeviceInfo(devices[j],CL_DEVICE_NAME,length,
-        device->name,NULL);
+      device->name=GetOpenCLDeviceString(devices[j],CL_DEVICE_NAME);
 
-      openCL_library->clGetDeviceInfo(devices[j],CL_DRIVER_VERSION,0,NULL,
-        &length);
-      device->version=AcquireCriticalMemory(length*sizeof(*device->version));
-      openCL_library->clGetDeviceInfo(devices[j],CL_DRIVER_VERSION,length,
-        device->version,NULL);
+      device->version=GetOpenCLDeviceString(devices[j],CL_DRIVER_VERSION);
 
       openCL_library->clGetDeviceInfo(devices[j],CL_DEVICE_MAX_CLOCK_FREQUENCY,
         sizeof(cl_uint),&device->max_clock_frequency,NULL);
@@ -2486,7 +2509,7 @@ static MagickBooleanType BindOpenCLFunctions()
 #ifdef MAGICKCORE_WINDOWS_SUPPORT
   openCL_library->library=(void *)LoadLibraryA("OpenCL.dll");
 #else
-  openCL_library->library=(void *)dlopen("libOpenCL.so", RTLD_NOW);
+  openCL_library->library=(void *)dlopen("libOpenCL.so",RTLD_NOW);
 #endif
 #define BIND(X) \
   if ((openCL_library->X=(MAGICKpfn_##X)OsLibraryGetFunctionAddress(openCL_library->library,#X)) == NULL) \
@@ -2653,7 +2676,7 @@ MagickPrivate MagickBooleanType OpenCLThrowMagickException(
     {
       /* Workaround for Intel OpenCL CPU runtime bug */
       /* Turn off OpenCL when a problem is detected! */
-      if (strncmp(device->platform_name, "Intel",5) == 0)
+      if (strncmp(device->platform_name,"Intel",5) == 0)
         default_CLEnv->enabled=MagickFalse;
     }
   }

@@ -272,6 +272,8 @@ static int ReadSingleWEBPImage(Image *image,const uint8_t *stream,
     }
   else
     {
+      canvas_width=0;
+      canvas_height=0;
       x_offset=0;
       y_offset=0;
     }
@@ -749,18 +751,6 @@ static int WebPEncodeProgress(int percent,const WebPPicture* picture)
 }
 #endif
 
-#if !defined(MAGICKCORE_WEBPMUX_DELEGATE)
-static int WebPEncodeWriter(const unsigned char *stream,size_t length,
-  const WebPPicture *const picture)
-{
-  Image
-    *image;
-
-  image=(Image *) picture->custom_ptr;
-  return(length != 0 ? (WriteBlob(image,length,stream) == (ssize_t) length) : 1);
-}
-#endif
-
 static const char * WebPErrorCodeMessage(WebPEncodingError error_code)
 {
   switch (error_code)
@@ -958,7 +948,8 @@ static MagickBooleanType WriteAnimatedWEBPImage(const ImageInfo *image_info,
         break;
       }
 
-    effective_delta=image->delay*1000/image->ticks_per_second;
+    effective_delta=image->delay*1000*PerceptibleReciprocal(
+      image->ticks_per_second);
     if (effective_delta < 10)
       effective_delta=100; /* Consistent with gif2webp */
     frame_timestamp+=effective_delta;
@@ -1000,7 +991,10 @@ static MagickBooleanType WriteWEBPImageProfile(Image *image,
     *mux;
  
   WebPMuxError
-    mux_error=WEBP_MUX_OK;
+    mux_error;
+
+  WebPMuxAnimParams
+    new_params;
  
   icc_profile=GetImageProfile(image,"ICC");
   exif_profile=GetImageProfile(image,"EXIF");
@@ -1008,7 +1002,8 @@ static MagickBooleanType WriteWEBPImageProfile(Image *image,
 
   if (icc_profile == (StringInfo *) NULL 
           && exif_profile == (StringInfo *) NULL 
-          && xmp_profile == (StringInfo *) NULL)
+          && xmp_profile == (StringInfo *) NULL
+          && image->iterations == 0)
     return(MagickTrue);
 
   mux=WebPMuxCreate(webp_data, 1);
@@ -1020,19 +1015,44 @@ static MagickBooleanType WriteWEBPImageProfile(Image *image,
 
   // Clean up returned data
   memset(webp_data, 0, sizeof(*webp_data));
-  if (icc_profile != (StringInfo *) NULL && (mux_error == WEBP_MUX_OK))
+  mux_error=WEBP_MUX_OK;
+  if (image->iterations > 0)
+    {
+      mux_error=WebPMuxGetAnimationParams(mux, &new_params);
+      /*
+        If there is only 1 frame webp_data will be created by WriteSingleWEBPImage
+        and WebPMuxGetAnimationParams will return WEBP_MUX_NOT_FOUND
+      */
+      if (mux_error == WEBP_MUX_NOT_FOUND)
+        mux_error=WEBP_MUX_OK;
+      else
+        if (mux_error == WEBP_MUX_OK)
+          {
+            new_params.loop_count=MagickMin((int) image->iterations,65535);
+            mux_error=WebPMuxSetAnimationParams(mux, &new_params);
+          }
+    }
+  if ((icc_profile != (StringInfo *) NULL) && (mux_error == WEBP_MUX_OK))
     {
       chunk.bytes=GetStringInfoDatum(icc_profile);
       chunk.size=GetStringInfoLength(icc_profile);
       mux_error=WebPMuxSetChunk(mux,"ICCP",&chunk,0);
     }
-  if (exif_profile != (StringInfo *) NULL && (mux_error == WEBP_MUX_OK))
+  if ((exif_profile != (StringInfo *) NULL) && (mux_error == WEBP_MUX_OK))
     {
       chunk.bytes=GetStringInfoDatum(exif_profile);
       chunk.size=GetStringInfoLength(exif_profile);
+      if ((chunk.size >= 6) &&
+          (chunk.bytes[0] == 'E') && (chunk.bytes[1] == 'x') &&
+          (chunk.bytes[2] == 'i') && (chunk.bytes[3] == 'f') &&
+          (chunk.bytes[4] == '\0') && (chunk.bytes[5] == '\0'))
+        {
+          chunk.bytes=GetStringInfoDatum(exif_profile)+6;
+          chunk.size-=6;
+        }
       mux_error=WebPMuxSetChunk(mux,"EXIF",&chunk,0);
     }
-  if (xmp_profile != (StringInfo *) NULL && (mux_error == WEBP_MUX_OK))
+  if ((xmp_profile != (StringInfo *) NULL) && (mux_error == WEBP_MUX_OK))
     {
       chunk.bytes=GetStringInfoDatum(xmp_profile);
       chunk.size=GetStringInfoLength(xmp_profile);
@@ -1048,6 +1068,17 @@ static MagickBooleanType WriteWEBPImageProfile(Image *image,
   return(MagickTrue);
 }
 #endif
+
+static inline void SetBooleanOption(const ImageInfo *image_info,
+  const char *option,int *setting)
+{
+  const char
+    *value;
+
+  value=GetImageOption(image_info,option);
+  if (value != (char *) NULL)
+    *setting=(int) ParseCommandOption(MagickBooleanOptions,MagickFalse,value);
+}
 
 static inline void SetIntegerOption(const ImageInfo *image_info,
   const char *option,int *setting)
@@ -1095,10 +1126,7 @@ static MagickBooleanType WriteWEBPImage(const ImageInfo *image_info,
     configure.quality=(float) image->quality;
   if (image->quality >= 100)
     configure.lossless=1;
-  value=GetImageOption(image_info,"webp:lossless");
-  if (value != (char *) NULL)
-    configure.lossless=(int) ParseCommandOption(MagickBooleanOptions,
-      MagickFalse,value);
+  SetBooleanOption(image_info,"webp:lossless",&configure.lossless);
   value=GetImageOption(image_info,"webp:image-hint");
   if (value != (char *) NULL)
     {
@@ -1113,10 +1141,7 @@ static MagickBooleanType WriteWEBPImage(const ImageInfo *image_info,
         configure.image_hint=WEBP_HINT_GRAPH;
 #endif
     }
-  value=GetImageOption(image_info,"webp:auto-filter");
-  if (value != (char *) NULL)
-    configure.autofilter=(int) ParseCommandOption(MagickBooleanOptions,
-      MagickFalse,value);
+  SetBooleanOption(image_info,"webp:auto-filter",&configure.autofilter);
   value=GetImageOption(image_info,"webp:target-psnr");
   if (value != (char *) NULL)
     configure.target_PSNR=(float) StringToDouble(value,(char **) NULL);
@@ -1143,19 +1168,17 @@ static MagickBooleanType WriteWEBPImage(const ImageInfo *image_info,
   SetIntegerOption(image_info,"webp:sns-strength",&configure.sns_strength);
   SetIntegerOption(image_info,"webp:target-size",&configure.target_size);
 #if WEBP_ENCODER_ABI_VERSION >= 0x0201
-  value=GetImageOption(image_info,"webp:emulate-jpeg-size");
-  if (value != (char *) NULL)
-    configure.emulate_jpeg_size=(int) ParseCommandOption(MagickBooleanOptions,
-      MagickFalse,value);
-  value=GetImageOption(image_info,"webp:low-memory");
-  if (value != (char *) NULL)
-    configure.low_memory=(int) ParseCommandOption(MagickBooleanOptions,
-      MagickFalse,value);
+  SetBooleanOption(image_info,"webp:emulate-jpeg-size",
+    &configure.emulate_jpeg_size);
+  SetBooleanOption(image_info,"webp:low-memory",&configure.low_memory);
   SetIntegerOption(image_info,"webp:thread-level",&configure.thread_level);
+#endif
+#if WEBP_ENCODER_ABI_VERSION >= 0x0209
+  SetBooleanOption(image_info,"webp:exact",&configure.exact);
 #endif
 #if WEBP_ENCODER_ABI_VERSION >= 0x020e
   SetIntegerOption(image_info,"webp:near-lossless",&configure.near_lossless);
-  SetIntegerOption(image_info,"webp:use-sharp-yuv",&configure.use_sharp_yuv);
+  SetBooleanOption(image_info,"webp:use-sharp-yuv",&configure.use_sharp_yuv);
 #endif
   if (WebPValidateConfig(&configure) == 0)
     ThrowWriterException(ResourceLimitError,"UnableToEncodeImageFile");

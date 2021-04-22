@@ -274,14 +274,15 @@ BOOL WINAPI DllMain(HINSTANCE handle,DWORD reason,LPVOID lpvReserved)
                 module_path[count+1]='\0';
                 break;
               }
-          path=(char *) AcquireQuantumMemory(16UL*MagickPathExtent,sizeof(*path));
+          path=(char *) AcquireQuantumMemory(MagickPathExtent,16*sizeof(*path));
           if (path == (char *) NULL)
             {
               module_path=DestroyString(module_path);
               wide_path=(wchar_t *) RelinquishMagickMemory(wide_path);
               return(FALSE);
             }
-          count=(ssize_t) GetEnvironmentVariable("PATH",path,16*MagickPathExtent);
+          count=(ssize_t) GetEnvironmentVariable("PATH",path,16*
+            MagickPathExtent);
           if ((count != 0) && (strstr(path,module_path) == (char *) NULL))
             {
               if ((strlen(module_path)+count+1) < (16*MagickPathExtent-1))
@@ -289,8 +290,8 @@ BOOL WINAPI DllMain(HINSTANCE handle,DWORD reason,LPVOID lpvReserved)
                   char
                     *variable;
 
-                  variable=(char *) AcquireQuantumMemory(16UL*MagickPathExtent,
-                    sizeof(*variable));
+                  variable=(char *) AcquireQuantumMemory(MagickPathExtent,
+                    16*sizeof(*variable));
                   if (variable == (char *) NULL)
                     {
                       path=DestroyString(path);
@@ -2402,17 +2403,17 @@ MagickPrivate int NTSystemCommand(const char *command,char *output)
       DWORD
         bytes_read;
 
-      if (ReadFile(read_output,buffer,sizeof(buffer)-1,&bytes_read,NULL))
+      if (ReadFile(read_output,buffer,MagickPathExtent-1,&bytes_read,NULL))
         {
           size_t
             count;
 
-          count=MagickMin(MagickPathExtent-1-output_offset,bytes_read);
+          count=MagickMin(MagickPathExtent-output_offset,
+            (size_t) bytes_read+1);
           if (count > 0)
             {
               CopyMagickString(output+output_offset,buffer,count);
-              output[count]='\0';
-              output_offset=count;
+              output_offset+=count-1;
             }
         }
       if (!PeekNamedPipe(read_output,NULL,0,NULL,&size,NULL))
