@@ -93,6 +93,7 @@
 #include "MagickCore/string-private.h"
 #include "MagickCore/thread-private.h"
 #include "MagickCore/threshold.h"
+#include "MagickCore/token.h"
 #include "MagickCore/transform.h"
 #include "MagickCore/transform-private.h"
 #include "MagickCore/utility.h"
@@ -2284,6 +2285,8 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
 
           alpha=FxEvaluateSubexpression(fx_info,channel,x,y,expression+3,
             depth+1,beta,exception);
+          if (IsNaN(alpha))
+            FxReturn(alpha);
           gcd=FxGCD(alpha,*beta);
           FxReturn(gcd);
         }
@@ -2324,6 +2327,9 @@ static double FxEvaluateSubexpression(FxInfo *fx_info,
           size_t
             length;
 
+          /*
+            Parse if(condition test, true-expression, false-expression).
+          */
           length=CopyMagickString(subexpression,expression+3,
             MagickPathExtent-1);
           if (length != 0)
@@ -2853,7 +2859,8 @@ MagickExport Image *FxImage(const Image *image,const char *expression,
   fx_view=AcquireAuthenticCacheView(fx_image,exception);
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   #pragma omp parallel for schedule(dynamic) shared(progress,status) \
-    magick_number_threads(image,fx_image,fx_image->rows,1)
+    magick_number_threads(image,fx_image,fx_image->rows, \
+      GlobExpression(fx_info[0]->expression,"debug(",MagickTrue) == 0 ? 1 : 0)
 #endif
   for (y=0; y < (ssize_t) fx_image->rows; y++)
   {

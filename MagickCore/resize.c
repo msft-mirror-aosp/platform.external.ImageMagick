@@ -1656,7 +1656,7 @@ MagickPrivate double GetResizeFilterWeight(const ResizeFilter *resize_filter,
   */
   assert(resize_filter != (ResizeFilter *) NULL);
   assert(resize_filter->signature == MagickCoreSignature);
-  x_blur=fabs((double) x)/resize_filter->blur;  /* X offset with blur scaling */
+  x_blur=fabs((double) x)*PerceptibleReciprocal(resize_filter->blur);  /* X offset with blur scaling */
   if ((resize_filter->window_support < MagickEpsilon) ||
       (resize_filter->window == Box))
     scale=1.0;  /* Point or Box Filter -- avoid division by zero */
@@ -3164,9 +3164,9 @@ MagickExport Image *ResampleImage(const Image *image,const double x_resolution,
   assert(exception != (ExceptionInfo *) NULL);
   assert(exception->signature == MagickCoreSignature);
   width=(size_t) (x_resolution*image->columns/(image->resolution.x == 0.0 ?
-    72.0 : image->resolution.x)+0.5);
+    DefaultResolution : image->resolution.x)+0.5);
   height=(size_t) (y_resolution*image->rows/(image->resolution.y == 0.0 ?
-    72.0 : image->resolution.y)+0.5);
+    DefaultResolution : image->resolution.y)+0.5);
   resample_image=ResizeImage(image,width,height,filter,exception);
   if (resample_image != (Image *) NULL)
     {

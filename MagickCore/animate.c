@@ -617,16 +617,13 @@ static Image *XMagickCommand(Display *display,XResourceInfo *resource_info,
       if (mozilla_window != (Window) NULL)
         {
           char
-            command[MagickPathExtent],
-            *url;
+            command[MagickPathExtent];
 
           /*
             Display documentation using Netscape remote control.
           */
-          url=GetMagickHomeURL();
           (void) FormatLocaleString(command,MagickPathExtent,
-            "openurl(%s,new-tab)",url);
-          url=DestroyString(url);
+            "openurl(%s,new-tab)",MagickAuthoritativeURL);
           mozilla_atom=XInternAtom(display,"_MOZILLA_COMMAND",MagickFalse);
           (void) XChangeProperty(display,mozilla_window,mozilla_atom,
             XA_STRING,8,PropModeReplace,(unsigned char *) command,
@@ -1984,7 +1981,7 @@ MagickExport Image *XAnimateImages(Display *display,
     else
       {
         char
-          window_name[MaxTextExtent];
+          window_name[MagickPathExtent];
 
         p=image_list[scene]->magick_filename+
           strlen(image_list[scene]->magick_filename)-1;
@@ -2104,7 +2101,7 @@ MagickExport Image *XAnimateImages(Display *display,
               (resource_info->title != (char *) NULL))
             {
               char
-                name[MaxTextExtent];
+                name[MagickPathExtent];
 
               /*
                 Update window title.

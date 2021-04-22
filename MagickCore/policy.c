@@ -450,6 +450,7 @@ static char *AcquirePolicyString(const char *source,const size_t pad)
   if (source != (char *) NULL)
     length+=strlen(source);
   destination=(char *) NULL;
+  /* AcquireMagickMemory needs to be used here to avoid an omp deadlock */
   if (~length >= pad)
     destination=(char *) AcquireMagickMemory((length+pad)*sizeof(*destination));
   if (destination == (char *) NULL)
@@ -1246,15 +1247,21 @@ MagickExport MagickBooleanType SetMagickSecurityPolicyValue(
     }
     case SystemPolicyDomain:
     {
+      if (LocaleCompare(name,"font") == 0)
+        return(SetPolicyValue(domain,name,value));
       if (LocaleCompare(name,"max-memory-request") == 0)
         {
           current_value=GetPolicyValue("system:max-memory-request");
           if ((current_value == (char *) NULL) ||
               (StringToSizeType(value,100.0) < StringToSizeType(current_value,100.0)))
             {
+              if (current_value != (char *) NULL)
+                current_value=DestroyString(current_value);
               ResetMaxMemoryRequest();
               return(SetPolicyValue(domain,name,value));
             }
+          if (current_value != (char *) NULL)
+            current_value=DestroyString(current_value);
         }
       if (LocaleCompare(name,"memory-map") == 0)
         {
@@ -1273,7 +1280,13 @@ MagickExport MagickBooleanType SetMagickSecurityPolicyValue(
           current_value=GetPolicyValue("system:shred");
           if ((current_value == (char *) NULL) ||
               (StringToInteger(value) > StringToInteger(current_value)))
-            return(SetPolicyValue(domain,name,value));
+            {
+              if (current_value != (char *) NULL)
+                current_value=DestroyString(current_value);
+              return(SetPolicyValue(domain,name,value));
+            }
+          if (current_value != (char *) NULL)
+            current_value=DestroyString(current_value);
         }
       break;
     }
