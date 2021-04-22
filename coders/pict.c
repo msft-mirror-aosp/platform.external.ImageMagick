@@ -1495,7 +1495,7 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
                 ThrowPICTException(CorruptImageError,"ImproperImageHeader");
               }
             read_info=AcquireImageInfo();
-            (void) FormatLocaleString(read_info->filename,MaxTextExtent,
+            (void) FormatLocaleString(read_info->filename,MagickPathExtent,
               "jpeg:%s",image_info->filename);
             tile_image=BlobToImage(read_info,stream,count,exception);
             pixels=(unsigned char *) RelinquishMagickMemory(pixels);
@@ -2033,7 +2033,7 @@ static MagickBooleanType WritePICTImage(const ImageInfo *image_info,
         break;
       for (x=0; x < (ssize_t) image->columns; x++)
       {
-        scanline[x]=(unsigned char) GetPixelIndex(image,p);
+        scanline[x]=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
         p+=GetPixelChannels(image);
       }
       count+=EncodeImage(image,scanline,(size_t) (row_bytes & 0x7FFF),
