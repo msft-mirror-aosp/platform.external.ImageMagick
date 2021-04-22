@@ -722,9 +722,9 @@ static ssize_t PrintChannelStatistics(FILE *file,const PixelChannel channel,
     GetMagickPrecision(),(double) ClampToQuantum(scale*
     channel_statistics[channel].maxima),GetMagickPrecision(),
     scale*channel_statistics[channel].mean,GetMagickPrecision(),
-    scale*channel_statistics[channel].median,GetMagickPrecision(),scale*
+    scale*channel_statistics[channel].median,GetMagickPrecision(),
     IsNaN(channel_statistics[channel].standard_deviation) != 0 ? MagickEpsilon :
-    channel_statistics[channel].standard_deviation,GetMagickPrecision(),
+    scale*channel_statistics[channel].standard_deviation,GetMagickPrecision(),
     channel_statistics[channel].kurtosis,GetMagickPrecision(),
     channel_statistics[channel].skewness,GetMagickPrecision(),
     channel_statistics[channel].entropy);
@@ -996,7 +996,7 @@ static MagickBooleanType EncodeImageAttributes(Image *image,FILE *file,
       if (LocaleCompare(image->magick_filename,image->filename) != 0)
         {   
           char
-            filename[MaxTextExtent];
+            filename[MagickPathExtent];
           
           GetPathComponent(image->magick_filename,TailPath,filename);
           YAMLFormatLocaleFile(file,"    baseName: %s\n",filename);
@@ -1374,7 +1374,7 @@ static MagickBooleanType EncodeImageAttributes(Image *image,FILE *file,
             GetPixelInfo(image,&pixel);
             GetPixelInfoPixel(image,p,&pixel);
             GetColorTuple(&pixel,MagickTrue,color);
-            (void) FormatLocaleFile(file,"    alpha: %s\n",color);
+            (void) FormatLocaleFile(file,"    alpha: '%s'\n",color);
           }
       }
   if (image->storage_class == PseudoClass)
@@ -1389,7 +1389,7 @@ static MagickBooleanType EncodeImageAttributes(Image *image,FILE *file,
       for (i=0; i < (ssize_t) image->colors; i++)
       {
         GetColorTuple(p,MagickTrue,color);
-        (void) FormatLocaleFile(file,"- \"%s\"\n      ",color);
+        (void) FormatLocaleFile(file,"- '%s'\n      ",color);
         p++;
       }
       (void) FormatLocaleFile(file,"\n    \n");
@@ -1439,13 +1439,13 @@ static MagickBooleanType EncodeImageAttributes(Image *image,FILE *file,
       (double) image->extract_info.width,(double) image->extract_info.height,
       (double) image->extract_info.x,(double) image->extract_info.y);
   GetColorTuple(&image->matte_color,MagickTrue,color);
-  (void) FormatLocaleFile(file,"    matteColor: %s\n",color);
+  (void) FormatLocaleFile(file,"    matteColor: '%s'\n",color);
   GetColorTuple(&image->background_color,MagickTrue,color);
-  (void) FormatLocaleFile(file,"    backgroundColor: %s\n",color);
+  (void) FormatLocaleFile(file,"    backgroundColor: '%s'\n",color);
   GetColorTuple(&image->border_color,MagickTrue,color);
-  (void) FormatLocaleFile(file,"    borderColor: %s\n",color);
+  (void) FormatLocaleFile(file,"    borderColor: '%s'\n",color);
   GetColorTuple(&image->transparent_color,MagickTrue,color);
-  (void) FormatLocaleFile(file,"    transparentColor: %s\n",color);
+  (void) FormatLocaleFile(file,"    transparentColor: '%s'\n",color);
   YAMLFormatLocaleFile(file,"    interlace: %s\n",CommandOptionToMnemonic(
     MagickInterlaceOptions,(ssize_t) image->interlace));
   YAMLFormatLocaleFile(file,"    intensity: %s\n",CommandOptionToMnemonic(

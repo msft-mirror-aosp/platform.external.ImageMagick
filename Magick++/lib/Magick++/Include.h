@@ -123,10 +123,12 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_DB_jp2_.lib")
 #        endif
 #        if defined(MAGICKCORE_JPEG_DELEGATE)
-#          pragma comment(lib, "CORE_DB_jpeg_.lib")
+#          pragma comment(lib, "CORE_DB_jpeg-turbo_.lib")
 #        endif
 #        if defined(MAGICKCORE_JXL_DELEGATE)
-#          pragma comment(lib, "CORE_DB_jxl_.lib")
+#          pragma comment(lib, "CORE_DB_highway_.lib")
+#          pragma comment(lib, "CORE_DB_brotli_.lib")
+#          pragma comment(lib, "CORE_DB_jpeg-xl_.lib")
 #        endif
 #        if defined(MAGICKCORE_LCMS_DELEGATE)
 #          pragma comment(lib, "CORE_DB_lcms_.lib")
@@ -149,7 +151,7 @@ namespace MagickCore
 #        if defined(MAGICKCORE_XML_DELEGATE)
 #          pragma comment(lib, "CORE_DB_libxml_.lib")
 #        endif
-#        if defined(MAGICKCORE_LIBZIP_DELEGATE)
+#        if defined(MAGICKCORE_ZIP_DELEGATE)
 #          pragma comment(lib, "CORE_DB_libzip_.lib")
 #        endif
 #        if defined(MAGICKCORE_LQR_DELEGATE)
@@ -162,6 +164,8 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_DB_openjpeg_.lib")
 #        endif
 #        if defined(MAGICKCORE_PANGOCAIRO_DELEGATE)
+#          pragma comment(lib, "CORE_DB_fribidi_.lib")
+#          pragma comment(lib, "CORE_DB_harfbuzz_.lib")
 #          pragma comment(lib, "CORE_DB_pango_.lib")
 #          pragma comment(lib, "CORE_DB_pixman_.lib")
 #        endif
@@ -205,10 +209,12 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_RL_jp2_.lib")
 #        endif
 #        if defined(MAGICKCORE_JPEG_DELEGATE)
-#          pragma comment(lib, "CORE_RL_jpeg_.lib")
+#          pragma comment(lib, "CORE_RL_jpeg-turbo_.lib")
 #        endif
 #        if defined(MAGICKCORE_JXL_DELEGATE)
-#          pragma comment(lib, "CORE_RL_jxl_.lib")
+#          pragma comment(lib, "CORE_RL_highway_.lib")
+#          pragma comment(lib, "CORE_RL_brotli_.lib")
+#          pragma comment(lib, "CORE_RL_jpeg-xl_.lib")
 #        endif
 #        if defined(MAGICKCORE_LCMS_DELEGATE)
 #          pragma comment(lib, "CORE_RL_lcms_.lib")
@@ -231,7 +237,7 @@ namespace MagickCore
 #        if defined(MAGICKCORE_XML_DELEGATE)
 #          pragma comment(lib, "CORE_RL_libxml_.lib")
 #        endif
-#        if defined(MAGICKCORE_LIBZIP_DELEGATE)
+#        if defined(MAGICKCORE_ZIP_DELEGATE)
 #          pragma comment(lib, "CORE_RL_libzip_.lib")
 #        endif
 #        if defined(MAGICKCORE_LQR_DELEGATE)
@@ -244,6 +250,8 @@ namespace MagickCore
 #          pragma comment(lib, "CORE_RL_openjpeg_.lib")
 #        endif
 #        if defined(MAGICKCORE_PANGOCAIRO_DELEGATE)
+#          pragma comment(lib, "CORE_RL_fribidi_.lib")
+#          pragma comment(lib, "CORE_RL_harfbuzz_.lib")
 #          pragma comment(lib, "CORE_RL_pango_.lib")
 #          pragma comment(lib, "CORE_RL_pixman_.lib")
 #        endif
