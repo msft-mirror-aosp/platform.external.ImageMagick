@@ -60,7 +60,7 @@
 #include "MagickCore/string_.h"
 #include "MagickCore/utility.h"
 
-#if defined(MAGICKCORE_LIBZIP_DELEGATE)
+#if defined(MAGICKCORE_ZIP_DELEGATE)
 #include <zip.h>
 #endif
 
@@ -101,14 +101,12 @@ extern "C" {
 }
 #endif
 
-#if defined(MAGICKCORE_PNG_DELEGATE) && defined(MAGICKCORE_LIBZIP_DELEGATE)
+#if defined(MAGICKCORE_PNG_DELEGATE) && defined(MAGICKCORE_ZIP_DELEGATE)
 static Image *ReadORAImage(const ImageInfo *image_info,
   ExceptionInfo *exception)
 {
-#define MaxBufferExtent  8192
-
   char
-    image_data_buffer[MaxBufferExtent];
+    image_data_buffer[8192];
 
   const char
     *MERGED_IMAGE_PATH = "mergedimage.png";
@@ -146,8 +144,8 @@ static Image *ReadORAImage(const ImageInfo *image_info,
   image_metadata=AcquireImage(image_info,exception);
   read_info=CloneImageInfo(image_info);
   SetImageInfoBlob(read_info,(void *) NULL,0);
-  stat(image_info->filename, &stat_info);
-  zip_archive=zip_open(image_info->filename, ZIP_RDONLY, &zip_error);
+  stat(image_info->filename,&stat_info);
+  zip_archive=zip_open(image_info->filename,ZIP_RDONLY,&zip_error);
   if (zip_archive == NULL)
     {
       ThrowFileException(exception,FileOpenError,"UnableToOpenFile",
@@ -192,7 +190,7 @@ static Image *ReadORAImage(const ImageInfo *image_info,
   while (status != MagickFalse)
   {
     read_bytes=zip_fread(merged_image_file,image_data_buffer+offset,
-      MaxBufferExtent-offset);
+      sizeof(image_data_buffer)-offset);
     if (read_bytes == -1)
       status=MagickFalse;
     else if (read_bytes == 0)
@@ -202,10 +200,10 @@ static Image *ReadORAImage(const ImageInfo *image_info,
           status=MagickFalse;
         break;
       }
-    else if (read_bytes == MaxBufferExtent-offset)
+    else if (read_bytes == sizeof(image_data_buffer)-offset)
       {
         /* Write the entirely of image_data_buffer to temp file */
-        if (!fwrite(image_data_buffer,MaxBufferExtent,1,file))
+        if (!fwrite(image_data_buffer,sizeof(image_data_buffer),1,file))
           status=MagickFalse;
         else
           offset=0;
@@ -244,7 +242,7 @@ static Image *ReadORAImage(const ImageInfo *image_info,
   image_metadata=DestroyImage(image_metadata);
   return(out_image);
 }
-#endif /* MAGICKCORE_LIBZIP_DELEGATE && MAGICKCORE_PNG_DELEGATE */
+#endif /* MAGICKCORE_ZIP_DELEGATE && MAGICKCORE_PNG_DELEGATE */
 
 /*
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -276,7 +274,7 @@ ModuleExport size_t RegisterORAImage(void)
 
   entry=AcquireMagickInfo("ORA","ORA","OpenRaster format");
 
-#if defined(MAGICKCORE_LIBZIP_DELEGATE) && defined(MAGICKCORE_PNG_DELEGATE)
+#if defined(MAGICKCORE_ZIP_DELEGATE) && defined(MAGICKCORE_PNG_DELEGATE)
   entry->decoder=(DecodeImageHandler *) ReadORAImage;
 #endif
   entry->flags^=CoderBlobSupportFlag;
