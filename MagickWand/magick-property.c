@@ -50,6 +50,7 @@
 #include "MagickWand/MagickWand.h"
 #include "MagickWand/magick-wand-private.h"
 #include "MagickWand/wand.h"
+#include "MagickCore/image-private.h"
 #include "MagickCore/string-private.h"
 
 /*
@@ -707,8 +708,7 @@ WandExport unsigned char *MagickGetImageProfile(MagickWand *wand,
     sizeof(*datum));
   if (datum == (unsigned char *) NULL)
     return((unsigned char *) NULL);
-  (void) memcpy(datum,GetStringInfoDatum(profile),
-    GetStringInfoLength(profile));
+  (void) memcpy(datum,GetStringInfoDatum(profile),GetStringInfoLength(profile));
   *length=(size_t) GetStringInfoLength(profile);
   return(datum);
 }
@@ -1393,8 +1393,8 @@ WandExport MagickBooleanType MagickGetResolution(const MagickWand *wand,
   assert(wand->signature == MagickWandSignature);
   if (wand->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand->name);
-  *x=72.0;
-  *y=72.0;
+  *x=DefaultResolution;
+  *y=DefaultResolution;
   if (wand->image_info->density != (char *) NULL)
     {
       GeometryInfo

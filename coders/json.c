@@ -724,9 +724,9 @@ static ssize_t PrintChannelStatistics(FILE *file,const PixelChannel channel,
     GetMagickPrecision(),(double) ClampToQuantum(scale*
     channel_statistics[channel].maxima),GetMagickPrecision(),
     scale*channel_statistics[channel].mean,GetMagickPrecision(),
-    scale*channel_statistics[channel].median,GetMagickPrecision(),scale*
+    scale*channel_statistics[channel].median,GetMagickPrecision(),
     IsNaN(channel_statistics[channel].standard_deviation) != 0 ? MagickEpsilon :
-    channel_statistics[channel].standard_deviation,GetMagickPrecision(),
+    scale*channel_statistics[channel].standard_deviation,GetMagickPrecision(),
     channel_statistics[channel].kurtosis,GetMagickPrecision(),
     channel_statistics[channel].skewness,GetMagickPrecision(),
     channel_statistics[channel].entropy);
@@ -998,7 +998,7 @@ static MagickBooleanType EncodeImageAttributes(Image *image,FILE *file,
       if (LocaleCompare(image->magick_filename,image->filename) != 0)
         {   
           char
-            filename[MaxTextExtent];
+            filename[MagickPathExtent];
           
           GetPathComponent(image->magick_filename,TailPath,filename);
           JSONFormatLocaleFile(file,"    \"baseName\": %s,\n",filename);

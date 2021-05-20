@@ -130,7 +130,7 @@ WandExport MagickBooleanType MagickCommandGenesis(ImageInfo *image_info,
   ExceptionInfo *exception)
 {
   char
-    client_name[MaxTextExtent],
+    client_name[MagickPathExtent],
     *option;
 
   double
@@ -1928,6 +1928,11 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             text=DestroyString(text);
             break;
           }
+        if (LocaleCompare("illuminant",option+1) == 0)
+          {
+            (void) SetImageArtifact(*image,"color:illuminant",argv[i+1]);
+            break;
+          }
         if (LocaleCompare("implode",option+1) == 0)
           {
             /*
@@ -3035,6 +3040,15 @@ WandExport MagickBooleanType MogrifyImage(ImageInfo *image_info,const int argc,
             (void) SolarizeImage(*image,threshold,exception);
             break;
           }
+        if (LocaleCompare("sort-pixels",option+1) == 0)
+          {
+            /*
+              Sort each scanline in scending order of intensity.
+            */
+            (void) SyncImageSettings(mogrify_info,*image,exception);
+            (void) SortImagePixels(*image,exception);
+            break;
+          }
         if (LocaleCompare("sparse-color",option+1) == 0)
           {
             SparseColorMethod
@@ -3699,6 +3713,7 @@ static MagickBooleanType MogrifyUsage(void)
       "                       shadows\n"
       "  -sketch geometry     simulate a pencil sketch\n"
       "  -solarize threshold  negate all pixels above the threshold level\n"
+      "  -sort-pixels         sort each scanline in ascending order of intensity\n"
       "  -sparse-color method args\n"
       "                       fill in a image based on a few color points\n"
       "  -splice geometry     splice the background color into the image\n"
@@ -3792,6 +3807,7 @@ static MagickBooleanType MogrifyUsage(void)
       "  -fuzz distance       colors within this distance are considered equal\n"
       "  -gravity type        horizontal and vertical text placement\n"
       "  -green-primary point chromaticity green primary point\n"
+      "  -illuminant type     reference illuminant\n"
       "  -intensity method    method to generate an intensity value from a pixel\n"
       "  -intent type         type of rendering intent when managing the image color\n"
       "  -interlace type      type of image interlacing scheme\n"
@@ -4027,8 +4043,8 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
           continue;
         properties=(*GetBlobProperties(images));
         if (format != (char *) NULL)
-          (void) CopyMagickString(images->filename,images->magick_filename,
-            MagickPathExtent);
+          GetPathComponent(images->magick_filename,BasePathSansCompressExtension,
+            images->filename);
         if (path != (char *) NULL)
           {
             GetPathComponent(option,TailPath,filename);
@@ -5254,6 +5270,23 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
           break;
         if (LocaleCompare("idft",option+1) == 0)
           break;
+        if (LocaleCompare("illuminant",option+1) == 0)
+          {
+            ssize_t
+              type;
+
+            if (*option == '+')
+              break;
+            i++;
+            if (i == (ssize_t) argc)
+              ThrowMogrifyException(OptionError,"MissingArgument",option);
+            type=ParseCommandOption(MagickIlluminantOptions,MagickFalse,
+              argv[i]);
+            if (type < 0)
+              ThrowMogrifyException(OptionError,"UnrecognizedIlluminantMethod",
+                argv[i]);
+            break;
+          }
         if (LocaleCompare("implode",option+1) == 0)
           {
             if (*option == '+')
@@ -6257,6 +6290,8 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
               ThrowMogrifyInvalidArgumentException(option,argv[i]);
             break;
           }
+        if (LocaleCompare("sort",option+1) == 0)
+          break;
         if (LocaleCompare("sparse-color",option+1) == 0)
           {
             ssize_t
@@ -8285,8 +8320,8 @@ WandExport MagickBooleanType MogrifyImageList(ImageInfo *image_info,
                   duplicate_images=DuplicateImages(*images,number_duplicates,
                     "-1",exception);
                 else
-                  duplicate_images=DuplicateImages(*images,number_duplicates,p,
-                    exception);
+                  duplicate_images=DuplicateImages(*images,number_duplicates,
+                    p+1,exception);
               }
             AppendImageToList(images, duplicate_images);
             (void) SyncImagesSettings(mogrify_info,*images,exception);

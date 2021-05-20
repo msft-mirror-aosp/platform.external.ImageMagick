@@ -23,7 +23,7 @@
 %                             February 1997                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -584,6 +584,7 @@ static struct
       {"width", IntegerReference}, {"height", IntegerReference},
       {"intensity-sigma", RealReference}, {"spatial-sigma", RealReference},
       {"channel", MagickChannelOptions} } },
+    { "SortPixels", { { (const char *) NULL, NullReference } } },
   };
 
 static SplayTreeInfo
@@ -904,7 +905,7 @@ static Image *GetList(pTHX_ SV *reference,SV ***reference_vector,
         *head,
         *previous;
 
-      ssize_t
+      register ssize_t
         i;
 
       ssize_t
@@ -1635,7 +1636,7 @@ static void SetAttribute(pTHX_ struct PackageInfo *info,Image *image,
           long
             index;
 
-          Quantum
+          register Quantum
             *q;
 
           CacheView
@@ -1872,7 +1873,7 @@ static void SetAttribute(pTHX_ struct PackageInfo *info,Image *image,
           PixelInfo
             pixel;
 
-          Quantum
+          register Quantum
             *q;
 
           CacheView
@@ -2424,7 +2425,7 @@ static ssize_t strEQcase(const char *p,const char *q)
   char
     c;
 
-  ssize_t
+  register ssize_t
     i;
 
   for (i=0 ; (c=(*q)) != 0; i++)
@@ -2503,7 +2504,7 @@ Animate(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -2591,7 +2592,7 @@ Append(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -2828,10 +2829,10 @@ BlobToImage(ref,...)
     Image
       *image;
 
-    char
+    register char
       **p;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -2988,7 +2989,7 @@ ChannelFx(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -3226,7 +3227,7 @@ CLONE(ref,...)
     PERL_UNUSED_VAR(ref);
     if (magick_registry != (SplayTreeInfo *) NULL)
       {
-        Image
+        register Image
           *p;
 
         ResetSplayTreeIterator(magick_registry);
@@ -3373,7 +3374,7 @@ Compare(ref,...)
     MetricType
       metric;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -3563,7 +3564,7 @@ ComplexImages(ref)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -3720,7 +3721,7 @@ CompareLayers(ref)
     LayerMethod
       method;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -3929,7 +3930,7 @@ Display(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -4020,7 +4021,7 @@ EvaluateImages(ref)
     MagickEvaluateOperator
       op;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -4224,7 +4225,7 @@ Features(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -4287,7 +4288,7 @@ Features(ref,...)
     count=0;
     for ( ; image; image=image->next)
     {
-      ssize_t
+      register ssize_t
         j;
 
       channel_features=GetImageFeatures(image,distance,exception);
@@ -4356,7 +4357,7 @@ Flatten(ref)
     PixelInfo
       background_color;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -4494,7 +4495,7 @@ Fx(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -4655,7 +4656,7 @@ Get(ref,...)
     long
       j;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -5065,6 +5066,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->endian : image ? image->endian :
                 UndefinedEndian;
+              if (info)
+                if (info->image_info->endian == UndefinedEndian)
+                  j=image->endian;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickEndianOptions,j));
               SvIOK_on(s);
@@ -5271,7 +5275,7 @@ Get(ref,...)
                 x,
                 y;
 
-              const Quantum
+              register const Quantum
                 *p;
 
               CacheView
@@ -5323,6 +5327,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->interlace : image ? image->interlace :
                 UndefinedInterlace;
+              if (info)
+                if (info->image_info->interlace == UndefinedInterlace)
+                  j=image->interlace;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickInterlaceOptions,
                 j));
@@ -5479,6 +5486,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->orientation : image ?
                 image->orientation : UndefinedOrientation;
+              if (info)
+                if (info->image_info->orientation == UndefinedOrientation)
+                  j=image->orientation;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickOrientationOptions,
                 j));
@@ -5537,7 +5547,7 @@ Get(ref,...)
                 x,
                 y;
 
-              const Quantum
+              register const Quantum
                 *p;
 
               if (image == (Image *) NULL)
@@ -5752,8 +5762,8 @@ Get(ref,...)
             {
               j=info ? info->image_info->units : image ? image->units :
                 UndefinedResolution;
-              if (info && (info->image_info->units == UndefinedResolution))
-                if (image)
+              if (info)
+                if (info->image_info->units == UndefinedResolution)
                   j=image->units;
               if (j == UndefinedResolution)
                 s=newSVpv("undefined units",0);
@@ -6399,7 +6409,7 @@ Histogram(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -6515,10 +6525,10 @@ GetPixel(ref,...)
     RectangleInfo
       region;
 
-    const Quantum
+    register const Quantum
       *p;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -6716,7 +6726,7 @@ GetPixels(ref,...)
     RectangleInfo
       region;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -6870,14 +6880,18 @@ GetPixels(ref,...)
         float
           *pixels;
 
-        pixels=(float *) AcquireQuantumMemory(strlen(map)*region.width,
+        MemoryInfo
+          *pixels_info;
+
+        pixels_info=AcquireVirtualMemory(strlen(map)*region.width,
           region.height*sizeof(*pixels));
-        if (pixels == (float *) NULL)
+        if (pixels_info == (MemoryInfo *) NULL)
           {
             ThrowPerlException(exception,ResourceLimitError,
               "MemoryAllocationFailed",PackageName);
             goto PerlException;
           }
+        pixels=(float *) GetVirtualMemoryBlob(pixels_info);
         status=ExportImagePixels(image,region.x,region.y,region.width,
           region.height,map,FloatPixel,pixels,exception);
         if (status == MagickFalse)
@@ -6888,21 +6902,25 @@ GetPixels(ref,...)
             for (i=0; i < (ssize_t) (strlen(map)*region.width*region.height); i++)
               PUSHs(sv_2mortal(newSVnv(pixels[i])));
           }
-        pixels=(float *) RelinquishMagickMemory(pixels);
+        pixels_info=RelinquishVirtualMemory(pixels_info);
       }
     else
       {
+        MemoryInfo
+          *pixels_info;
+
         Quantum
           *pixels;
 
-        pixels=(Quantum *) AcquireQuantumMemory(strlen(map)*region.width,
+        pixels_info=AcquireVirtualMemory(strlen(map)*region.width,
           region.height*sizeof(*pixels));
-        if (pixels == (Quantum *) NULL)
+        if (pixels_info == (MemoryInfo *) NULL)
           {
             ThrowPerlException(exception,ResourceLimitError,
               "MemoryAllocationFailed",PackageName);
             goto PerlException;
           }
+        pixels=(Quantum *) GetVirtualMemoryBlob(pixels_info);
         status=ExportImagePixels(image,region.x,region.y,region.width,
           region.height,map,QuantumPixel,pixels,exception);
         if (status == MagickFalse)
@@ -6913,7 +6931,7 @@ GetPixels(ref,...)
             for (i=0; i < (ssize_t) (strlen(map)*region.width*region.height); i++)
               PUSHs(sv_2mortal(newSViv(pixels[i])));
           }
-        pixels=(Quantum *) RelinquishMagickMemory(pixels);
+        pixels_info=RelinquishVirtualMemory(pixels_info);
       }
 
   PerlException:
@@ -6954,7 +6972,7 @@ ImageToBlob(ref,...)
       *image,
       *next;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -7073,7 +7091,7 @@ Layers(ref,...)
     LayerMethod
       method;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -7675,6 +7693,8 @@ Mogrify(ref,...)
     WhiteBalanceImage  = 304
     BilateralBlur      = 305
     BilateralBlurImage = 306
+    SortPixels         = 307
+    SortPixelsImage    = 308
     MogrifyRegion      = 666
   PPCODE:
   {
@@ -7720,7 +7740,7 @@ Mogrify(ref,...)
       geometry,
       region_info;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -8727,10 +8747,10 @@ Mogrify(ref,...)
                   MagickBooleanType
                     sync;
 
-                  ssize_t
+                  register ssize_t
                     x;
 
-                  Quantum
+                  register Quantum
                     *q;
 
                   ssize_t
@@ -11585,16 +11605,16 @@ Mogrify(ref,...)
               if ((flags & SigmaValue) == 0)
                 geometry_info.sigma=geometry_info.rho;
               if ((flags & XiValue) == 0)
-                geometry_info.xi=1.0*sqrt(geometry_info.rho*geometry_info.rho+
+                geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
                   geometry_info.sigma*geometry_info.sigma);
               if ((flags & PsiValue) == 0)
-                geometry_info.psi=0.25*sqrt(geometry_info.rho*geometry_info.rho+
+                geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
                   geometry_info.sigma*geometry_info.sigma);
             }
           if (attribute_flag[1] != 0)
-            geometry_info.rho=(double) argument_list[1].integer_reference;
+            geometry_info.rho=argument_list[1].integer_reference;
           if (attribute_flag[2] != 0)
-            geometry_info.sigma=(double) argument_list[2].integer_reference;
+            geometry_info.sigma=argument_list[2].integer_reference;
           if (attribute_flag[3] != 0)
             geometry_info.xi=argument_list[3].real_reference;
           if (attribute_flag[4] != 0)
@@ -11606,6 +11626,11 @@ Mogrify(ref,...)
             geometry_info.sigma,geometry_info.xi,geometry_info.psi,exception);
           if (image != (Image *) NULL)
             (void) SetImageChannelMask(image,channel_mask);
+          break;
+        }
+        case 154:  /* SortPixels */
+        {
+          (void) SortImagePixels(image,exception);
           break;
         }
       }
@@ -11685,7 +11710,7 @@ Montage(ref,...)
     MontageInfo
       *montage_info;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -12090,7 +12115,7 @@ Morph(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -12315,10 +12340,10 @@ Ping(ref,...)
     MagickBooleanType
       status;
 
-    char
+    register char
       **p;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -12611,7 +12636,7 @@ QueryColor(ref,...)
     PixelInfo
       color;
 
-    ssize_t
+    register ssize_t
       i;
 
     SV
@@ -12697,7 +12722,7 @@ QueryColorname(ref,...)
     PixelInfo
       target_color;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -12764,7 +12789,7 @@ QueryFont(ref,...)
     ExceptionInfo
       *exception;
 
-    ssize_t
+    register ssize_t
       i;
 
     SV
@@ -12909,7 +12934,7 @@ QueryFontMetrics(ref,...)
     MagickStatusType
       flags;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -13320,7 +13345,7 @@ QueryMultilineFontMetrics(ref,...)
     MagickStatusType
       flags;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -13667,7 +13692,7 @@ QueryFormat(ref,...)
     ExceptionInfo
       *exception;
 
-    ssize_t
+    register ssize_t
       i;
 
     SV
@@ -13754,7 +13779,7 @@ QueryOption(ref,...)
     ExceptionInfo
       *exception;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -13832,10 +13857,10 @@ Read(ref,...)
     MagickBooleanType
       status;
 
-    char
+    register char
       **p;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -14034,7 +14059,7 @@ Remote(ref,...)
     ExceptionInfo
       *exception;
 
-    ssize_t
+    register ssize_t
       i;
 
     SV
@@ -14089,7 +14114,7 @@ Set(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     struct PackageInfo
@@ -14168,10 +14193,10 @@ SetPixel(ref,...)
     RectangleInfo
       region;
 
-    ssize_t
+    register ssize_t
       i;
 
-    Quantum
+    register Quantum
       *q;
 
     ssize_t
@@ -14325,7 +14350,7 @@ SetPixel(ref,...)
         double
           scale;
 
-        ssize_t
+        register ssize_t
           i;
 
         i=0;
@@ -14416,10 +14441,10 @@ SetPixels(ref,...)
     RectangleInfo
       region;
 
-    ssize_t
+    register ssize_t
       i;
 
-    Quantum
+    register Quantum
       *q;
 
     struct PackageInfo
@@ -14574,7 +14599,7 @@ SetPixels(ref,...)
         double
           scale;
 
-        ssize_t
+        register ssize_t
           i,
           n,
           number_pixels;
@@ -14669,7 +14694,7 @@ Smush(ref,...)
     Image
       *image;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
@@ -14884,7 +14909,7 @@ Statistics(ref,...)
     count=0;
     for ( ; image; image=image->next)
     {
-      size_t
+      register size_t
         i;
 
       channel_statistics=GetImageStatistics(image,exception);
@@ -15010,7 +15035,7 @@ Write(ref,...)
       *image,
       *next;
 
-    ssize_t
+    register ssize_t
       i;
 
     ssize_t
