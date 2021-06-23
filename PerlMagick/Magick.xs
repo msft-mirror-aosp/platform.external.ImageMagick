@@ -440,7 +440,7 @@ static struct
       {"sigma", RealReference}, {"x", IntegerReference},
       {"y", IntegerReference} } },
     { "Identify", { {"file", FileReference}, {"features", StringReference},
-      {"unique", MagickBooleanOptions} } },
+      {"moments", MagickBooleanOptions}, {"unique", MagickBooleanOptions} } },
     { "SepiaTone", { {"threshold", RealReference} } },
     { "SigmoidalContrast", { {"geometry", StringReference},
       {"contrast", RealReference}, {"mid-point", RealReference},
@@ -577,6 +577,14 @@ static struct
       {"clip-limit", RealReference} } },
     { "Kmeans", { {"geometry", StringReference}, {"colors", IntegerReference},
       {"iterations", IntegerReference}, {"tolerance", RealReference} } },
+    { "ColorThreshold", { {"start-color", StringReference},
+      {"stop-color", StringReference}, {"channel", MagickChannelOptions} } },
+    { "WhiteBalance", { { (const char *) NULL, NullReference } } },
+    { "BilateralBlur", { {"geometry", StringReference},
+      {"width", IntegerReference}, {"height", IntegerReference},
+      {"intensity-sigma", RealReference}, {"spatial-sigma", RealReference},
+      {"channel", MagickChannelOptions} } },
+    { "SortPixels", { { (const char *) NULL, NullReference } } },
   };
 
 static SplayTreeInfo
@@ -1920,6 +1928,11 @@ static void SetAttribute(pTHX_ struct PackageInfo *info,Image *image,
               (void) ParseGeometry(SvPV(sval,na),&geometry_info);
               info->image_info->pointsize=geometry_info.rho;
             }
+          break;
+        }
+      if (LocaleCompare(attribute,"precision") == 0)
+        {
+          (void) SetMagickPrecision(SvIV(sval));
           break;
         }
       if (info)
@@ -5053,6 +5066,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->endian : image ? image->endian :
                 UndefinedEndian;
+              if (info)
+                if (info->image_info->endian == UndefinedEndian)
+                  j=image->endian;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickEndianOptions,j));
               SvIOK_on(s);
@@ -5311,6 +5327,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->interlace : image ? image->interlace :
                 UndefinedInterlace;
+              if (info)
+                if (info->image_info->interlace == UndefinedInterlace)
+                  j=image->interlace;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickInterlaceOptions,
                 j));
@@ -5467,6 +5486,9 @@ Get(ref,...)
             {
               j=info ? info->image_info->orientation : image ?
                 image->orientation : UndefinedOrientation;
+              if (info)
+                if (info->image_info->orientation == UndefinedOrientation)
+                  j=image->orientation;
               s=newSViv(j);
               (void) sv_setpv(s,CommandOptionToMnemonic(MagickOrientationOptions,
                 j));
@@ -5554,6 +5576,12 @@ Get(ref,...)
             {
               if (info)
                 s=newSViv((ssize_t) info->image_info->pointsize);
+              PUSHs(s ? sv_2mortal(s) : &sv_undef);
+              continue;
+            }
+          if (LocaleCompare(attribute,"precision") == 0)
+            {
+              s=newSViv((ssize_t) GetMagickPrecision());
               PUSHs(s ? sv_2mortal(s) : &sv_undef);
               continue;
             }
@@ -5734,8 +5762,8 @@ Get(ref,...)
             {
               j=info ? info->image_info->units : image ? image->units :
                 UndefinedResolution;
-              if (info && (info->image_info->units == UndefinedResolution))
-                if (image)
+              if (info)
+                if (info->image_info->units == UndefinedResolution)
                   j=image->units;
               if (j == UndefinedResolution)
                 s=newSVpv("undefined units",0);
@@ -6852,14 +6880,18 @@ GetPixels(ref,...)
         float
           *pixels;
 
-        pixels=(float *) AcquireQuantumMemory(strlen(map)*region.width,
+        MemoryInfo
+          *pixels_info;
+
+        pixels_info=AcquireVirtualMemory(strlen(map)*region.width,
           region.height*sizeof(*pixels));
-        if (pixels == (float *) NULL)
+        if (pixels_info == (MemoryInfo *) NULL)
           {
             ThrowPerlException(exception,ResourceLimitError,
               "MemoryAllocationFailed",PackageName);
             goto PerlException;
           }
+        pixels=(float *) GetVirtualMemoryBlob(pixels_info);
         status=ExportImagePixels(image,region.x,region.y,region.width,
           region.height,map,FloatPixel,pixels,exception);
         if (status == MagickFalse)
@@ -6870,21 +6902,25 @@ GetPixels(ref,...)
             for (i=0; i < (ssize_t) (strlen(map)*region.width*region.height); i++)
               PUSHs(sv_2mortal(newSVnv(pixels[i])));
           }
-        pixels=(float *) RelinquishMagickMemory(pixels);
+        pixels_info=RelinquishVirtualMemory(pixels_info);
       }
     else
       {
+        MemoryInfo
+          *pixels_info;
+
         Quantum
           *pixels;
 
-        pixels=(Quantum *) AcquireQuantumMemory(strlen(map)*region.width,
+        pixels_info=AcquireVirtualMemory(strlen(map)*region.width,
           region.height*sizeof(*pixels));
-        if (pixels == (Quantum *) NULL)
+        if (pixels_info == (MemoryInfo *) NULL)
           {
             ThrowPerlException(exception,ResourceLimitError,
               "MemoryAllocationFailed",PackageName);
             goto PerlException;
           }
+        pixels=(Quantum *) GetVirtualMemoryBlob(pixels_info);
         status=ExportImagePixels(image,region.x,region.y,region.width,
           region.height,map,QuantumPixel,pixels,exception);
         if (status == MagickFalse)
@@ -6895,7 +6931,7 @@ GetPixels(ref,...)
             for (i=0; i < (ssize_t) (strlen(map)*region.width*region.height); i++)
               PUSHs(sv_2mortal(newSViv(pixels[i])));
           }
-        pixels=(Quantum *) RelinquishMagickMemory(pixels);
+        pixels_info=RelinquishVirtualMemory(pixels_info);
       }
 
   PerlException:
@@ -7651,6 +7687,14 @@ Mogrify(ref,...)
     CLAHEImage         = 298
     Kmeans             = 299
     KMeansImage        = 300
+    ColorThreshold     = 301
+    ColorThresholdImage= 302
+    WhiteBalance       = 303
+    WhiteBalanceImage  = 304
+    BilateralBlur      = 305
+    BilateralBlurImage = 306
+    SortPixels         = 307
+    SortPixelsImage    = 308
     MogrifyRegion      = 666
   PPCODE:
   {
@@ -10102,9 +10146,6 @@ Mogrify(ref,...)
         {
           if (attribute_flag[0] == 0)
             argument_list[0].file_reference=(FILE *) NULL;
-          if (attribute_flag[1] != 0)
-            (void) SetImageArtifact(image,"identify:features",
-              argument_list[1].string_reference);
           (void) IdentifyImage(image,argument_list[0].file_reference,
             MagickTrue,exception);
           break;
@@ -10116,7 +10157,7 @@ Mogrify(ref,...)
           if (attribute_flag[2] != 0)
             channel=(ChannelType) argument_list[2].integer_reference;
           channel_mask=SetImageChannelMask(image,channel);
-          BlackThresholdImage(image,argument_list[0].string_reference,
+          (void) BlackThresholdImage(image,argument_list[0].string_reference,
             exception);
           (void) SetImageChannelMask(image,channel_mask);
           break;
@@ -10259,6 +10300,9 @@ Mogrify(ref,...)
               argument_list[1].string_reference);
           if ((attribute_flag[2] != 0) &&
               (argument_list[2].integer_reference != 0))
+            (void) SetImageArtifact(image,"identify:moments","true");
+          if ((attribute_flag[3] != 0) &&
+              (argument_list[3].integer_reference != 0))
             (void) SetImageArtifact(image,"identify:unique","true");
           (void) IdentifyImage(image,argument_list[0].file_reference,
             MagickTrue,exception);
@@ -11524,6 +11568,69 @@ Mogrify(ref,...)
             geometry_info.xi=(ChannelType) argument_list[3].real_reference;
           (void) KmeansImage(image,geometry_info.rho,geometry_info.sigma,
             geometry_info.xi,exception);
+          break;
+        }
+        case 151:  /* ColorThreshold */
+        {
+          PixelInfo
+            start_color,
+            stop_color;
+
+          (void) QueryColorCompliance("black",AllCompliance,&start_color,
+            exception);
+          (void) QueryColorCompliance("white",AllCompliance,&stop_color,
+            exception);
+          if (attribute_flag[0] != 0)
+            (void) QueryColorCompliance(argument_list[0].string_reference,
+              AllCompliance,&start_color,exception);
+          if (attribute_flag[1] != 0)
+            (void) QueryColorCompliance(argument_list[1].string_reference,
+              AllCompliance,&stop_color,exception);
+          channel_mask=SetImageChannelMask(image,channel);
+          (void) ColorThresholdImage(image,&start_color,&stop_color,exception);
+          (void) SetImageChannelMask(image,channel_mask);
+          break;
+        }
+        case 152:  /* WhiteBalance */
+        {
+          (void) WhiteBalanceImage(image,exception);
+          break;
+        }
+        case 153:  /* BilateralBlur */
+        {
+          if (attribute_flag[0] != 0)
+            {
+              flags=ParseGeometry(argument_list[0].string_reference,
+                &geometry_info);
+              if ((flags & SigmaValue) == 0)
+                geometry_info.sigma=geometry_info.rho;
+              if ((flags & XiValue) == 0)
+                geometry_info.xi=2.0*sqrt(geometry_info.rho*geometry_info.rho+
+                  geometry_info.sigma*geometry_info.sigma);
+              if ((flags & PsiValue) == 0)
+                geometry_info.psi=0.5*sqrt(geometry_info.rho*geometry_info.rho+
+                  geometry_info.sigma*geometry_info.sigma);
+            }
+          if (attribute_flag[1] != 0)
+            geometry_info.rho=argument_list[1].integer_reference;
+          if (attribute_flag[2] != 0)
+            geometry_info.sigma=argument_list[2].integer_reference;
+          if (attribute_flag[3] != 0)
+            geometry_info.xi=argument_list[3].real_reference;
+          if (attribute_flag[4] != 0)
+            geometry_info.psi=argument_list[4].real_reference;
+          if (attribute_flag[5] != 0)
+            channel=(ChannelType) argument_list[5].integer_reference;
+          channel_mask=SetImageChannelMask(image,channel);
+          image=BilateralBlurImage(image,(size_t) geometry_info.rho,(size_t)
+            geometry_info.sigma,geometry_info.xi,geometry_info.psi,exception);
+          if (image != (Image *) NULL)
+            (void) SetImageChannelMask(image,channel_mask);
+          break;
+        }
+        case 154:  /* SortPixels */
+        {
+          (void) SortImagePixels(image,exception);
           break;
         }
       }
