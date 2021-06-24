@@ -2398,33 +2398,52 @@ static Image *ReadPSDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   if (status == MagickFalse)
     return(DestroyImageList(image));
   psd_info.min_channels=3;
-  if (psd_info.mode == LabMode)
-    (void) SetImageColorspace(image,LabColorspace,exception);
-  if (psd_info.mode == CMYKMode)
+  switch (psd_info.mode)
+  {
+    case LabMode:
+    {
+      (void) SetImageColorspace(image,LabColorspace,exception);
+      break;
+    }
+    case CMYKMode:
     {
       psd_info.min_channels=4;
       (void) SetImageColorspace(image,CMYKColorspace,exception);
+      break;
     }
-  else
-    if ((psd_info.mode == BitmapMode) || (psd_info.mode == GrayscaleMode) ||
-        (psd_info.mode == DuotoneMode))
-      {
-        if (psd_info.depth != 32)
-          {
-            status=AcquireImageColormap(image,MagickMin((size_t)
-              (psd_info.depth < 16 ? 256 : 65536), MaxColormapSize),exception);
-            if (status == MagickFalse)
-              ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
-            if (image->debug != MagickFalse)
-              (void) LogMagickEvent(CoderEvent,GetMagickModule(),
-                "  Image colormap allocated");
-          }
-        psd_info.min_channels=1;
-        (void) SetImageColorspace(image,GRAYColorspace,exception);
-      }
-    else
-      if (psd_info.mode == IndexedMode)
-        psd_info.min_channels=1;
+    case BitmapMode:
+    case GrayscaleMode:
+    case DuotoneMode:
+    {
+      if (psd_info.depth != 32)
+        {
+          status=AcquireImageColormap(image,MagickMin((size_t)
+            (psd_info.depth < 16 ? 256 : 65536), MaxColormapSize),exception);
+          if (status == MagickFalse)
+            ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
+          if (image->debug != MagickFalse)
+            (void) LogMagickEvent(CoderEvent,GetMagickModule(),
+              "  Image colormap allocated");
+        }
+      psd_info.min_channels=1;
+      (void) SetImageColorspace(image,GRAYColorspace,exception);
+      break;
+    }
+    case IndexedMode:
+    {
+      psd_info.min_channels=1;
+      break;
+    }
+    case MultichannelMode:
+    {
+      if ((psd_info.channels > 0) && (psd_info.channels < 3))
+        {
+          psd_info.min_channels=psd_info.channels;
+          (void) SetImageColorspace(image,GRAYColorspace,exception);
+        }
+      break;
+    }
+  }
   if (psd_info.channels < psd_info.min_channels)
     ThrowReaderException(CorruptImageError,"ImproperImageHeader");
   /*
@@ -3911,6 +3930,9 @@ static MagickBooleanType WritePSDImage(const ImageInfo *image_info,
     }
   if (status != MagickFalse)
     {
+      const char
+        *option;
+
       MagickOffsetType
         size_offset;
 
@@ -3919,10 +3941,14 @@ static MagickBooleanType WritePSDImage(const ImageInfo *image_info,
 
       size_offset=TellBlob(image);
       (void) SetPSDSize(&psd_info,image,0);
-      status=WritePSDLayersInternal(image,image_info,&psd_info,&size,
-        exception);
-      size_offset+=WritePSDSize(&psd_info,image,size+
-        (psd_info.version == 1 ? 8 : 12),size_offset);
+      option=GetImageOption(image_info,"psd:write-layers");
+      if (IsStringFalse(option) != MagickTrue)
+        {
+          status=WritePSDLayersInternal(image,image_info,&psd_info,&size,
+            exception);
+          (void) WritePSDSize(&psd_info,image,size+
+            (psd_info.version == 1 ? 8 : 12),size_offset);
+        }
     }
   (void) WriteBlobMSBLong(image,0);  /* user mask data */
   /*
