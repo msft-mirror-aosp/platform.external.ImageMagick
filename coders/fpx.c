@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -147,14 +147,14 @@ static Image *ReadFPXImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Quantum
     index;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *a,
     *b,
     *g,
@@ -790,10 +790,10 @@ static MagickBooleanType WriteFPXImage(const ImageInfo *image_info,Image *image,
   QuantumType
     quantum_type;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t

@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -93,8 +93,6 @@ extern WandExport MagickBooleanType
   MagickAutoLevelImage(MagickWand *),
   MagickAutoOrientImage(MagickWand *),
   MagickAutoThresholdImage(MagickWand *,const AutoThresholdMethod),
-  MagickBilateralImage(MagickWand *,const double,const double,const double,
-    const double),
   MagickBlackThresholdImage(MagickWand *,const PixelWand *),
   MagickBlueShiftImage(MagickWand *,const double),
   MagickBlurImage(MagickWand *,const double,const double),
@@ -115,7 +113,6 @@ extern WandExport MagickBooleanType
   MagickColorDecisionListImage(MagickWand *,const char *),
   MagickColorizeImage(MagickWand *,const PixelWand *,const PixelWand *),
   MagickColorMatrixImage(MagickWand *,const KernelInfo *),
-  MagickColorThresholdImage(MagickWand *,const PixelWand *,const PixelWand *),
   MagickCommentImage(MagickWand *,const char *),
   MagickCompositeImage(MagickWand *,const MagickWand *,const CompositeOperator,
     const MagickBooleanType,const ssize_t,const ssize_t),
@@ -193,7 +190,6 @@ extern WandExport MagickBooleanType
     const PixelInterpolateMethod),
   MagickInverseFourierTransformImage(MagickWand *,MagickWand *,
     const MagickBooleanType),
-  MagickKmeansImage(MagickWand *, const size_t, const size_t, const double),
   MagickKuwaharaImage(MagickWand *,const double,const double),
   MagickLabelImage(MagickWand *,const char *),
   MagickLevelImage(MagickWand *,const double,const double,const double),
@@ -206,6 +202,7 @@ extern WandExport MagickBooleanType
   MagickLocalContrastImage(MagickWand *,const double,const double),
   MagickMagnifyImage(MagickWand *),
   MagickMeanShiftImage(MagickWand *,const size_t,const size_t,const double),
+  MagickMedianConvolveImage(MagickWand *,const double),
   MagickMinifyImage(MagickWand *),
   MagickModeImage(MagickWand *,const double),
   MagickModulateImage(MagickWand *,const double,const double,const double),
@@ -342,7 +339,6 @@ extern WandExport MagickBooleanType
   MagickWaveImage(MagickWand *,const double,const double,
     const PixelInterpolateMethod),
   MagickWaveletDenoiseImage(MagickWand *,const double,const double),
-  MagickWhiteBalanceImage(MagickWand *),
   MagickWhiteThresholdImage(MagickWand *,const PixelWand *),
   MagickWriteImage(MagickWand *,const char *),
   MagickWriteImageFile(MagickWand *,FILE *),

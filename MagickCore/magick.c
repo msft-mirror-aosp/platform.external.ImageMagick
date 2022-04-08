@@ -18,7 +18,7 @@
 %                             November 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -65,7 +65,6 @@
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/module.h"
 #include "MagickCore/module-private.h"
-#include "MagickCore/mutex.h"
 #include "MagickCore/nt-base-private.h"
 #include "MagickCore/nt-feature.h"
 #include "MagickCore/opencl-private.h"
@@ -296,7 +295,7 @@ MagickExport MagickBooleanType GetImageMagick(const unsigned char *magick,
   MagickBooleanType
     status;
 
-  const MagickInfo
+  register const MagickInfo
     *p;
 
   (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
@@ -610,7 +609,7 @@ MagickExport MagickBooleanType GetMagickEndianSupport(
 MagickExport const MagickInfo *GetMagickInfo(const char *name,
   ExceptionInfo *exception)
 {
-  const MagickInfo
+  register const MagickInfo
     *magick_info;
 
   /*
@@ -703,10 +702,10 @@ MagickExport const MagickInfo **GetMagickInfoList(const char *pattern,
   const MagickInfo
     **formats;
 
-  const MagickInfo
+  register const MagickInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -777,7 +776,7 @@ extern "C" {
 
 static int MagickCompare(const void *x,const void *y)
 {
-  const char
+  register const char
     **p,
     **q;
 
@@ -796,10 +795,10 @@ MagickExport char **GetMagickList(const char *pattern,
   char
     **formats;
 
-  const MagickInfo
+  register const MagickInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -1067,7 +1066,7 @@ MagickExport MagickBooleanType GetMagickUseExtension(
 
 static void *DestroyMagickNode(void *magick_info)
 {
-  MagickInfo
+  register MagickInfo
     *p;
 
   p=(MagickInfo *) magick_info;
@@ -1090,7 +1089,6 @@ static void *DestroyMagickNode(void *magick_info)
 
 static MagickBooleanType IsMagickTreeInstantiated(ExceptionInfo *exception)
 {
-  (void) exception;
   if (magick_list_initialized == MagickFalse)
     {
       if (magick_semaphore == (SemaphoreInfo *) NULL)
@@ -1177,7 +1175,7 @@ MagickExport MagickBooleanType ListMagickInfo(FILE *file,
   const MagickInfo
     **magick_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -1393,7 +1391,6 @@ static SignalHandler *SetMagickSignalHandler(int signal_number,
 #if defined(SA_ONSTACK)
   action.sa_flags|=SA_ONSTACK;
 #endif
-  previous_action.sa_handler=SIG_DFL;
   status=sigaction(signal_number,&action,&previous_action);
   if (status < 0)
     return(SIG_ERR);
@@ -1476,13 +1473,8 @@ MagickExport void MagickCoreGenesis(const char *path,
   /*
     Initialize the Magick environment.
   */
-  InitializeMagickMutex();
-  LockMagickMutex();
   if (magickcore_instantiated != MagickFalse)
-    {
-      UnlockMagickMutex();
-      return;
-    }
+    return;
   (void) SemaphoreComponentGenesis();
   (void) ExceptionComponentGenesis();
   (void) LogComponentGenesis();
@@ -1586,7 +1578,6 @@ MagickExport void MagickCoreGenesis(const char *path,
   (void) RegistryComponentGenesis();
   (void) MonitorComponentGenesis();
   magickcore_instantiated=MagickTrue;
-  UnlockMagickMutex();
 }
 
 /*
@@ -1751,7 +1742,7 @@ MagickPrivate void ResetMagickPrecision(void)
 */
 MagickExport int SetMagickPrecision(const int precision)
 {
-#define MagickPrecision  (4+MAGICKCORE_QUANTUM_DEPTH/8)
+#define MagickPrecision  6
 
   (void) LogMagickEvent(TraceEvent,GetMagickModule(),"...");
   if (precision > 0)
@@ -1803,7 +1794,7 @@ MagickExport int SetMagickPrecision(const int precision)
 */
 MagickExport MagickBooleanType UnregisterMagickInfo(const char *name)
 {
-  const MagickInfo
+  register const MagickInfo
     *p;
 
   MagickBooleanType

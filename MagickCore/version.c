@@ -17,7 +17,7 @@
 %                               September 2002                                %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -206,9 +206,6 @@ MagickExport const char *GetMagickDelegates(void)
 #if defined(MAGICKCORE_XML_DELEGATE)
   "xml "
 #endif
-#if defined(MAGICKCORE_ZIP_DELEGATE)
-  "zip "
-#endif
 #if defined(MAGICKCORE_ZLIB_DELEGATE)
   "zlib"
 #endif
@@ -277,9 +274,6 @@ MagickExport const char *GetMagickFeatures(void)
 #else
   " "
 #endif
-#endif
-#if defined(MAGICKCORE_HAVE_TCMALLOC)
-  "TCMalloc "
 #endif
 #if defined(ZERO_CONFIGURATION_SUPPORT)
   "Zero-configuration "
@@ -501,7 +495,7 @@ MagickExport const char *GetMagickReleaseDate(void)
 
 static unsigned int CRC32(const unsigned char *message,const size_t length)
 {
-  ssize_t
+  register ssize_t
     i;
 
   static MagickBooleanType
@@ -518,7 +512,7 @@ static unsigned int CRC32(const unsigned char *message,const size_t length)
   */
   if (crc_initial == MagickFalse)
     {
-      unsigned int
+      register unsigned int
         j;
 
       unsigned int
@@ -526,7 +520,7 @@ static unsigned int CRC32(const unsigned char *message,const size_t length)
 
       for (j=0; j < 256; j++)
       {
-        ssize_t
+        register ssize_t
           k;
 
         alpha=j;
@@ -544,7 +538,7 @@ static unsigned int CRC32(const unsigned char *message,const size_t length)
 
 MagickExport unsigned int GetMagickSignature(const StringInfo *nonce)
 {
-  unsigned char
+  register unsigned char
     *p;
 
   StringInfo
@@ -564,7 +558,7 @@ MagickExport unsigned int GetMagickSignature(const StringInfo *nonce)
   signature=MagickLibInterface;
   (void) memcpy(p,&signature,sizeof(signature));
   p+=sizeof(signature);
-  signature=1;  /* endianness */
+  signature=1;  /* endianess */
   (void) memcpy(p,&signature,sizeof(signature));
   p+=sizeof(signature);
   SetStringInfoLength(version,p-GetStringInfoDatum(version));

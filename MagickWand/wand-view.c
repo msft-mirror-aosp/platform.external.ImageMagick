@@ -22,7 +22,7 @@
 %                                March 2003                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -120,14 +120,17 @@ WandExport WandView *CloneWandView(const WandView *wand_view)
   WandView
     *clone_view;
 
-  ssize_t
+  register ssize_t
     i;
 
   assert(wand_view != (WandView *) NULL);
   assert(wand_view->signature == MagickWandSignature);
   if (wand_view->debug != MagickFalse)
     (void) LogMagickEvent(WandEvent,GetMagickModule(),"%s",wand_view->name);
-  clone_view=(WandView *) AcquireCriticalMemory(sizeof(*clone_view));
+  clone_view=(WandView *) AcquireMagickMemory(sizeof(*clone_view));
+  if (clone_view == (WandView *) NULL)
+    ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
+      wand_view->name);
   (void) memset(clone_view,0,sizeof(*clone_view));
   clone_view->id=AcquireWandId();
   (void) FormatLocaleString(clone_view->name,MagickPathExtent,"%s-%.20g",
@@ -175,7 +178,7 @@ WandExport WandView *CloneWandView(const WandView *wand_view)
 static PixelWand ***DestroyPixelsThreadSet(PixelWand ***pixel_wands,
   const size_t number_wands)
 {
-  ssize_t
+  register ssize_t
     i;
 
   assert(pixel_wands != (PixelWand ***) NULL);
@@ -299,14 +302,14 @@ WandExport MagickBooleanType DuplexTransferWandViewIterator(WandView *source,
     MagickBooleanType
       sync;
 
-    const Quantum
+    register const Quantum
       *magick_restrict duplex_pixels,
       *magick_restrict pixels;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict destination_pixels;
 
     if (status == MagickFalse)
@@ -550,10 +553,10 @@ WandExport MagickBooleanType GetWandViewIterator(WandView *source,
     const int
       id = GetOpenMPThreadId();
 
-    const Quantum
+    register const Quantum
       *pixels;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -662,7 +665,7 @@ WandExport MagickWand *GetWandViewWand(const WandView *wand_view)
 %                                                                             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%  IsWandView() returns MagickTrue if the parameter is verified as a wand
+%  IsWandView() returns MagickTrue if the the parameter is verified as a wand
 %  view object.
 %
 %  The format of the IsWandView method is:
@@ -718,7 +721,7 @@ static PixelWand ***AcquirePixelsThreadSet(const size_t number_wands)
   PixelWand
     ***pixel_wands;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -749,7 +752,10 @@ WandExport WandView *NewWandView(MagickWand *wand)
 
   assert(wand != (MagickWand *) NULL);
   assert(wand->signature == MagickWandSignature);
-  wand_view=(WandView *) AcquireCriticalMemory(sizeof(*wand_view));
+  wand_view=(WandView *) AcquireMagickMemory(sizeof(*wand_view));
+  if (wand_view == (WandView *) NULL)
+    ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
+      GetExceptionMessage(errno));
   (void) memset(wand_view,0,sizeof(*wand_view));
   wand_view->id=AcquireWandId();
   (void) FormatLocaleString(wand_view->name,MagickPathExtent,"%s-%.20g",
@@ -808,7 +814,10 @@ WandExport WandView *NewWandViewExtent(MagickWand *wand,const ssize_t x,
 
   assert(wand != (MagickWand *) NULL);
   assert(wand->signature == MagickWandSignature);
-  wand_view=(WandView *) AcquireCriticalMemory(sizeof(*wand_view));
+  wand_view=(WandView *) AcquireMagickMemory(sizeof(*wand_view));
+  if (wand_view == (WandView *) NULL)
+    ThrowWandFatalException(ResourceLimitFatalError,"MemoryAllocationFailed",
+      GetExceptionMessage(errno));
   (void) memset(wand_view,0,sizeof(*wand_view));
   wand_view->id=AcquireWandId();
   (void) FormatLocaleString(wand_view->name,MagickPathExtent,"%s-%.20g",
@@ -951,10 +960,10 @@ WandExport MagickBooleanType SetWandViewIterator(WandView *destination,
     MagickBooleanType
       sync;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict pixels;
 
     if (status == MagickFalse)
@@ -1089,13 +1098,13 @@ WandExport MagickBooleanType TransferWandViewIterator(WandView *source,
     MagickBooleanType
       sync;
 
-    const Quantum
+    register const Quantum
       *magick_restrict pixels;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict destination_pixels;
 
     if (status == MagickFalse)
@@ -1244,10 +1253,10 @@ WandExport MagickBooleanType UpdateWandViewIterator(WandView *source,
     MagickBooleanType
       sync;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict pixels;
 
     if (status == MagickFalse)

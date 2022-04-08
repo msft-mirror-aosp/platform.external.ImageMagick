@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -179,7 +179,7 @@ static MagickOffsetType GetFITSPixelExtrema(Image *image,
   MagickSizeType
     number_pixels;
 
-  MagickOffsetType
+  register MagickOffsetType
     i;
 
   offset=TellBlob(image);
@@ -207,7 +207,7 @@ static inline double GetFITSPixelRange(const size_t depth)
 static void SetFITSUnsignedPixels(const size_t length,
   const size_t bits_per_pixel,const EndianType endian,unsigned char *pixels)
 {
-  ssize_t
+  register ssize_t
     i;
 
   if (endian != MSBEndian)
@@ -270,11 +270,11 @@ static Image *ReadFITSImage(const ImageInfo *image_info,
   MagickSizeType
     number_pixels;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  Quantum
+  register Quantum
     *q;
 
   ssize_t
@@ -321,7 +321,7 @@ static Image *ReadFITSImage(const ImageInfo *image_info,
   {
     for ( ; EOFBlob(image) == MagickFalse; )
     {
-      char
+      register char
         *p;
 
       count=ReadBlob(image,8,(unsigned char *) keyword);
@@ -634,7 +634,8 @@ static MagickBooleanType WriteFITSImage(const ImageInfo *image_info,
 {
   char
     *fits_info,
-    header[FITSBlocksize];
+    header[FITSBlocksize],
+    *url;
 
   MagickBooleanType
     status;
@@ -642,7 +643,7 @@ static MagickBooleanType WriteFITSImage(const ImageInfo *image_info,
   QuantumInfo
     *quantum_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
   size_t
@@ -738,8 +739,9 @@ static MagickBooleanType WriteFITSImage(const ImageInfo *image_info,
       CopyFitsRecord(fits_info,header,offset);
       offset+=80;
     }
-  (void) FormatLocaleString(header,FITSBlocksize,"HISTORY %.72s",
-    MagickAuthoritativeURL);
+  url=GetMagickHomeURL();
+  (void) FormatLocaleString(header,FITSBlocksize,"HISTORY %.72s",url);
+  url=DestroyString(url);
   CopyFitsRecord(fits_info,header,offset);
   offset+=80;
   (void) strncpy(header,"END",FITSBlocksize);

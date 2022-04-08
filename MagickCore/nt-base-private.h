@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -54,6 +54,22 @@ typedef struct _DIR
     file_info;
 } DIR;
 
+typedef struct _NTMEMORYSTATUSEX
+{
+  DWORD
+    dwLength,
+    dwMemoryLoad;
+
+  DWORDLONG
+    ullTotalPhys,
+    ullAvailPhys,
+    ullTotalPageFile,
+    ullAvailPageFile,
+    ullTotalVirtual,
+    ullAvailVirtual,
+    ullAvailExtendedVirtual;
+} NTMEMORYSTATUSEX;
+
 #if !defined(__MINGW32__)
 struct timeval;
 
@@ -64,6 +80,12 @@ struct timezone
     tz_dsttime;
 };
 #endif
+
+typedef UINT
+  (CALLBACK *LPFNDLLFUNC1)(DWORD,UINT);
+
+typedef UINT
+  (CALLBACK *LPFNDLLFUNC2)(NTMEMORYSTATUSEX *);
 
 #endif
 
@@ -94,24 +116,30 @@ extern MagickPrivate double
   NTUserTime(void);
 
 extern MagickPrivate int
+  Exit(int),
 #if !defined(__MINGW32__)
   gettimeofday(struct timeval *,struct timezone *),
 #endif
+  IsWindows95(void),
   NTCloseDirectory(DIR *),
   NTCloseLibrary(void *),
   NTControlHandler(void),
   NTExitLibrary(void),
   NTTruncateFile(int,off_t),
   NTGhostscriptDLL(char *,int),
+  NTGhostscriptEXE(char *,int),
   NTGhostscriptFonts(char *,int),
   NTGhostscriptLoadDLL(void),
   NTInitializeLibrary(void),
   NTSetSearchPath(const char *),
+  NTSyncMemory(void *,size_t,int),
   NTUnmapMemory(void *,size_t),
   NTSystemCommand(const char *,char *);
 
 extern MagickPrivate ssize_t
-  NTSystemConfiguration(int);
+  NTGetPageSize(void),
+  NTSystemConfiguration(int),
+  NTTellDirectory(DIR *);
 
 extern MagickPrivate MagickBooleanType
   NTGatherRandomData(const size_t,unsigned char *),
@@ -131,10 +159,10 @@ extern MagickPrivate unsigned char
 
 extern MagickPrivate void
   *NTGetLibrarySymbol(void *,const char *),
-  NTGhostscriptEXE(char *,int),
   NTInitializeWinsock(MagickBooleanType),
   *NTMapMemory(char *,size_t,int,int,int,MagickOffsetType),
   *NTOpenLibrary(const char *),
+  NTSeekDirectory(DIR *,ssize_t),
   NTWindowsGenesis(void),
   NTWindowsTerminus(void);
 

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -329,13 +329,13 @@ static const unsigned char *UnpackScanline(
   const unsigned char *magick_restrict pixels,const unsigned int bits_per_pixel,
   unsigned char *scanline,MagickSizeType *bytes_per_line)
 {
-  const unsigned char
+  register const unsigned char
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *q;
 
   p=pixels;
@@ -402,13 +402,13 @@ static unsigned char *DecodeImage(Image *blob,Image *image,
   MagickSizeType
     number_pixels;
 
-  const unsigned char
+  register const unsigned char
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -465,7 +465,6 @@ static unsigned char *DecodeImage(Image *blob,Image *image,
       return((unsigned char *) NULL);
     }
   (void) memset(scanline,0,2*row_bytes*sizeof(*scanline));
-  (void) memset(unpack_buffer,0,sizeof(unpack_buffer));
   status=MagickTrue;
   if (bytes_per_line < 8)
     {
@@ -586,13 +585,13 @@ static size_t EncodeImage(Image *image,const unsigned char *scanline,
 #define MaxCount  128
 #define MaxPackbitsRunlength  128
 
-  const unsigned char
+  register const unsigned char
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -808,11 +807,9 @@ static MagickBooleanType ReadRectangle(Image *image,PICTRectangle *rectangle)
   rectangle->left=(short) ReadBlobMSBShort(image);
   rectangle->bottom=(short) ReadBlobMSBShort(image);
   rectangle->right=(short) ReadBlobMSBShort(image);
-  if (((EOFBlob(image) != MagickFalse) ||
-      (((rectangle->bottom | rectangle->top |
-         rectangle->right | rectangle->left ) & 0x8000) != 0) ||
-      (rectangle->bottom < rectangle->top) ||
-      (rectangle->right < rectangle->left)))
+  if ((EOFBlob(image) != MagickFalse) || 
+      ((rectangle->bottom-rectangle->top) <= 0) ||
+      ((rectangle->right-rectangle->left) <= 0))
     return(MagickFalse);
   return(MagickTrue);
 }
@@ -857,10 +854,10 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
   Quantum
     index;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
@@ -968,7 +965,6 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
       code=ReadBlobByte(image);
     if (version == 2)
       code=ReadBlobMSBSignedShort(image);
-    code&=0xffff;
     if (code < 0)
       break;
     if (code == 0)
@@ -1007,8 +1003,6 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
               break;
             image->columns=(size_t) (frame.right-frame.left);
             image->rows=(size_t) (frame.bottom-frame.top);
-            if (image_info->ping != MagickFalse)
-              break;
             status=SetImageExtent(image,image->columns,image->rows,exception);
             if (status != MagickFalse)
               status=ResetImagePixels(image,exception);
@@ -1080,21 +1074,18 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
             else
               for (i=0; i < (ssize_t) height; i++)
               {
-                size_t
-                  scanline_length;
-
                 if (EOFBlob(image) != MagickFalse)
                   break;
                 if (length > 200)
-                  scanline_length=ReadBlobMSBShort(image);
+                  {
+                    for (j=0; j < (ssize_t) ReadBlobMSBShort(image); j++)
+                      if (ReadBlobByte(image) == EOF)
+                        break;
+                  }
                 else
-                  scanline_length=ReadBlobByte(image);
-                if ((MagickSizeType) scanline_length > GetBlobSize(image))
-                  ThrowPICTException(CorruptImageError,
-                    "InsufficientImageDataInFile");
-                for (j=0; j < (ssize_t) scanline_length; j++)
-                  if (ReadBlobByte(image) == EOF)
-                    break;
+                  for (j=0; j < (ssize_t) ReadBlobByte(image); j++)
+                    if (ReadBlobByte(image) == EOF)
+                      break;
               }
             break;
           }
@@ -1143,7 +1134,7 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
               source,
               destination;
 
-            unsigned char
+            register unsigned char
               *p;
 
             size_t
@@ -1176,7 +1167,6 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
               (size_t) (frame.bottom-frame.top),MagickTrue,exception);
             if (tile_image == (Image *) NULL)
               ThrowPICTException(CorruptImageError,"ImproperImageHeader");
-            status=ResetImagePixels(tile_image,exception);
             if ((code == 0x9a) || (code == 0x9b) ||
                 ((bytes_per_line & 0x8000) != 0))
               {
@@ -1458,49 +1448,65 @@ static Image *ReadPICTImage(const ImageInfo *image_info,
       continue;
     if (code == 0x8200)
       {
+        char
+          filename[MaxTextExtent];
+
+        FILE
+          *file;
+
+        int
+          unique_file;
+
         /*
           Embedded JPEG.
         */
         jpeg=MagickTrue;
+        read_info=CloneImageInfo(image_info);
+        SetImageInfoBlob(read_info,(void *) NULL,0);
+        file=(FILE *) NULL;
+        unique_file=AcquireUniqueFileResource(filename);
+        (void) FormatLocaleString(read_info->filename,MaxTextExtent,"jpeg:%s",
+          filename);
+        if (unique_file != -1)
+          file=fdopen(unique_file,"wb");
+        if ((unique_file == -1) || (file == (FILE *) NULL))
+          {
+            (void) RelinquishUniqueFileResource(read_info->filename);
+            (void) CopyMagickString(image->filename,read_info->filename,
+              MagickPathExtent);
+            ThrowPICTException(FileOpenError,"UnableToCreateTemporaryFile");
+          }
         length=ReadBlobMSBLong(image);
         if ((MagickSizeType) length > GetBlobSize(image))
-          ThrowPICTException(CorruptImageError,"InsufficientImageDataInFile");
+          ThrowPICTException(CorruptImageError,
+            "InsufficientImageDataInFile");
         if (length > 154)
           {
-            const void
-              *stream;
-
-            ssize_t
-              count;
-
-            unsigned char
-              *pixels;
-
             for (i=0; i < 6; i++)
               (void) ReadBlobMSBLong(image);
             if (ReadRectangle(image,&frame) == MagickFalse)
-              ThrowPICTException(CorruptImageError,"ImproperImageHeader");
+              {
+                (void) fclose(file);
+                (void) RelinquishUniqueFileResource(read_info->filename);
+                ThrowPICTException(CorruptImageError,"ImproperImageHeader");
+              }
             for (i=0; i < 122; i++)
               if (ReadBlobByte(image) == EOF)
                 break;
-            length-=154;
-            pixels=(unsigned char *) AcquireQuantumMemory(length,
-              sizeof(*pixels));
-            if (pixels == (unsigned char *) NULL)
-              ThrowPICTException(ResourceLimitError,"MemoryAllocationFailed");
-            stream=ReadBlobStream(image,length,pixels,&count);
-            if (count != (ssize_t) length)
-              {
-                pixels=(unsigned char *) RelinquishMagickMemory(pixels);
-                ThrowPICTException(CorruptImageError,"ImproperImageHeader");
-              }
-            read_info=AcquireImageInfo();
-            (void) FormatLocaleString(read_info->filename,MagickPathExtent,
-              "jpeg:%s",image_info->filename);
-            tile_image=BlobToImage(read_info,stream,count,exception);
-            pixels=(unsigned char *) RelinquishMagickMemory(pixels);
-            read_info=DestroyImageInfo(read_info);
+            for (i=0; i < (ssize_t) (length-154); i++)
+            {
+              c=ReadBlobByte(image);
+              if (c == EOF)
+                break;
+              if (fputc(c,file) != c)
+                break;
+            }
           }
+        (void) fclose(file);
+        (void) close(unique_file);
+        tile_image=ReadImage(read_info,exception);
+        (void) RelinquishUniqueFileResource(filename);
+        read_info=DestroyImageInfo(read_info);
         if (tile_image == (Image *) NULL)
           continue;
         (void) FormatLocaleString(geometry,MagickPathExtent,"%.20gx%.20g",
@@ -1688,10 +1694,10 @@ static MagickBooleanType WritePICTImage(const ImageInfo *image_info,
     size_rectangle,
     source_rectangle;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
@@ -1760,7 +1766,7 @@ static MagickBooleanType WritePICTImage(const ImageInfo *image_info,
   transfer_mode=0;
   x_resolution=0.0;
   y_resolution=0.0;
-  if ((image->resolution.x > MagickEpsilon) &&
+  if ((image->resolution.x > MagickEpsilon) && 
       (image->resolution.y > MagickEpsilon))
     {
       x_resolution=image->resolution.x;
@@ -2033,7 +2039,7 @@ static MagickBooleanType WritePICTImage(const ImageInfo *image_info,
         break;
       for (x=0; x < (ssize_t) image->columns; x++)
       {
-        scanline[x]=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
+        scanline[x]=(unsigned char) GetPixelIndex(image,p);
         p+=GetPixelChannels(image);
       }
       count+=EncodeImage(image,scanline,(size_t) (row_bytes & 0x7FFF),
@@ -2056,7 +2062,7 @@ static MagickBooleanType WritePICTImage(const ImageInfo *image_info,
       }
     else
       {
-        unsigned char
+        register unsigned char
           *blue,
           *green,
           *opacity,

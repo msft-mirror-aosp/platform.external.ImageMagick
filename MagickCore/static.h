@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -35,7 +35,6 @@ extern MagickExport void
 extern ModuleExport size_t
   RegisterAAIImage(void),
   RegisterARTImage(void),
-  RegisterASHLARImage(void),
   RegisterAVIImage(void),
   RegisterAVSImage(void),
   RegisterBIEImage(void),
@@ -69,10 +68,8 @@ extern ModuleExport size_t
   RegisterEPSIImage(void),
   RegisterEPTImage(void),
   RegisterEXRImage(void),
-  RegisterFARBFELDImage(void),
   RegisterFAXImage(void),
   RegisterFITSImage(void),
-  RegisterFL32Image(void),
   RegisterFLIFImage(void),
   RegisterFPXImage(void),
   RegisterG3Image(void),
@@ -121,7 +118,6 @@ extern ModuleExport size_t
   RegisterNULLImage(void),
   RegisterP7Image(void),
   RegisterPBMImage(void),
-  RegisterORAImage(void),
   RegisterOTBImage(void),
   RegisterPALMImage(void),
   RegisterPANGOImage(void),
@@ -183,7 +179,6 @@ extern ModuleExport size_t
   RegisterVDAImage(void),
   RegisterVICARImage(void),
   RegisterVIDImage(void),
-  RegisterVIDEOImage(void),
   RegisterVIFFImage(void),
   RegisterVIPSImage(void),
   RegisterVSTImage(void),
@@ -200,14 +195,12 @@ extern ModuleExport size_t
   RegisterXTRNImage(void),
   RegisterXVImage(void),
   RegisterXWDImage(void),
-  RegisterYAMLImage(void),
   RegisterYCBCRImage(void),
   RegisterYUVImage(void);
 
 extern ModuleExport void
   UnregisterAAIImage(void),
   UnregisterARTImage(void),
-  UnregisterASHLARImage(void),
   UnregisterAVIImage(void),
   UnregisterAVSImage(void),
   UnregisterBIEImage(void),
@@ -241,10 +234,8 @@ extern ModuleExport void
   UnregisterEPSIImage(void),
   UnregisterEPTImage(void),
   UnregisterEXRImage(void),
-  UnregisterFARBFELDImage(void),
   UnregisterFAXImage(void),
   UnregisterFITSImage(void),
-  UnregisterFL32Image(void),
   UnregisterFLIFImage(void),
   UnregisterFPXImage(void),
   UnregisterG3Image(void),
@@ -294,7 +285,6 @@ extern ModuleExport void
   UnregisterNULLImage(void),
   UnregisterP7Image(void),
   UnregisterPBMImage(void),
-  UnregisterORAImage(void),
   UnregisterOTBImage(void),
   UnregisterPALMImage(void),
   UnregisterPANGOImage(void),
@@ -356,7 +346,6 @@ extern ModuleExport void
   UnregisterVDAImage(void),
   UnregisterVICARImage(void),
   UnregisterVIDImage(void),
-  UnregisterVIDEOImage(void),
   UnregisterVIFFImage(void),
   UnregisterVIPSImage(void),
   UnregisterVSTImage(void),
@@ -373,7 +362,6 @@ extern ModuleExport void
   UnregisterXTRNImage(void),
   UnregisterXVImage(void),
   UnregisterXWDImage(void),
-  UnregisterYAMLImage(void),
   UnregisterYCBCRImage(void),
   UnregisterYUVImage(void);
 

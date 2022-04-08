@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -288,13 +288,13 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Quantum
     index;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   size_t
@@ -586,7 +586,7 @@ static Image *ReadPDBImage(const ImageInfo *image_info,ExceptionInfo *exception)
       int
         c;
 
-      char
+      register char
         *p;
 
       size_t
@@ -762,13 +762,13 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   QuantumInfo
     *quantum_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -1006,7 +1006,7 @@ static MagickBooleanType WritePDBImage(const ImageInfo *image_info,Image *image,
   (void) WriteBlobMSBShort(image,(unsigned short) pdb_image.height);
   (void) WriteBlob(image,(size_t) (q-runlength),runlength);
   runlength=(unsigned char *) RelinquishMagickMemory(runlength);
-  if (comment != (const char *) NULL)
+  if (pdb_info.number_records > 1)
     (void) WriteBlobString(image,comment);
   (void) CloseBlob(image);
   return(MagickTrue);

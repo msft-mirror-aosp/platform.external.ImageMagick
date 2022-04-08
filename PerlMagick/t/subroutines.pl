@@ -1,4 +1,4 @@
-#  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+#  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
 #  dedicated to making software imaging solutions freely available.
 #
 #  You may not use this file except in compliance with the License.  You may
@@ -45,8 +45,6 @@ sub testCompositeCompare {
 
   $errorinfo='';
   $status='';
-  $normalized_mean_error_max+=1.0e-12;
-  $normalized_maximum_error_max+=1.0e-12;
 
   #print( $filter, " ...\n" );
 
@@ -293,8 +291,6 @@ sub testReadCompare {
   my($srcimage, $refimage, $normalized_mean_error, $normalized_maximum_error);
 
   $errorinfo='';
-  $normalized_mean_error_max+=1.0e-12;
-  $normalized_maximum_error_max+=1.0e-12;
 
   # Create images
   $srcimage=Image::Magick->new;
@@ -571,8 +567,6 @@ sub testReadWriteCompare {
     $normalized_maximum_error);
 
   $errorinfo='';
-  $normalized_mean_error_max+=1.0e-12;
-  $normalized_maximum_error_max+=1.0e-12;
 
   $image=Image::Magick->new;
   $refimage=Image::Magick->new;  
@@ -962,7 +956,7 @@ sub testGetAttribute {
 #       [, expected REF_16] );
 #
 sub testMontage {
-  my( $imageOptions, $montageOptions, $ref_8, $ref_16, $ref_32, $ref_32_hdri ) = @_;
+  my( $imageOptions, $montageOptions, $ref_8, $ref_16, $ref_32 ) = @_;
 
   my($image,$ref_signature);
 
@@ -1017,7 +1011,6 @@ sub testMontage {
   #print "Montage Options: $montageOptions\n";
   print("\$montage=\$images->Montage( $montageOptions )\n");
   eval "\$montage=\$images->Montage( $montageOptions ) ;";
-  #$montage->Clamp();
   if( $@ ) {
     print "$@";
     print "not ok $test\n";
@@ -1031,7 +1024,7 @@ sub testMontage {
     # $montage->Display();
     $signature=$montage->GetAttribute('signature');
     if ( defined( $signature ) ) {
-      if ( $signature ne $ref_8 && $signature ne $ref_16 && $signature ne $ref_32 && $signature ne $ref_32_hdri) {
+      if ( $signature ne $ref_8 && $signature ne $ref_16 && $signature ne $ref_32 ) {
         print "ReadImage()\n";
         print "Test $test, signatures do not match.\n";
       	print "     Expected: $ref_8\n";
@@ -1151,8 +1144,6 @@ sub testFilterCompare {
 
   $errorinfo='';
   $status='';
-  $normalized_mean_error_max+=1.0e-12;
-  $normalized_maximum_error_max+=1.0e-12;
 
   #print( $filter, " ...\n" );
 

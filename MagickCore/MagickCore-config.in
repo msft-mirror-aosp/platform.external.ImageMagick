@@ -38,19 +38,19 @@ while test $# -gt 0; do
       echo '@PACKAGE_VERSION@ Q@QUANTUM_DEPTH@ @MAGICK_HDRI@'
       ;;
     --cflags)
-      @PKG_CONFIG@ --cflags MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      @PKG_CONFIG@ --cflags MagickCore
       ;;
     --cxxflags)
-      @PKG_CONFIG@ --cflags MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      @PKG_CONFIG@ --cflags MagickCore
       ;;
     --cppflags)
-      @PKG_CONFIG@ --cflags MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      @PKG_CONFIG@ --cflags MagickCore
       ;;
     --ldflags)
-      @PKG_CONFIG@ --libs MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      @PKG_CONFIG@ --libs MagickCore
       ;;
     --libs)
-      @PKG_CONFIG@ --libs MagickCore-@MAGICK_MAJOR_VERSION@.@MAGICK_ABI_SUFFIX@
+      @PKG_CONFIG@ --libs MagickCore
       ;;
     --coder-path)
       echo "@CODER_PATH@"

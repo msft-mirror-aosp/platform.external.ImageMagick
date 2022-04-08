@@ -18,7 +18,7 @@
 %                               Dirk Lemstra                                  %
 %                               January 2014                                  %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -48,8 +48,10 @@
 #      include <wingdi.h>
 #    endif
 #  else
+#pragma warning(disable: 4457)
 #pragma warning(disable: 4458)
 #    include <gdiplus.h>
+#pragma warning(default: 4457)
 #pragma warning(default: 4458)
 #    pragma comment(lib, "gdiplus.lib")
 #  endif
@@ -177,12 +179,12 @@ static MagickBooleanType IsWMF(const unsigned char *magick,const size_t length)
 #    if defined(MAGICKCORE_HAVE__WFOPEN)
 static size_t UTF8ToUTF16(const unsigned char *utf8,wchar_t *utf16)
 {
-  const unsigned char
+  register const unsigned char
     *p;
 
   if (utf16 != (wchar_t *) NULL)
     {
-      wchar_t
+      register wchar_t
         *q;
 
       wchar_t
@@ -269,7 +271,7 @@ static wchar_t *ConvertUTF8ToUTF16(const unsigned char *source)
   length=UTF8ToUTF16(source,(wchar_t *) NULL);
   if (length == 0)
     {
-      ssize_t
+      register ssize_t
         i;
 
       /*
@@ -463,10 +465,10 @@ static Image *ReadEMFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   RECT
     rect;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
   RGBQUAD
@@ -521,7 +523,7 @@ static Image *ReadEMFImage(const ImageInfo *image_info,ExceptionInfo *exception)
       char
         *geometry;
 
-      char
+      register char
         *p;
 
       MagickStatusType
@@ -685,10 +687,10 @@ static Image *ReadEMFImage(const ImageInfo *image_info,
   MagickStatusType
     flags;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     x;
 
   ssize_t

@@ -17,7 +17,7 @@
 %                               August 2013                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -107,14 +107,14 @@ static Image *ReadRGFImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   ssize_t
@@ -313,10 +313,10 @@ static MagickBooleanType WriteRGFImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
   size_t

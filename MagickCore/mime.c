@@ -15,7 +15,7 @@
 %                                 July 2000                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -223,13 +223,13 @@ MagickExport const MimeInfo *GetMimeInfo(const char *filename,
   EndianType
     endian;
 
-  const MimeInfo
+  register const MimeInfo
     *p;
 
-  const unsigned char
+  register const unsigned char
     *q;
 
-  ssize_t
+  register ssize_t
     i;
 
   ssize_t
@@ -436,10 +436,10 @@ MagickExport const MimeInfo **GetMimeInfoList(const char *pattern,
   const MimeInfo
     **aliases;
 
-  const MimeInfo
+  register const MimeInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -512,7 +512,7 @@ extern "C" {
 
 static int MimeCompare(const void *x,const void *y)
 {
-  char
+  register char
     *p,
     *q;
 
@@ -531,10 +531,10 @@ MagickExport char **GetMimeList(const char *pattern,
   char
     **aliases;
 
-  const MimeInfo
+  register const MimeInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -697,7 +697,7 @@ MagickExport MagickBooleanType ListMimeInfo(FILE *file,ExceptionInfo *exception)
   const MimeInfo
     **mime_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -874,7 +874,7 @@ static MagickBooleanType LoadMimeCache(LinkedListInfo *cache,const char *xml,
         const char
           *p;
 
-        unsigned char
+        register unsigned char
           *q;
 
         token=AcquireString(attribute);
@@ -1054,7 +1054,7 @@ MagickPrivate MagickBooleanType MimeComponentGenesis(void)
 
 static void *DestroyMimeElement(void *mime_info)
 {
-  MimeInfo
+  register MimeInfo
     *p;
 
   p=(MimeInfo *) mime_info;

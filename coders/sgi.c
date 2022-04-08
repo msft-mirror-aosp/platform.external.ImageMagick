@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -168,7 +168,7 @@ static MagickBooleanType SGIDecode(const size_t bytes_per_pixel,
   ssize_t number_packets,unsigned char *packets,ssize_t number_pixels,
   unsigned char *pixels)
 {
-  unsigned char
+  register unsigned char
     *p,
     *q;
 
@@ -268,14 +268,14 @@ static Image *ReadSGIImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MemoryInfo
     *pixel_info;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  unsigned char
+  register unsigned char
     *p;
 
   SGIInfo
@@ -852,7 +852,7 @@ static size_t SGIEncode(unsigned char *pixels,size_t length,
   short
     runlength;
 
-  unsigned char
+  register unsigned char
     *p,
     *q;
 
@@ -923,14 +923,14 @@ static MagickBooleanType WriteSGIImage(const ImageInfo *image_info,Image *image,
   SGIInfo
     iris_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -1043,7 +1043,7 @@ static MagickBooleanType WriteSGIImage(const ImageInfo *image_info,Image *image,
       if (image->depth <= 8)
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          unsigned char
+          register unsigned char
             *q;
 
           q=(unsigned char *) pixels;
@@ -1057,7 +1057,7 @@ static MagickBooleanType WriteSGIImage(const ImageInfo *image_info,Image *image,
       else
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          unsigned short
+          register unsigned short
             *q;
 
           q=(unsigned short *) pixels;
@@ -1090,7 +1090,7 @@ static MagickBooleanType WriteSGIImage(const ImageInfo *image_info,Image *image,
             if (image->depth <= 8)
               for (x=0; x < (ssize_t) iris_info.columns; x++)
               {
-                unsigned char
+                register unsigned char
                   *q;
 
                 q=(unsigned char *) pixels;
@@ -1100,7 +1100,7 @@ static MagickBooleanType WriteSGIImage(const ImageInfo *image_info,Image *image,
             else
               for (x=0; x < (ssize_t) iris_info.columns; x++)
               {
-                unsigned short
+                register unsigned short
                   *q;
 
                 q=(unsigned short *) pixels;

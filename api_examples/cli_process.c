@@ -38,7 +38,7 @@ int main(int argc, char **argv)
   MagickCoreGenesis(argv[0],MagickFalse);
   cli_wand = AcquireMagickCLI((ImageInfo *) NULL,(ExceptionInfo *) NULL);
 
-  ProcessCommandOptions(cli_wand, arg_count, args, 0);
+  ProcessCommandOptions(cli_wand, arg_count, args, 0, MagickCommandOptionFlags);
 
   /* Note use of 'True' to report all exceptions - including non-fatals */
   if ( CLICatchException(cli_wand,MagickTrue) != MagickFalse )

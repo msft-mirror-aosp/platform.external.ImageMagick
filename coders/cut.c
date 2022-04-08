@@ -104,7 +104,7 @@ static MagickBooleanType InsertRow(Image *image,ssize_t bpp,unsigned char *p,
   Quantum
     index;
 
-  Quantum
+  register Quantum
     *q;
 
   ssize_t
@@ -265,7 +265,7 @@ static int GetCutColors(Image *image,ExceptionInfo *exception)
     intensity,
     scale_intensity;
 
-  Quantum
+  register Quantum
     *q;
 
   ssize_t
@@ -347,7 +347,7 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
   ssize_t i,j;
   ssize_t ldblk;
   unsigned char *BImgBuff=NULL,*ptrB;
-  Quantum *q;
+  register Quantum *q;
 
   /*
     Open image file.
@@ -618,7 +618,7 @@ static Image *ReadCUTImage(const ImageInfo *image_info,ExceptionInfo *exception)
             {
               for (i=0; i < (ssize_t)image->colors; i++)
                 {
-                  Quantum
+                  register Quantum
                     sample;
                   sample=ScaleCharToQuantum((unsigned char) i);
                   if(image->colormap[i].red!=sample) goto Finish;

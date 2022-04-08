@@ -17,7 +17,7 @@
 %                                 July 1998                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -150,7 +150,7 @@ MagickExport MagickBooleanType FloodfillPaintImage(Image *image,
     fill_color,
     pixel;
 
-  SegmentInfo
+  register SegmentInfo
     *s;
 
   SegmentInfo
@@ -186,7 +186,8 @@ MagickExport MagickBooleanType FloodfillPaintImage(Image *image,
   /*
     Set floodfill state.
   */
-  floodplane_image=CloneImage(image,0,0,MagickTrue,exception);
+  floodplane_image=CloneImage(image,0,0,MagickTrue,
+    exception);
   if (floodplane_image == (Image *) NULL)
     return(MagickFalse);
   floodplane_image->alpha_trait=UndefinedPixelTrait;
@@ -215,13 +216,13 @@ MagickExport MagickBooleanType FloodfillPaintImage(Image *image,
   floodplane_view=AcquireAuthenticCacheView(floodplane_image,exception);
   while (s > segment_stack)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     /*
@@ -321,13 +322,13 @@ MagickExport MagickBooleanType FloodfillPaintImage(Image *image,
   status=MagickTrue;
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     /*
@@ -647,7 +648,7 @@ MagickExport MagickBooleanType GradientImage(Image *image,
 
 static size_t **DestroyHistogramThreadSet(size_t **histogram)
 {
-  ssize_t
+  register ssize_t
     i;
 
   assert(histogram != (size_t **) NULL);
@@ -660,7 +661,7 @@ static size_t **DestroyHistogramThreadSet(size_t **histogram)
 
 static size_t **AcquireHistogramThreadSet(const size_t count)
 {
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -757,16 +758,16 @@ MagickExport Image *OilPaintImage(const Image *image,const double radius,
 #endif
   for (y=0; y < (ssize_t) linear_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    size_t
+    register size_t
       *histogram;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -783,7 +784,7 @@ MagickExport Image *OilPaintImage(const Image *image,const double radius,
     histogram=histograms[GetOpenMPThreadId()];
     for (x=0; x < (ssize_t) linear_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i,
         u;
 
@@ -951,10 +952,10 @@ MagickExport MagickBooleanType OpaquePaintImage(Image *image,
     PixelInfo
       pixel;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1098,10 +1099,10 @@ MagickExport MagickBooleanType TransparentPaintImage(Image *image,
     PixelInfo
       pixel;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1229,10 +1230,10 @@ MagickExport MagickBooleanType TransparentPaintImageChroma(Image *image,
     PixelInfo
       pixel;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)

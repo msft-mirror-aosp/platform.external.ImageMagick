@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -125,7 +125,7 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
         count=ReadBlob(image,0x800,buffer); \
         p=buffer; \
       } \
-    sum|=(((unsigned int) (*p)) << (24-bits)); \
+    sum|=((unsigned int) (*p) << (24-bits)); \
     bits+=8; \
     p++; \
   } \
@@ -147,14 +147,14 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
   PCDTable
     *pcd_table[3];
 
-  ssize_t
+  register ssize_t
     i,
     j;
 
-  PCDTable
+  register PCDTable
     *r;
 
-  unsigned char
+  register unsigned char
     *p,
     *q;
 
@@ -195,7 +195,7 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
     pcd_table[i]=(PCDTable *) NULL;
     pcd_length[i]=0;
   }
-  for (i=0; i < (ssize_t) (image->columns > 1536 ? 3 : 1); i++)
+  for (i=0; i < (image->columns > 1536 ? 3 : 1); i++)
   {
     PCDGetBits(8);
     length=(sum & 0xff)+1;
@@ -230,20 +230,17 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
     }
     pcd_length[i]=(size_t) length;
   }
-  if (EOFBlob(image) == MagickFalse)
-    {
-      /*
-        Search for Sync byte.
-      */
-      for (i=0; i < 1; i++)
-        PCDGetBits(16);
-      for (i=0; i < 1; i++)
-        PCDGetBits(16);
-      while ((sum & 0x00fff000UL) != 0x00fff000UL)
-        PCDGetBits(8);
-      while (IsSync(sum) == 0)
-        PCDGetBits(1);
-    }
+  /*
+    Search for Sync byte.
+  */
+  for (i=0; i < 1; i++)
+    PCDGetBits(16);
+  for (i=0; i < 1; i++)
+    PCDGetBits(16);
+  while ((sum & 0x00fff000UL) != 0x00fff000UL)
+    PCDGetBits(8);
+  while (IsSync(sum) == 0)
+    PCDGetBits(1);
   /*
     Recover the Huffman encoded luminance and chrominance deltas.
   */
@@ -251,7 +248,8 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
   length=0;
   plane=0;
   row=0;
-  for (q=luma; EOFBlob(image) == MagickFalse; )
+  q=luma;
+  for ( ; ; )
   {
     if (IsSync(sum) != 0)
       {
@@ -289,7 +287,7 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
           }
           default:
           {
-            for (i=0; i < (ssize_t) (image->columns > 1536 ? 3 : 1); i++)
+            for (i=0; i < (image->columns > 1536 ? 3 : 1); i++)
               pcd_table[i]=(PCDTable *) RelinquishMagickMemory(pcd_table[i]);
             buffer=(unsigned char *) RelinquishMagickMemory(buffer);
             ThrowBinaryException(CorruptImageError,"CorruptImage",
@@ -327,7 +325,7 @@ static MagickBooleanType DecodeImage(Image *image,unsigned char *luma,
   /*
     Relinquish resources.
   */
-  for (i=0; i < (ssize_t) (image->columns > 1536 ? 3 : 1); i++)
+  for (i=0; i < (image->columns > 1536 ? 3 : 1); i++)
     pcd_table[i]=(PCDTable *) RelinquishMagickMemory(pcd_table[i]);
   buffer=(unsigned char *) RelinquishMagickMemory(buffer);
   return(MagickTrue);
@@ -404,7 +402,7 @@ static Image *OverviewImage(const ImageInfo *image_info,Image *image,
   MontageInfo
     *montage_info;
 
-  Image
+  register Image
     *p;
 
   /*
@@ -429,11 +427,11 @@ static Image *OverviewImage(const ImageInfo *image_info,Image *image,
 static void Upsample(const size_t width,const size_t height,
   const size_t scaled_width,unsigned char *pixels)
 {
-  ssize_t
+  register ssize_t
     x,
     y;
 
-  unsigned char
+  register unsigned char
     *p,
     *q,
     *r;
@@ -484,8 +482,12 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
 { \
   if (header != (unsigned char *) NULL) \
     header=(unsigned char *) RelinquishMagickMemory(header); \
-  if (pixel_info != (MemoryInfo *) NULL) \
-    pixel_info=RelinquishVirtualMemory(pixel_info); \
+  if (luma != (unsigned char *) NULL) \
+    luma=(unsigned char *) RelinquishMagickMemory(luma); \
+  if (chroma2 != (unsigned char *) NULL) \
+    chroma2=(unsigned char *) RelinquishMagickMemory(chroma2); \
+  if (chroma1 != (unsigned char *) NULL) \
+    chroma1=(unsigned char *) RelinquishMagickMemory(chroma1); \
   ThrowReaderException((exception),(message)); \
 }
 
@@ -498,17 +500,17 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickOffsetType
     offset;
 
-  MemoryInfo
-    *pixel_info;
+  MagickSizeType
+    number_pixels;
 
-  ssize_t
+  register ssize_t
     i,
     y;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *c1,
     *c2,
     *yy;
@@ -516,7 +518,6 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   size_t
     height,
     number_images,
-    number_pixels,
     rotate,
     scene,
     width;
@@ -557,7 +558,9 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   header=(unsigned char *) AcquireQuantumMemory(0x800,3UL*sizeof(*header));
   if (header == (unsigned char *) NULL)
     ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
-  pixel_info=(MemoryInfo *) NULL;
+  chroma1=(unsigned char *) NULL;
+  chroma2=(unsigned char *) NULL;
+  luma=(unsigned char *) NULL;
   count=ReadBlob(image,3*0x800,header);
   if (count != (3*0x800))
     ThrowPCDException(CorruptImageError,"ImproperImageHeader");
@@ -618,15 +621,24 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   /*
     Allocate luma and chroma memory.
   */
-  pixel_info=AcquireVirtualMemory(image->columns+1UL,30*image->rows*
-    sizeof(*luma));
-  if (pixel_info == (MemoryInfo *) NULL)
+  number_pixels=(MagickSizeType) image->columns*image->rows;
+  if (number_pixels != (size_t) number_pixels)
     ThrowPCDException(ResourceLimitError,"MemoryAllocationFailed");
-  number_pixels=(image->columns+1UL)*10*image->rows*sizeof(*luma);
-  luma=(unsigned char *) GetVirtualMemoryBlob(pixel_info);
-  chroma1=(unsigned char *) GetVirtualMemoryBlob(pixel_info)+number_pixels;
-  chroma2=(unsigned char *) GetVirtualMemoryBlob(pixel_info)+2*number_pixels;
-  (void) memset(luma,0,3*number_pixels);
+  chroma1=(unsigned char *) AcquireQuantumMemory(image->columns+1UL,image->rows*
+    10*sizeof(*chroma1));
+  chroma2=(unsigned char *) AcquireQuantumMemory(image->columns+1UL,image->rows*
+    10*sizeof(*chroma2));
+  luma=(unsigned char *) AcquireQuantumMemory(image->columns+1UL,image->rows*
+    10*sizeof(*luma));
+  if ((chroma1 == (unsigned char *) NULL) ||
+      (chroma2 == (unsigned char *) NULL) || (luma == (unsigned char *) NULL))
+    ThrowPCDException(ResourceLimitError,"MemoryAllocationFailed");
+  (void) memset(chroma1,0,(image->columns+1UL)*image->rows*
+    10*sizeof(*chroma1));
+  (void) memset(chroma2,0,(image->columns+1UL)*image->rows*
+    10*sizeof(*chroma2));
+  (void) memset(luma,0,(image->columns+1UL)*image->rows*
+    10*sizeof(*luma));
   /*
     Advance to image data.
   */
@@ -647,7 +659,7 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
       MagickProgressMonitor
         progress_monitor;
 
-      ssize_t
+      register ssize_t
         j;
 
       /*
@@ -731,7 +743,9 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
               break;
           }
       }
-      pixel_info=RelinquishVirtualMemory(pixel_info);
+      chroma2=(unsigned char *) RelinquishMagickMemory(chroma2);
+      chroma1=(unsigned char *) RelinquishMagickMemory(chroma1);
+      luma=(unsigned char *) RelinquishMagickMemory(luma);
       if (status == MagickFalse)
         return(DestroyImageList(image));
       return(OverviewImage(image_info,GetFirstImageInList(image),exception));
@@ -821,7 +835,9 @@ static Image *ReadPCDImage(const ImageInfo *image_info,ExceptionInfo *exception)
           break;
       }
   }
-  pixel_info=RelinquishVirtualMemory(pixel_info);
+  chroma2=(unsigned char *) RelinquishMagickMemory(chroma2);
+  chroma1=(unsigned char *) RelinquishMagickMemory(chroma1);
+  luma=(unsigned char *) RelinquishMagickMemory(luma);
   if (EOFBlob(image) != MagickFalse)
     ThrowFileException(exception,CorruptImageError,"UnexpectedEndOfFile",
       image->filename);
@@ -983,11 +999,11 @@ static MagickBooleanType WritePCDTile(Image *image,const char *page_geometry,
   RectangleInfo
     geometry;
 
-  const Quantum
+  register const Quantum
     *p,
     *q;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
@@ -1085,8 +1101,7 @@ static MagickBooleanType WritePCDTile(Image *image,const char *page_geometry,
         GetPixelBlue(tile_image,q)));
       q+=GetPixelChannels(tile_image);
     }
-    status=SetImageProgress(image,SaveImageTag,(MagickOffsetType) y,
-      tile_image->rows);
+    status=SetImageProgress(image,SaveImageTag,y,tile_image->rows);
     if (status == MagickFalse)
       break;
   }
@@ -1106,7 +1121,7 @@ static MagickBooleanType WritePCDImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     i;
 
   assert(image_info != (const ImageInfo *) NULL);

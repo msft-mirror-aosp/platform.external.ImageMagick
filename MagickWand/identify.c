@@ -17,7 +17,7 @@
 %                            September 1994                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -166,7 +166,7 @@ static MagickBooleanType IdentifyUsage(void)
   (void) printf(
     "image type as the filename suffix (i.e. image.ps).  Specify 'file' as\n");
   (void) printf("'-' for standard input or output.\n");
-  return(MagickTrue);
+  return(MagickFalse);
 }
 
 WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
@@ -212,7 +212,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
   MagickStatusType
     status;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -338,7 +338,6 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
         continue;
       }
     pend=image != (Image *) NULL ? MagickTrue : MagickFalse;
-    image_info->ping=MagickFalse;
     switch (*(option+1))
     {
       case 'a':
@@ -446,6 +445,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
               ThrowIdentifyException(OptionError,"MissingArgument",option);
             if (IsGeometry(argv[i]) == MagickFalse)
               ThrowIdentifyInvalidArgumentException(option,argv[i]);
+            image_info->ping=MagickFalse;
             break;
           }
         if (LocaleCompare("concurrent",option+1) == 0)
@@ -486,6 +486,8 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
                   ThrowIdentifyException(OptionError,"NoSuchOption",argv[i]);
                 break;
               }
+            if (LocaleNCompare("identify:locate",argv[i],15) == 0)
+              image_info->ping=MagickFalse;
             break;
           }
         if (LocaleCompare("density",option+1) == 0)
@@ -626,10 +628,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
       {
         if ((LocaleCompare("help",option+1) == 0) ||
             (LocaleCompare("-help",option+1) == 0))
-          {
-            DestroyIdentify();
-            return(IdentifyUsage());
-          }
+          return(IdentifyUsage());
         ThrowIdentifyException(OptionError,"UnrecognizedOption",option)
       }
       case 'i':
@@ -647,8 +646,8 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
             interlace=ParseCommandOption(MagickInterlaceOptions,MagickFalse,
               argv[i]);
             if (interlace < 0)
-              ThrowIdentifyException(OptionError,"UnrecognizedInterlaceType",
-                argv[i]);
+              ThrowIdentifyException(OptionError,
+                "UnrecognizedInterlaceType",argv[i]);
             break;
           }
         if (LocaleCompare("interpolate",option+1) == 0)
@@ -761,10 +760,7 @@ WandExport MagickBooleanType IdentifyImageCommand(ImageInfo *image_info,
       case 'p':
       {
         if (LocaleCompare("ping",option+1) == 0)
-          {
-            image_info->ping=MagickTrue;
-            break;
-          }
+          break;
         if (LocaleCompare("precision",option+1) == 0)
           {
             if (*option == '+')

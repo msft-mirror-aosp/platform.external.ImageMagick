@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <cstring>
 
 #include <Magick++/Blob.h>
 #include <Magick++/Image.h>
@@ -20,7 +19,7 @@
 
 static ssize_t EncoderInitializer(const uint8_t *Data, const size_t Size, Magick::Image &image)
 {
-  if (strcmp(FUZZ_ENCODER_INITIALIZER, "interlace") == 0) {
+  if (FUZZ_ENCODER_INITIALIZER == "interlace") {
     Magick::InterlaceType interlace = (Magick::InterlaceType) *reinterpret_cast<const char *>(Data);
     if (interlace > Magick::PNGInterlace)
       return -1;

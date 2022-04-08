@@ -76,8 +76,6 @@
 /perl-sources
 /test-suite.log
 
-.vscode
-
 *.o
 *.lo
 *.log

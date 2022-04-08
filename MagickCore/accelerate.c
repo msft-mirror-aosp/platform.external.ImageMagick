@@ -21,7 +21,7 @@
 %                                April 2016                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -287,7 +287,7 @@ static cl_mem createKernelInfo(MagickCLDevice device,const double radius,
       ResourceLimitWarning,"AcquireKernelInfo failed.",".");
     return((cl_mem) NULL);
   }
-  kernelBufferPtr=(float *) AcquireMagickMemory(kernel->width*
+  kernelBufferPtr=(float *)AcquireMagickMemory(kernel->width*
     sizeof(*kernelBufferPtr));
   if (kernelBufferPtr == (float *) NULL)
     {
@@ -297,7 +297,7 @@ static cl_mem createKernelInfo(MagickCLDevice device,const double radius,
       return((cl_mem) NULL);
     }
   for (i = 0; i < (ssize_t) kernel->width; i++)
-    kernelBufferPtr[i]=(float) kernel->values[i];
+    kernelBufferPtr[i] = (float)kernel->values[i];
   imageKernelBuffer=CreateOpenCLBuffer(device,CL_MEM_COPY_HOST_PTR |
     CL_MEM_READ_ONLY,kernel->width*sizeof(*kernelBufferPtr),kernelBufferPtr);
   *width=(cl_uint) kernel->width;
@@ -330,7 +330,7 @@ static MagickBooleanType LaunchHistogramKernel(MagickCLEnv clEnv,
     colorspace,
     method;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -567,8 +567,6 @@ cleanup:
 MagickPrivate Image *AccelerateAddNoiseImage(const Image *image,
   const NoiseType noise_type,const double attenuate,ExceptionInfo *exception)
 {
-  /* Temporary disabled because of repetition.
-
   Image
     *filteredImage;
 
@@ -588,12 +586,6 @@ MagickPrivate Image *AccelerateAddNoiseImage(const Image *image,
   filteredImage=ComputeAddNoiseImage(image,clEnv,noise_type,attenuate,
     exception);
   return(filteredImage);
-  */
-  magick_unreferenced(image);
-  magick_unreferenced(noise_type);
-  magick_unreferenced(attenuate);
-  magick_unreferenced(exception);
-  return((Image *)NULL);
 }
 
 /*
@@ -1000,7 +992,7 @@ static MagickBooleanType ComputeContrastStretchImage(Image *image,
   PixelPacket
     *stretch_map;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -2321,7 +2313,7 @@ static MagickBooleanType ComputeEqualizeImage(Image *image,MagickCLEnv clEnv,
   PixelPacket
     *equalize_map;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -3398,7 +3390,7 @@ static MagickBooleanType ComputeModulateImage(Image *image,MagickCLEnv clEnv,
   MagickSizeType
     length;
 
-  ssize_t
+  register ssize_t
     i;
 
   void

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -153,14 +153,18 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
     status,
     value_expected;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
+  register unsigned char
+    *p;
+
   ssize_t
+    count,
     y;
 
   unsigned char
@@ -197,14 +201,14 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
       image=DestroyImage(image);
       return((Image *) NULL);
     }
-  while (isgraph((int) ((unsigned char) c)) && (image->columns == 0) && (image->rows == 0))
+  while (isgraph(c) && (image->columns == 0) && (image->rows == 0))
   {
     if (c == (int) '#')
       {
         char
           *comment;
 
-        char
+        register char
           *p;
 
         size_t
@@ -240,11 +244,11 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
         c=ReadBlobByte(image);
       }
     else
-      if (isalnum((int) ((unsigned char) c)) == 0)
+      if (isalnum(c) == MagickFalse)
         c=ReadBlobByte(image);
       else
         {
-          char
+          register char
             *p;
 
           /*
@@ -256,10 +260,10 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
             if ((size_t) (p-keyword) < (MagickPathExtent-1))
               *p++=c;
             c=ReadBlobByte(image);
-          } while (isalnum((int) ((unsigned char) c)) || (c == '_'));
+          } while (isalnum(c) || (c == '_'));
           *p='\0';
           value_expected=MagickFalse;
-          while ((isspace((int) ((unsigned char) c)) != 0) || (c == '='))
+          while ((isspace(c) != 0) || (c == '='))
           {
             if (c == '=')
               value_expected=MagickTrue;
@@ -371,7 +375,7 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
           }
         }
     if ((image->columns == 0) && (image->rows == 0))
-      while (isspace((int) ((unsigned char) c)) != 0)
+      while (isspace(c) != 0)
         c=ReadBlobByte(image);
   }
   if ((LocaleCompare(format,"32-bit_rle_rgbe") != 0) &&
@@ -402,9 +406,6 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
   (void) memset(pixels,0,4*image->columns*sizeof(*pixels));
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    ssize_t
-      count;
-
     if (image->compression != RLECompression)
       {
         count=ReadBlob(image,4*image->columns*sizeof(*pixels),pixels);
@@ -424,9 +425,6 @@ static Image *ReadHDRImage(const ImageInfo *image_info,ExceptionInfo *exception)
           }
         else
           {
-            unsigned char
-              *p;
-
             p=pixels;
             for (i=0; i < 4; i++)
             {
@@ -598,7 +596,7 @@ static size_t HDRWriteRunlengthPixels(Image *image,unsigned char *pixels)
 {
 #define MinimumRunlength 4
 
-  size_t
+  register size_t
     p,
     q;
 
@@ -670,10 +668,10 @@ static MagickBooleanType WriteHDRImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 

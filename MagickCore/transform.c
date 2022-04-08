@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -60,8 +60,6 @@
 #include "MagickCore/monitor.h"
 #include "MagickCore/monitor-private.h"
 #include "MagickCore/pixel-accessor.h"
-#include "MagickCore/profile-private.h"
-#include "MagickCore/property.h"
 #include "MagickCore/resource_.h"
 #include "MagickCore/resize.h"
 #include "MagickCore/statistic.h"
@@ -258,13 +256,13 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
 #endif
   for (y=0; y < (ssize_t) extent.y; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -281,7 +279,7 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
     {
       if ((x < extent.x) || (x >= (ssize_t) (extent.x+extent.width)))
         {
-          ssize_t
+          register ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -323,13 +321,13 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
 #endif
   for (y=0; y < (ssize_t) (image->rows-(extent.y+extent.height)); y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -347,7 +345,7 @@ MagickExport Image *ChopImage(const Image *image,const RectangleInfo *chop_info,
     {
       if ((x < extent.x) || (x >= (ssize_t) (extent.x+extent.width)))
         {
-          ssize_t
+          register ssize_t
             i;
 
           for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -424,7 +422,7 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
     *cmyk_image,
     *cmyk_images;
 
-  ssize_t
+  register ssize_t
     j;
 
   ssize_t
@@ -442,7 +440,7 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
   cmyk_images=NewImageList();
   for (j=0; j < (ssize_t) GetImageListLength(images); j+=4)
   {
-    ssize_t
+    register ssize_t
       i;
 
     assert(images != (Image *) NULL);
@@ -459,13 +457,13 @@ MagickExport Image *ConsolidateCMYKImages(const Image *images,
       cmyk_view=AcquireAuthenticCacheView(cmyk_image,exception);
       for (y=0; y < (ssize_t) images->rows; y++)
       {
-        const Quantum
+        register const Quantum
           *magick_restrict p;
 
-        ssize_t
+        register ssize_t
           x;
 
-        Quantum
+        register Quantum
           *magick_restrict q;
 
         p=GetCacheViewVirtualPixels(image_view,0,y,images->columns,1,exception);
@@ -677,13 +675,13 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 #endif
   for (y=0; y < (ssize_t) crop_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -699,7 +697,7 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
       }
     for (x=0; x < (ssize_t) crop_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -755,7 +753,7 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 %  all the normal geometry flags for Crop.
 %
 %      Image *CropImageToTiles(const Image *image,
-%        const RectangleInfo *crop_geometry, ExceptionInfo *exception)
+%         const RectangleInfo *crop_geometry, ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
 %
@@ -767,14 +765,23 @@ MagickExport Image *CropImage(const Image *image,const RectangleInfo *geometry,
 %
 */
 
+static inline double ConstrainPixelOffset(double x)
+{
+  if (x < (double) -(SSIZE_MAX-512))
+    return((double) -(SSIZE_MAX-512));
+  if (x > (double) (SSIZE_MAX-512))
+    return((double) (SSIZE_MAX-512));
+  return(x);
+}
+
 static inline ssize_t PixelRoundOffset(double x)
 {
   /*
     Round the fraction to nearest integer.
   */
   if ((x-floor(x)) < (ceil(x)-x))
-    return(CastDoubleToLong(floor(x)));
-  return(CastDoubleToLong(ceil(x)));
+    return((ssize_t) floor(ConstrainPixelOffset(x)));
+  return((ssize_t) ceil(ConstrainPixelOffset(x)));
 }
 
 MagickExport Image *CropImageToTiles(const Image *image,
@@ -1024,13 +1031,13 @@ MagickExport Image *ExcerptImage(const Image *image,
 #endif
   for (y=0; y < (ssize_t) excerpt_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1046,7 +1053,7 @@ MagickExport Image *ExcerptImage(const Image *image,
       }
     for (x=0; x < (ssize_t) excerpt_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1147,8 +1154,6 @@ MagickExport Image *ExtentImage(const Image *image,
     }
   status=CompositeImage(extent_image,image,image->compose,MagickTrue,
     -geometry->x,-geometry->y,exception);
-  if (status != MagickFalse)
-    Update8BIMClipPath(extent_image,image->columns,image->rows,geometry);
   return(extent_image);
 }
 
@@ -1223,13 +1228,13 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
 #endif
   for (y=0; y < (ssize_t) flip_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -1244,7 +1249,7 @@ MagickExport Image *FlipImage(const Image *image,ExceptionInfo *exception)
       }
     for (x=0; x < (ssize_t) flip_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1358,13 +1363,13 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
 #endif
   for (y=0; y < (ssize_t) flop_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1380,7 +1385,7 @@ MagickExport Image *FlopImage(const Image *image,ExceptionInfo *exception)
     q+=GetPixelChannels(flop_image)*flop_image->columns;
     for (x=0; x < (ssize_t) flop_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       q-=GetPixelChannels(flop_image);
@@ -1480,13 +1485,13 @@ static MagickBooleanType CopyImageRegion(Image *destination,const Image *source,
     MagickBooleanType
       sync;
 
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     /*
@@ -1503,7 +1508,7 @@ static MagickBooleanType CopyImageRegion(Image *destination,const Image *source,
       }
     for (x=0; x < (ssize_t) columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(source); i++)
@@ -1802,13 +1807,13 @@ MagickExport Image *SpliceImage(const Image *image,
 #endif
   for (y=0; y < (ssize_t) splice_geometry.y; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1824,7 +1829,7 @@ MagickExport Image *SpliceImage(const Image *image,
       }
     for (x=0; x < columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1848,7 +1853,7 @@ MagickExport Image *SpliceImage(const Image *image,
       q+=GetPixelChannels(splice_image);
     for ( ; x < (ssize_t) splice_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1892,13 +1897,13 @@ MagickExport Image *SpliceImage(const Image *image,
   for (y=(ssize_t) (splice_geometry.y+splice_geometry.height);
        y < (ssize_t) splice_image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    ssize_t
+    register ssize_t
       x;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
     if (status == MagickFalse)
@@ -1916,7 +1921,7 @@ MagickExport Image *SpliceImage(const Image *image,
       }
     for (x=0; x < columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -1940,7 +1945,7 @@ MagickExport Image *SpliceImage(const Image *image,
       q+=GetPixelChannels(splice_image);
     for ( ; x < (ssize_t) splice_image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -2155,13 +2160,13 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
 #endif
   for (y=0; y < (ssize_t) image->rows; y++)
   {
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2177,7 +2182,7 @@ MagickExport Image *TransposeImage(const Image *image,ExceptionInfo *exception)
       }
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       for (i=0; i < (ssize_t) GetPixelChannels(image); i++)
@@ -2296,13 +2301,13 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
     MagickBooleanType
       sync;
 
-    const Quantum
+    register const Quantum
       *magick_restrict p;
 
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     if (status == MagickFalse)
@@ -2318,7 +2323,7 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
     q+=GetPixelChannels(transverse_image)*image->columns;
     for (x=0; x < (ssize_t) image->columns; x++)
     {
-      ssize_t
+      register ssize_t
         i;
 
       q-=GetPixelChannels(transverse_image);
@@ -2396,9 +2401,6 @@ MagickExport Image *TransverseImage(const Image *image,ExceptionInfo *exception)
 */
 MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
 {
-  Image
-    *trim_image;
-
   RectangleInfo
     geometry;
 
@@ -2425,8 +2427,5 @@ MagickExport Image *TrimImage(const Image *image,ExceptionInfo *exception)
     }
   geometry.x+=image->page.x;
   geometry.y+=image->page.y;
-  trim_image=CropImage(image,&geometry,exception);
-  if (trim_image != (Image *) NULL)
-    Update8BIMClipPath(trim_image,image->columns,image->rows,&geometry);
-  return(trim_image);
+  return(CropImage(image,&geometry,exception));
 }

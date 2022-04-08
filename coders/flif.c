@@ -17,7 +17,7 @@
 %                                April 2016                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -118,13 +118,13 @@ static Image *ReadFLIFImage(const ImageInfo *image_info,
   MagickBooleanType
     status;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned short
+  register unsigned short
     *p;
 
   size_t
@@ -179,7 +179,7 @@ static Image *ReadFLIFImage(const ImageInfo *image_info,
   image_count=flif_decoder_num_images(flifdec);
   flifimage=flif_decoder_get_image(flifdec,0);
   length=sizeof(unsigned short)*4*flif_image_get_width(flifimage);
-  pixels=(unsigned short *) AcquireQuantumMemory(1,length);
+  pixels=(unsigned short *) AcquireMagickMemory(length);
   if (pixels == (unsigned short *) NULL)
     {
       flif_destroy_decoder(flifdec);
@@ -395,16 +395,16 @@ static MagickBooleanType WriteFLIFImage(const ImageInfo *image_info,
   MagickOffsetType
     scene;
 
-  const Quantum
+  register const Quantum
     *magick_restrict p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *magick_restrict qc;
 
-  unsigned short
+  register unsigned short
     *magick_restrict qs;
 
   size_t

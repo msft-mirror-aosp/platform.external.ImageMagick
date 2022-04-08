@@ -2,18 +2,24 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                             %
 %                                                                             %
-%                             IIIII  PPPP   L                                 %
-%                               I    P   P  L                                 %
-%                               I    PPPP   L                                 %
-%                               I    P      L                                 %
-%                             IIIII  P      LLLLL                             %
 %                                                                             %
-%                 Read/Write Scanalytics IPLab Image Format                   %
-%                                Sean Burke                                   %
-%                                2008.05.07                                   %
-%                                   v 0.9                                     %
+%                     IIIIIIIIII    PPPPPPPP      LL                          %
+%                         II        PP      PP    LL                          %
+%                         II        PP       PP   LL                          %
+%                         II        PP      PP    LL                          %
+%                         II        PPPPPPPP      LL                          %
+%                         II        PP            LL                          %
+%                         II        PP            LL                          %
+%                     IIIIIIIIII    PP            LLLLLLLL                    %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%                                                                             %
+%                                                                             %
+%                   Read/Write Scanalytics IPLab Image Format                 %
+%                                  Sean Burke                                 %
+%                                  2008.05.07                                 %
+%                                     v 0.9                                   %
+%                                                                             %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -175,7 +181,7 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Image *image;
 
   MagickBooleanType status;
-  Quantum *q;
+  register Quantum *q;
   unsigned char magick[12], *pixels;
   ssize_t count;
   ssize_t y;
@@ -397,7 +403,7 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
                  image->filename);
       break;
     }
-   if (t_count < (size_t) (ipl_info.z*ipl_info.time))
+   if (t_count < ipl_info.z * ipl_info.time)
      {
       /*
        Proceed to next image.
@@ -414,7 +420,7 @@ static Image *ReadIPLImage(const ImageInfo *image_info,ExceptionInfo *exception)
       if (status == MagickFalse)
         break;
     }
-  } while (t_count < (size_t) (ipl_info.z*ipl_info.time));
+  } while (t_count < ipl_info.z*ipl_info.time);
   CloseBlob(image);
   if (status == MagickFalse)
     return(DestroyImageList(image));
@@ -515,7 +521,7 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
   MagickOffsetType
     scene;
   
-  const Quantum
+  register const Quantum
     *p;
 
   QuantumInfo
@@ -677,6 +683,7 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
         }
     }
   }
+  quantum_info=DestroyQuantumInfo(quantum_info);
   if (GetNextImageInList(image) == (Image *) NULL)
     break;
       image=SyncNextImageInList(image);
@@ -685,7 +692,6 @@ static MagickBooleanType WriteIPLImage(const ImageInfo *image_info,Image *image,
         break;
     }while (image_info->adjoin != MagickFalse);
 
-  quantum_info=DestroyQuantumInfo(quantum_info);
   (void) WriteBlob(image, 4, (const unsigned char *) "fini");
   (void) WriteBlobLong(image, 0);
 

@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -44,7 +44,6 @@
 #include "MagickCore/blob-private.h"
 #include "MagickCore/cache.h"
 #include "MagickCore/channel.h"
-#include "MagickCore/colorspace-private.h"
 #include "MagickCore/constitute.h"
 #include "MagickCore/exception.h"
 #include "MagickCore/exception-private.h"
@@ -96,7 +95,7 @@ static inline MagickBooleanType PlasmaPixel(Image *image,
   RandomInfo *magick_restrict random_info,const double x,const double y,
   ExceptionInfo *exception)
 {
-  Quantum
+  register Quantum
     *q;
 
   q=GetAuthenticPixels(image,(ssize_t) (x+0.5),(ssize_t) (y+0.5),1,1,
@@ -121,16 +120,16 @@ static Image *ReadPlasmaImage(const ImageInfo *image_info,
   ImageInfo
     *read_info;
 
-  MagickStatusType
+  MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  size_t
+  register size_t
     i;
 
   SegmentInfo
@@ -155,8 +154,6 @@ static Image *ReadPlasmaImage(const ImageInfo *image_info,
   if (image == (Image *) NULL)
     return((Image *) NULL);
   (void) SetImageStorageClass(image,DirectClass,exception);
-  if (IsGrayColorspace(image->colorspace) != MagickFalse)
-    (void) SetImageColorspace(image,sRGBColorspace,exception); 
   for (y=0; y < (ssize_t) image->rows; y++)
   {
     q=GetAuthenticPixels(image,0,y,image->columns,1,exception);

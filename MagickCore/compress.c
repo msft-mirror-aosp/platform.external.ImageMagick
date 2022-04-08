@@ -17,7 +17,7 @@
 %                              May  1993                                      %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -228,12 +228,12 @@ static const HuffmanTable
 %
 %
 */
+#define MaxLineExtent  36L
+
 static inline void Ascii85Tuple(Ascii85Info *ascii85_info,
   const unsigned char *magick_restrict data)
 {
-#define MaxLineExtent  36L
-
-  ssize_t
+  register ssize_t
     i,
     x;
 
@@ -299,10 +299,10 @@ MagickExport void Ascii85Flush(Image *image)
 
 MagickExport void Ascii85Encode(Image *image,const unsigned char code)
 {
-  char
+  register char
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   ssize_t
@@ -416,10 +416,10 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
   Quantum
     index;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *p;
 
   size_t
@@ -497,10 +497,10 @@ MagickExport MagickBooleanType HuffmanDecodeImage(Image *image,
   image_view=AcquireAuthenticCacheView(image,exception);
   for (y=0; ((y < (ssize_t) image->rows) && (null_lines < 3)); )
   {
-    Quantum
+    register Quantum
       *magick_restrict q;
 
-    ssize_t
+    register ssize_t
       x;
 
     /*
@@ -716,14 +716,14 @@ RestoreMSCWarning \
   MagickBooleanType
     proceed;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -940,7 +940,7 @@ MagickExport MagickBooleanType LZWEncodeImage(Image *image,const size_t length,
       next;
   } TableType;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -1087,7 +1087,7 @@ MagickExport MagickBooleanType PackbitsEncodeImage(Image *image,
   int
     count;
 
-  ssize_t
+  register ssize_t
     i,
     j;
 
@@ -1239,7 +1239,7 @@ MagickExport MagickBooleanType ZLIBEncodeImage(Image *image,const size_t length,
   int
     status;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t

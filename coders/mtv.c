@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -103,13 +103,13 @@ static Image *ReadMTVImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   ssize_t
@@ -339,13 +339,13 @@ static MagickBooleanType WriteMTVImage(const ImageInfo *image_info,Image *image,
   MagickOffsetType
     scene;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t

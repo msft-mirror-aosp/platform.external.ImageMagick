@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -118,7 +118,7 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
   QuantumType
     quantum_type;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -230,13 +230,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
           }
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -311,13 +311,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
         {
           for (i=0; i < (ssize_t) (image->alpha_trait != UndefinedPixelTrait ? 4 : 3); i++)
           {
-            const Quantum
+            register const Quantum
               *magick_restrict p;
 
-            Quantum
+            register Quantum
               *magick_restrict q;
 
-            ssize_t
+            register ssize_t
               x;
 
             if (count != (ssize_t) length)
@@ -403,13 +403,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
           }
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -456,13 +456,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
           }
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -509,13 +509,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
           }
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -564,13 +564,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
           {
             for (y=0; y < (ssize_t) image->extract_info.height; y++)
             {
-              const Quantum
+              register const Quantum
                 *magick_restrict p;
 
-              Quantum
+              register Quantum
                 *magick_restrict q;
 
-              ssize_t
+              register ssize_t
                 x;
 
               if (count != (ssize_t) length)
@@ -656,13 +656,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
         stream=ReadBlobStream(image,length,pixels,&count);
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -727,13 +727,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
         stream=ReadBlobStream(image,length,pixels,&count);
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -798,13 +798,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
         stream=ReadBlobStream(image,length,pixels,&count);
         for (y=0; y < (ssize_t) image->extract_info.height; y++)
         {
-          const Quantum
+          register const Quantum
             *magick_restrict p;
 
-          Quantum
+          register Quantum
             *magick_restrict q;
 
-          ssize_t
+          register ssize_t
             x;
 
           if (count != (ssize_t) length)
@@ -871,13 +871,13 @@ static Image *ReadYCBCRImage(const ImageInfo *image_info,
             stream=ReadBlobStream(image,length,pixels,&count);
             for (y=0; y < (ssize_t) image->extract_info.height; y++)
             {
-              const Quantum
+              register const Quantum
                 *magick_restrict p;
 
-              Quantum
+              register Quantum
                 *magick_restrict q;
 
-              ssize_t
+              register ssize_t
                 x;
 
               if (count != (ssize_t) length)
@@ -1080,7 +1080,7 @@ static MagickBooleanType WriteYCBCRImage(const ImageInfo *image_info,
   QuantumType
     quantum_type;
 
-  const Quantum
+  register const Quantum
     *p;
 
   size_t

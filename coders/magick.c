@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -13044,7 +13044,7 @@ static Image *ReadMAGICKImage(const ImageInfo *image_info,
   ImageInfo
     *blob_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -13231,10 +13231,10 @@ static MagickBooleanType WriteMAGICKImage(const ImageInfo *image_info,
   size_t
     length;
 
-  char
+  register char
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   void

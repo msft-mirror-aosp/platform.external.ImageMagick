@@ -17,7 +17,7 @@
 %                              January 1993                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -348,11 +348,11 @@ MagickExport unsigned char *Base64Decode(const char *source,size_t *length)
   int
     state;
 
-  const char
+  register const char
     *p,
     *q;
 
-  size_t
+  register size_t
     i;
 
   unsigned char
@@ -504,10 +504,10 @@ MagickExport char *Base64Encode(const unsigned char *blob,
   char
     *encode;
 
-  const unsigned char
+  register const unsigned char
     *p;
 
-  size_t
+  register size_t
     i;
 
   size_t
@@ -583,7 +583,7 @@ MagickExport char *Base64Encode(const unsigned char *blob,
 */
 MagickPrivate void ChopPathComponents(char *path,const size_t components)
 {
-  ssize_t
+  register ssize_t
     i;
 
   for (i=0; i < (ssize_t) components; i++)
@@ -652,7 +652,7 @@ MagickPrivate void ExpandFilename(char *path)
 #endif
         username[MagickPathExtent];
 
-      char
+      register char
         *p;
 
       struct passwd
@@ -751,7 +751,7 @@ MagickExport MagickBooleanType ExpandFilenames(int *number_arguments,
     home_directory[MagickPathExtent],
     **vector;
 
-  ssize_t
+  register ssize_t
     i,
     j;
 
@@ -1142,6 +1142,8 @@ MagickPrivate ssize_t GetMagickPageSize(void)
   page_size=(ssize_t) sysconf(_SC_PAGE_SIZE);
 #elif defined(MAGICKCORE_HAVE_GETPAGESIZE)
   page_size=(ssize_t) getpagesize();
+#elif defined(MAGICKCORE_WINDOWS_SUPPORT)
+  page_size=NTGetPageSize();
 #endif
   if (page_size <= 0)
     page_size=4096;
@@ -1226,7 +1228,7 @@ MagickExport void GetPathComponent(const char *path,PathType type,
   char
     *q;
 
-  char
+  register char
     *p;
 
   size_t
@@ -1359,23 +1361,6 @@ MagickExport void GetPathComponent(const char *path,PathType type,
             }
       break;
     }
-    case BasePathSansCompressExtension:
-    {
-      char
-        extension[MagickPathExtent];
-
-      /*
-        Base path sans any compression extension.
-      */
-      GetPathComponent(path,ExtensionPath,extension);
-      if ((LocaleCompare(extension,"bz2") == 0) ||
-          (LocaleCompare(extension,"gz") == 0) ||
-          (LocaleCompare(extension,"svgz") == 0) ||
-          (LocaleCompare(extension,"wmz") == 0) ||
-          (LocaleCompare(extension,"Z") == 0))
-        GetPathComponent(path,BasePath,component);
-      break;
-    }
     case ExtensionPath:
     {
       if (IsBasenameSeparator(*p) != MagickFalse)
@@ -1434,11 +1419,11 @@ MagickPrivate char **GetPathComponents(const char *path,
   char
     **components;
 
-  const char
+  register const char
     *p,
     *q;
 
-  ssize_t
+  register ssize_t
     i;
 
   if (path == (char *) NULL)
@@ -1595,7 +1580,7 @@ extern "C" {
 
 static int FileCompare(const void *x,const void *y)
 {
-  const char
+  register const char
     **p,
     **q;
 
@@ -1655,8 +1640,7 @@ MagickPrivate char **ListFiles(const char *directory,const char *pattern,
   while ((MagickReadDirectory(current_directory,buffer,&entry) == 0) &&
          (entry != (struct dirent *) NULL))
   {
-    if ((LocaleCompare(entry->d_name,".") == 0) ||
-        (LocaleCompare(entry->d_name,"..") == 0))
+    if (*entry->d_name == '.')
       continue;
     if ((IsPathDirectory(entry->d_name) > 0) ||
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
@@ -1678,7 +1662,7 @@ MagickPrivate char **ListFiles(const char *directory,const char *pattern,
           }
 #if defined(vms)
         {
-          char
+          register char
             *p;
 
           p=strchr(entry->d_name,';');
@@ -1856,7 +1840,7 @@ MagickPrivate MagickBooleanType ShredFile(const char *path)
   MagickSizeType
     length;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -1909,7 +1893,7 @@ MagickPrivate MagickBooleanType ShredFile(const char *path)
     RandomInfo
       *random_info;
 
-    MagickOffsetType
+    register MagickOffsetType
       j;
 
     ssize_t

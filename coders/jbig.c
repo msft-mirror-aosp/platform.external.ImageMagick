@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -124,13 +124,13 @@ static Image *ReadJBIGImage(const ImageInfo *image_info,
   Quantum
     index;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   ssize_t
@@ -419,17 +419,17 @@ static MagickBooleanType WriteJBIGImage(const ImageInfo *image_info,
   MemoryInfo
     *pixel_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
-    number_images,
+    imageListLength,
     number_packets;
 
   ssize_t
@@ -459,7 +459,7 @@ static MagickBooleanType WriteJBIGImage(const ImageInfo *image_info,
     return(status);
   version=StringToDouble(JBG_VERSION,(char **) NULL);
   scene=0;
-  number_images=GetImageListLength(image);
+  imageListLength=GetImageListLength(image);
   do
   {
     /*
@@ -557,7 +557,7 @@ static MagickBooleanType WriteJBIGImage(const ImageInfo *image_info,
     if (GetNextImageInList(image) == (Image *) NULL)
       break;
     image=SyncNextImageInList(image);
-    status=SetImageProgress(image,SaveImagesTag,scene++,number_images);
+    status=SetImageProgress(image,SaveImagesTag,scene++,imageListLength);
     if (status == MagickFalse)
       break;
   } while (image_info->adjoin != MagickFalse);

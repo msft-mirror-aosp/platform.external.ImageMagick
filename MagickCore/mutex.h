@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2019 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -31,9 +31,6 @@ extern "C" {
 */
 
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-static MagickBooleanType
-  translation_unit_initialized = MagickFalse;
-
 static omp_lock_t
   translation_unit_mutex;
 #elif defined(MAGICKCORE_THREAD_SUPPORT)
@@ -48,7 +45,6 @@ static inline void DestroyMagickMutex(void)
 {
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   omp_destroy_lock(&translation_unit_mutex);
-  translation_unit_initialized=MagickFalse;
 #endif
 }
 
@@ -56,15 +52,12 @@ static inline void InitializeMagickMutex(void)
 {
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
   omp_init_lock(&translation_unit_mutex);
-  translation_unit_initialized=MagickTrue;
 #endif
 }
 
 static inline void LockMagickMutex(void)
 {
 #if defined(MAGICKCORE_OPENMP_SUPPORT)
-  if (translation_unit_initialized == MagickFalse)
-    InitializeMagickMutex();
   omp_set_lock(&translation_unit_mutex);
 #elif defined(MAGICKCORE_THREAD_SUPPORT)
   {

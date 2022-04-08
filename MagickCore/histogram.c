@@ -18,7 +18,7 @@
 %                                August 2009                                  %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -159,7 +159,8 @@ static void
 %
 */
 
-static inline size_t ColorToNodeId(const PixelInfo *pixel,size_t index)
+static inline size_t ColorToNodeId(const Image *image,
+  const PixelInfo *pixel,size_t index)
 {
   size_t
     id;
@@ -168,39 +169,11 @@ static inline size_t ColorToNodeId(const PixelInfo *pixel,size_t index)
     ((ScaleQuantumToChar(ClampToQuantum(pixel->red)) >> index) & 0x01) |
     ((ScaleQuantumToChar(ClampToQuantum(pixel->green)) >> index) & 0x01) << 1 |
     ((ScaleQuantumToChar(ClampToQuantum(pixel->blue)) >> index) & 0x01) << 2);
-  if (pixel->alpha_trait != UndefinedPixelTrait)
+  if (image->alpha_trait != UndefinedPixelTrait)
     id|=((ScaleQuantumToChar(ClampToQuantum(pixel->alpha)) >> index) &
       0x01) << 3;
   return(id);
 }
-
-static inline MagickBooleanType IsPixelInfoColorMatch(
-  const PixelInfo *magick_restrict p,const PixelInfo *magick_restrict q)
-{
-  MagickRealType
-    alpha,
-    beta;
-
-  alpha=p->alpha_trait == UndefinedPixelTrait ? (MagickRealType) OpaqueAlpha :
-    p->alpha;
-  beta=q->alpha_trait == UndefinedPixelTrait ? (MagickRealType) OpaqueAlpha :
-    q->alpha;
-  if (AbsolutePixelValue(alpha-beta) >= MagickEpsilon)
-    return(MagickFalse);
-  if (AbsolutePixelValue(p->red-q->red) >= MagickEpsilon)
-    return(MagickFalse);
-  if (AbsolutePixelValue(p->green-q->green) >= MagickEpsilon)
-    return(MagickFalse);
-  if (AbsolutePixelValue(p->blue-q->blue) >= MagickEpsilon)
-    return(MagickFalse);
-  if (p->colorspace == CMYKColorspace)
-    {
-      if (AbsolutePixelValue(p->black-q->black) >= MagickEpsilon)
-        return(MagickFalse);
-    }
-  return(MagickTrue);
-}
-
 
 static CubeInfo *ClassifyImageColors(const Image *image,
   ExceptionInfo *exception)
@@ -222,15 +195,15 @@ static CubeInfo *ClassifyImageColors(const Image *image,
   NodeInfo
     *node_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  size_t
+  register size_t
     id,
     index,
     level;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
@@ -268,7 +241,7 @@ static CubeInfo *ClassifyImageColors(const Image *image,
       for (level=1; level < MaxTreeDepth; level++)
       {
         GetPixelInfoPixel(image,p,&pixel);
-        id=ColorToNodeId(&pixel,index);
+        id=ColorToNodeId(image,&pixel,index);
         if (node_info->child[id] == (NodeInfo *) NULL)
           {
             node_info->child[id]=GetNodeInfo(cube_info,level);
@@ -284,7 +257,7 @@ static CubeInfo *ClassifyImageColors(const Image *image,
         index--;
       }
       for (i=0; i < (ssize_t) node_info->number_unique; i++)
-        if (IsPixelInfoColorMatch(&pixel,node_info->list+i) != MagickFalse)
+        if (IsPixelInfoEquivalent(&pixel,node_info->list+i) != MagickFalse)
           break;
       if (i < (ssize_t) node_info->number_unique)
         node_info->list[i].count++;
@@ -365,7 +338,7 @@ static CubeInfo *ClassifyImageColors(const Image *image,
 static void DefineImageHistogram(const Image *image,NodeInfo *node_info,
   PixelInfo **histogram)
 {
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -380,7 +353,7 @@ static void DefineImageHistogram(const Image *image,NodeInfo *node_info,
       DefineImageHistogram(image,node_info->child[i],histogram);
   if (node_info->level == (MaxTreeDepth-1))
     {
-      PixelInfo
+      register PixelInfo
         *p;
 
       p=node_info->list;
@@ -419,7 +392,7 @@ static void DefineImageHistogram(const Image *image,NodeInfo *node_info,
 */
 static CubeInfo *DestroyCubeInfo(const Image *image,CubeInfo *cube_info)
 {
-  Nodes
+  register Nodes
     *nodes;
 
   /*
@@ -464,7 +437,7 @@ static CubeInfo *DestroyCubeInfo(const Image *image,CubeInfo *cube_info)
 */
 static void DestroyColorCube(const Image *image,NodeInfo *node_info)
 {
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -677,16 +650,16 @@ static MagickBooleanType CheckImageColors(const Image *image,
     pixel,
     target;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  NodeInfo
+  register NodeInfo
     *node_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -727,7 +700,7 @@ static MagickBooleanType CheckImageColors(const Image *image,
       for (level=1; level < MaxTreeDepth; level++)
       {
         GetPixelInfoPixel(image,p,&pixel);
-        id=ColorToNodeId(&pixel,index);
+        id=ColorToNodeId(image,&pixel,index);
         if (node_info->child[id] == (NodeInfo *) NULL)
           {
             node_info->child[id]=GetNodeInfo(cube_info,level);
@@ -747,7 +720,7 @@ static MagickBooleanType CheckImageColors(const Image *image,
       for (i=0; i < (ssize_t) node_info->number_unique; i++)
       {
         target=node_info->list[i];
-        if (IsPixelInfoColorMatch(&pixel,&target) != MagickFalse)
+        if (IsPixelInfoEquivalent(&pixel,&target) != MagickFalse)
           break;
       }
       if (i < (ssize_t) node_info->number_unique)
@@ -758,7 +731,7 @@ static MagickBooleanType CheckImageColors(const Image *image,
             Add this unique color to the color list.
           */
           if (node_info->number_unique == 0)
-            node_info->list=(PixelInfo *) AcquireQuantumMemory(1,
+            node_info->list=(PixelInfo *) AcquireMagickMemory(
               sizeof(*node_info->list));
           else
             node_info->list=(PixelInfo *) ResizeQuantumMemory(node_info->list,
@@ -931,7 +904,7 @@ MagickExport MagickBooleanType MinMaxStretchImage(Image *image,
     min,
     max;
 
-  ssize_t
+  register ssize_t
     i;
 
   MagickStatusType
@@ -1033,7 +1006,6 @@ MagickExport size_t GetNumberColors(const Image *image,FILE *file,
 
   char
     color[MagickPathExtent],
-    count[MagickPathExtent],
     hex[MagickPathExtent],
     tuple[MagickPathExtent];
 
@@ -1046,10 +1018,10 @@ MagickExport size_t GetNumberColors(const Image *image,FILE *file,
   PixelInfo
     pixel;
 
-  PixelInfo
+  register PixelInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -1099,8 +1071,9 @@ MagickExport size_t GetNumberColors(const Image *image,FILE *file,
     (void) ConcatenateMagickString(tuple,")",MagickPathExtent);
     (void) QueryColorname(image,&pixel,SVGCompliance,color,exception);
     GetColorTuple(&pixel,MagickTrue,hex);
-    (void) sprintf(count,"%.20g:",(double) ((MagickOffsetType) p->count));
-    (void) FormatLocaleFile(file,"    %s %s %s %s\n",count,tuple,hex,color);
+    (void) FormatLocaleFile(file,"%10.20g",(double) ((MagickOffsetType)
+      p->count));
+    (void) FormatLocaleFile(file,": %s %s %s\n",tuple,hex,color);
     if (image->progress_monitor != (MagickProgressMonitor) NULL)
       {
         MagickBooleanType
@@ -1153,7 +1126,7 @@ static void UniqueColorsToImage(Image *unique_image,CacheView *unique_view,
   MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t
@@ -1169,10 +1142,10 @@ static void UniqueColorsToImage(Image *unique_image,CacheView *unique_view,
         node_info->child[i],exception);
   if (node_info->level == (MaxTreeDepth-1))
     {
-      PixelInfo
+      register PixelInfo
         *p;
 
-      Quantum
+      register Quantum
         *magick_restrict q;
 
       status=MagickTrue;

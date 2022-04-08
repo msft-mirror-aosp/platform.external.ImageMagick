@@ -9,7 +9,7 @@
 # Also not that "composite -watermark" is actually known as the compose
 # method "Modulate".
 #
-# Essentially each image is equivelent to
+# Essentually each image is equivelent to
 #   convert logo: -crop 80x80+140+60 +repage \
 #           -size 60x60 gradient:black-white \
 #           -alpha set miff:- |\
@@ -241,12 +241,12 @@ for my $image ( @$results ) {
   );
 }
 
-my $montage=$results->Montage(font=>'Generic.ttf',
+my $montage=$results->Montage(
   geometry=>'+10+10',
   tile=>'4x',
   frame=>'6x6+2+2',
   shadow=>'True',
 );
 $montage->Write('show:');
-$montage->Write('compose-specials.jpg');
+$montage->Write('compose_specials.jpg');
 

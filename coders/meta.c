@@ -17,7 +17,7 @@
 %                                 July 2001                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -161,7 +161,7 @@ static const struct
 
 static int stringnicmp(const char *p,const char *q,size_t n)
 {
-  ssize_t
+  register ssize_t
     i,
     j;
 
@@ -176,10 +176,10 @@ static int stringnicmp(const char *p,const char *q,size_t n)
     if ((*p == '\0') || (*q == '\0'))
       break;
     i=(*p);
-    if (islower((int) ((unsigned char) i)) != 0)
+    if (islower(i))
       i=LocaleUppercase(i);
     j=(*q);
-    if (islower((int) ((unsigned char) j)) != 0)
+    if (islower(j))
       j=LocaleUppercase(j);
     if (i != j)
       break;
@@ -197,7 +197,7 @@ static size_t convertHTMLcodes(char *s)
   int
     value;
 
-  size_t
+  register size_t
     i;
 
   size_t
@@ -242,12 +242,10 @@ static size_t convertHTMLcodes(char *s)
   return(0);
 }
 
-static char *super_fgets(char **b, size_t *blen, Image *file)
+static char *super_fgets(char **b, int *blen, Image *file)
 {
   int
-    c;
-
-  size_t
+    c,
     len;
 
   unsigned char
@@ -261,41 +259,34 @@ static char *super_fgets(char **b, size_t *blen, Image *file)
     c=ReadBlobByte(file);
     if (c == EOF || c == '\n')
       break;
-    if ((size_t) (q-p+1) >= len)
+    if ((q-p+1) >= (int) len)
       {
-        size_t
+        int
           tlen;
 
-        unsigned char
-          *buffer;
-
-        tlen=(size_t) (q-p);
+        tlen=q-p;
         len<<=1;
-        buffer=(unsigned char *) ResizeQuantumMemory(p,len+2UL,sizeof(*p));
-        if (buffer == (unsigned char *) NULL)
-          {
-            p=(unsigned char *) RelinquishMagickMemory(p);
-            break;
-          }
-        p=buffer;
+        p=(unsigned char *) ResizeQuantumMemory(p,(size_t) len+2UL,sizeof(*p));
+        *b=(char *) p;
+        if (p == (unsigned char *) NULL)
+          break;
         q=p+tlen;
       }
     *q=(unsigned char) c;
   }
-  *b=(char *) p;
   *blen=0;
   if (p != (unsigned char *) NULL)
     {
-      size_t
+      int
         tlen;
 
-      tlen=(size_t) (q-p);
+      tlen=q-p;
       if (tlen == 0)
         return (char *) NULL;
       p[tlen] = '\0';
       *blen=++tlen;
     }
-  return(*b);
+  return((char *) p);
 }
 
 #define IPTC_ID 1028
@@ -321,12 +312,12 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
   unsigned int
     recnum;
 
+  int
+    inputlen = MagickPathExtent;
+
   MagickOffsetType
     savedpos,
     currentpos;
-
-  size_t
-    inputlen = MagickPathExtent;
 
   ssize_t
     savedolen = 0L,
@@ -337,7 +328,7 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
 
   dataset = 0;
   recnum = 0;
-  line = (char *) AcquireQuantumMemory(inputlen,sizeof(*line));
+  line = (char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*line));
   if (line == (char *) NULL)
     return(-1);
   newstr = name = token = (char *) NULL;
@@ -348,13 +339,13 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
     state=0;
     next=0;
 
-    token=(char *) AcquireQuantumMemory(inputlen,sizeof(*token));
+    token=(char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*token));
     if (token == (char *) NULL)
       break;
-    newstr=(char *) AcquireQuantumMemory(inputlen,sizeof(*newstr));
+    newstr=(char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*newstr));
     if (newstr == (char *) NULL)
       break;
-    while (Tokenizer(token_info,0,token,inputlen,line,"","=","\"",0,
+    while (Tokenizer(token_info,0,token,(size_t) inputlen,line,"","=","\"",0,
            &brkused,&next,&quoted)==0)
     {
       if (state == 0)
@@ -369,7 +360,7 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
 
           state=0;
           next=0;
-          while (Tokenizer(token_info,0,newstr,inputlen,token,"","#",
+          while (Tokenizer(token_info,0,newstr,(size_t) inputlen,token,"","#",
             "", 0,&brkused,&next,&quoted)==0)
           {
             switch (state)
@@ -408,7 +399,7 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
 
             next=0;
             len = (ssize_t) strlen(token);
-            while (Tokenizer(token_info,0,newstr,inputlen,token,"","&",
+            while (Tokenizer(token_info,0,newstr,(size_t) inputlen,token,"","&",
               "",0,&brkused,&next,&quoted)==0)
             {
               if (brkused && next > 0)
@@ -564,12 +555,10 @@ static ssize_t parse8BIM(Image *ifile, Image *ofile)
   return outputlen;
 }
 
-static char *super_fgets_w(char **b, size_t *blen, Image *file)
+static char *super_fgets_w(char **b, int *blen, Image *file)
 {
   int
-    c;
-
-  size_t
+    c,
     len;
 
   unsigned char
@@ -585,38 +574,34 @@ static char *super_fgets_w(char **b, size_t *blen, Image *file)
       break;
    if (EOFBlob(file))
       break;
-   if ((size_t) (q-p+1) >= len)
+   if ((q-p+1) >= (int) len)
       {
-        size_t
+        int
           tlen;
 
-        unsigned char
-          *buffer;
-
-        tlen=(size_t) (q-p);
+        tlen=q-p;
         len<<=1;
-        buffer=(unsigned char *) ResizeQuantumMemory(p,len+2,sizeof(*p));
-        if (buffer == (unsigned char *) NULL)
+        p=(unsigned char *) ResizeQuantumMemory(p,(size_t) (len+2),sizeof(*p));
+        *b=(char *) p;
+        if (p == (unsigned char *) NULL)
           break;
-        p=buffer;
         q=p+tlen;
       }
     *q=(unsigned char) c;
   }
-  *b=(char *) p;
   *blen=0;
   if ((*b) != (char *) NULL)
     {
-      size_t
+      int
         tlen;
 
-      tlen=(size_t) (q-p);
+      tlen=q-p;
       if (tlen == 0)
         return (char *) NULL;
-      p[tlen]='\0';
+      p[tlen] = '\0';
       *blen=++tlen;
     }
-  return(*b);
+  return((char *) p);
 }
 
 static ssize_t parse8BIMW(Image *ifile, Image *ofile)
@@ -639,7 +624,7 @@ static ssize_t parse8BIMW(Image *ifile, Image *ofile)
   unsigned int
     recnum;
 
-  size_t
+  int
     inputlen = MagickPathExtent;
 
   ssize_t
@@ -655,7 +640,7 @@ static ssize_t parse8BIMW(Image *ifile, Image *ofile)
 
   dataset = 0;
   recnum = 0;
-  line=(char *) AcquireQuantumMemory(inputlen,sizeof(*line));
+  line=(char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*line));
   if (line == (char *) NULL)
     return(-1);
   newstr = name = token = (char *) NULL;
@@ -666,13 +651,13 @@ static ssize_t parse8BIMW(Image *ifile, Image *ofile)
     state=0;
     next=0;
 
-    token=(char *) AcquireQuantumMemory(inputlen,sizeof(*token));
+    token=(char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*token));
     if (token == (char *) NULL)
       break;
-    newstr=(char *) AcquireQuantumMemory(inputlen,sizeof(*newstr));
+    newstr=(char *) AcquireQuantumMemory((size_t) inputlen,sizeof(*newstr));
     if (newstr == (char *) NULL)
       break;
-    while (Tokenizer(token_info,0,token,inputlen,line,"","=","\"",0,
+    while (Tokenizer(token_info,0,token,(size_t) inputlen,line,"","=","\"",0,
       &brkused,&next,&quoted)==0)
     {
       if (state == 0)
@@ -687,7 +672,7 @@ static ssize_t parse8BIMW(Image *ifile, Image *ofile)
 
           state=0;
           next=0;
-          while (Tokenizer(token_info,0,newstr,inputlen,token,"","#",
+          while (Tokenizer(token_info,0,newstr,(size_t) inputlen,token,"","#",
             "",0,&brkused,&next,&quoted)==0)
           {
             switch (state)
@@ -726,7 +711,7 @@ static ssize_t parse8BIMW(Image *ifile, Image *ofile)
 
             next=0;
             len = (ssize_t) strlen(token);
-            while (Tokenizer(token_info,0,newstr,inputlen,token,"","&",
+            while (Tokenizer(token_info,0,newstr,(size_t) inputlen,token,"","&",
               "",0,&brkused,&next,&quoted)==0)
             {
               if (brkused && next > 0)
@@ -1195,7 +1180,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
   size_t
     length;
 
-  unsigned char
+  void
     *blob;
 
   /*
@@ -1244,7 +1229,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
           length=(size_t) parse8BIM(image, buff);
           if (length == 0)
             {
-              blob=(unsigned char *) DetachBlob(buff->blob);
+              blob=DetachBlob(buff->blob);
               blob=(unsigned char *) RelinquishMagickMemory(blob);
               buff=DestroyImage(buff);
               ThrowReaderException(CorruptImageError,"CorruptImage");
@@ -1257,7 +1242,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
           length=(size_t) parse8BIMW(image, buff);
           if (length == 0)
             {
-              blob=(unsigned char *) DetachBlob(buff->blob);
+              blob=DetachBlob(buff->blob);
               blob=(unsigned char *) RelinquishMagickMemory(blob);
               buff=DestroyImage(buff);
               ThrowReaderException(CorruptImageError,"CorruptImage");
@@ -1271,14 +1256,14 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
         GetBlobSize(buff));
       if (profile == (StringInfo *) NULL)
         {
-          blob=(unsigned char *) DetachBlob(buff->blob);
+          blob=DetachBlob(buff->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       status=SetImageProfile(image,"8bim",profile,exception);
       profile=DestroyStringInfo(profile);
-      blob=(unsigned char *) DetachBlob(buff->blob);
+      blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
       buff=DestroyImage(buff);
       if (status == MagickFalse)
@@ -1310,7 +1295,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
 
           if (image_info->profile == (void *) NULL)
             {
-              blob=(unsigned char *) DetachBlob(buff->blob);
+              blob=DetachBlob(buff->blob);
               blob=(unsigned char *) RelinquishMagickMemory(blob);
               buff=DestroyImage(buff);
               ThrowReaderException(CoderError,"NoIPTCProfileAvailable");
@@ -1319,7 +1304,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
           iptc=AcquireImage((ImageInfo *) NULL,exception);
           if (iptc == (Image *) NULL)
             {
-              blob=(unsigned char *) DetachBlob(buff->blob);
+              blob=DetachBlob(buff->blob);
               blob=(unsigned char *) RelinquishMagickMemory(blob);
               buff=DestroyImage(buff);
               ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
@@ -1327,7 +1312,7 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
           AttachBlob(iptc->blob,GetStringInfoDatum(profile),
             GetStringInfoLength(profile));
           result=jpeg_embed(image,buff,iptc);
-          blob=(unsigned char *) DetachBlob(iptc->blob);
+          blob=DetachBlob(iptc->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           iptc=DestroyImage(iptc);
           if (result == 0)
@@ -1342,14 +1327,14 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
         GetBlobSize(buff));
       if (profile == (StringInfo *) NULL)
         {
-          blob=(unsigned char *) DetachBlob(buff->blob);
+          blob=DetachBlob(buff->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       status=SetImageProfile(image,name,profile,exception);
       profile=DestroyStringInfo(profile);
-      blob=(unsigned char *) DetachBlob(buff->blob);
+      blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
       buff=DestroyImage(buff);
       if (status == MagickFalse)
@@ -1373,14 +1358,14 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
         GetBlobSize(buff));
       if (profile == (StringInfo *) NULL)
         {
-          blob=(unsigned char *) DetachBlob(buff->blob);
+          blob=DetachBlob(buff->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       (void) SetImageProfile(image,"icc",profile,exception);
       profile=DestroyStringInfo(profile);
-      blob=(unsigned char *) DetachBlob(buff->blob);
+      blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
       buff=DestroyImage(buff);
     }
@@ -1401,14 +1386,14 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
         GetBlobSize(buff));
       if (profile == (StringInfo *) NULL)
         {
-          blob=(unsigned char *) DetachBlob(buff->blob);
+          blob=DetachBlob(buff->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       (void) SetImageProfile(image,"iptc",profile,exception);
       profile=DestroyStringInfo(profile);
-      blob=(unsigned char *) DetachBlob(buff->blob);
+      blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
       buff=DestroyImage(buff);
     }
@@ -1429,14 +1414,14 @@ static Image *ReadMETAImage(const ImageInfo *image_info,
         GetBlobSize(buff));
       if (profile == (StringInfo *) NULL)
         {
-          blob=(unsigned char *) DetachBlob(buff->blob);
+          blob=DetachBlob(buff->blob);
           blob=(unsigned char *) RelinquishMagickMemory(blob);
           buff=DestroyImage(buff);
           ThrowReaderException(ResourceLimitError,"MemoryAllocationFailed");
         }
       (void) SetImageProfile(image,"xmp",profile,exception);
       profile=DestroyStringInfo(profile);
-      blob=(unsigned char *) DetachBlob(buff->blob);
+      blob=DetachBlob(buff->blob);
       blob=(unsigned char *) RelinquishMagickMemory(blob);
       buff=DestroyImage(buff);
     }
@@ -1631,10 +1616,10 @@ static size_t GetIPTCStream(unsigned char **info,size_t length)
   int
     c;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *p;
 
   size_t
@@ -1791,7 +1776,7 @@ iptc_find:
   return(info_length);
 }
 
-static void formatString(Image *ofile, const char *s, ssize_t len)
+static void formatString(Image *ofile, const char *s, int len)
 {
   char
     temp[MagickPathExtent];
@@ -1815,7 +1800,7 @@ static void formatString(Image *ofile, const char *s, ssize_t len)
       (void) WriteBlobString(ofile,"&quot;");
       break;
     default:
-      if (isprint((int) ((unsigned char) c)) != 0)
+      if (isprint(c))
         (void) WriteBlobByte(ofile,(unsigned char) *s);
       else
         {

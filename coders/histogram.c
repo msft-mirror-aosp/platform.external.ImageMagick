@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -199,14 +199,14 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
   RectangleInfo
     geometry;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  Quantum
+  register Quantum
     *q,
     *r;
 
-  ssize_t
+  register ssize_t
     x;
 
   size_t
@@ -280,7 +280,7 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
       maximum=histogram[x].blue;
   }
   scale=0.0;
-  if (fabs((double) maximum) >= MagickEpsilon)
+  if (fabs(maximum) >= MagickEpsilon)
     scale=(double) histogram_image->rows/maximum;
   /*
     Initialize histogram image.
@@ -295,8 +295,7 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
       break;
     if ((GetPixelRedTraits(image) & UpdatePixelTrait) != 0)
       {
-        y=CastDoubleToLong(ceil((double) histogram_image->rows-scale*
-          histogram[x].red-0.5));
+        y=(ssize_t) ceil(histogram_image->rows-scale*histogram[x].red-0.5);
         r=q+y*GetPixelChannels(histogram_image);
         for ( ; y < (ssize_t) histogram_image->rows; y++)
         {
@@ -306,8 +305,7 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
       }
     if ((GetPixelGreenTraits(image) & UpdatePixelTrait) != 0)
       {
-        y=CastDoubleToLong(ceil((double) histogram_image->rows-scale*
-          histogram[x].green-0.5));
+        y=(ssize_t) ceil(histogram_image->rows-scale*histogram[x].green-0.5);
         r=q+y*GetPixelChannels(histogram_image);
         for ( ; y < (ssize_t) histogram_image->rows; y++)
         {
@@ -317,8 +315,7 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
       }
     if ((GetPixelBlueTraits(image) & UpdatePixelTrait) != 0)
       {
-        y=CastDoubleToLong(ceil((double) histogram_image->rows-scale*
-          histogram[x].blue-0.5));
+        y=(ssize_t) ceil(histogram_image->rows-scale*histogram[x].blue-0.5);
         r=q+y*GetPixelChannels(histogram_image);
         for ( ; y < (ssize_t) histogram_image->rows; y++)
         {
@@ -328,8 +325,7 @@ static MagickBooleanType WriteHISTOGRAMImage(const ImageInfo *image_info,
       }
     if (SyncAuthenticPixels(histogram_image,exception) == MagickFalse)
       break;
-    status=SetImageProgress(image,SaveImageTag,(MagickOffsetType) y,
-      histogram_image->rows);
+    status=SetImageProgress(image,SaveImageTag,y,histogram_image->rows);
     if (status == MagickFalse)
       break;
   }

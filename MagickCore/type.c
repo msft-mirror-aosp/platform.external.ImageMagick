@@ -17,7 +17,7 @@
 %                                 May 2001                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -162,7 +162,7 @@ static MagickBooleanType
 
 static void *DestroyTypeNode(void *type_info)
 {
-  TypeInfo
+  register TypeInfo
     *p;
 
   p=(TypeInfo *) type_info;
@@ -319,6 +319,7 @@ MagickExport const TypeInfo *GetTypeInfo(const char *name,
 %    o exception: return any errors or warnings in this structure.
 %
 */
+
 MagickExport const TypeInfo *GetTypeInfoByFamily(const char *family,
   const StyleType style,const StretchType stretch,const size_t weight,
   ExceptionInfo *exception)
@@ -333,10 +334,10 @@ MagickExport const TypeInfo *GetTypeInfoByFamily(const char *family,
   const TypeInfo
     *type_info;
 
-  const TypeInfo
+  register const TypeInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   ssize_t
@@ -490,7 +491,7 @@ MagickExport const TypeInfo *GetTypeInfoByFamily(const char *family,
   }
   if (type_info != (const TypeInfo *) NULL)
     {
-      (void) ThrowMagickException(exception,GetMagickModule(),TypeWarning,
+      (void) ThrowMagickException(exception,GetMagickModule(),TypeError,
         "FontSubstitutionRequired","`%s'",type_info->family);
       return(type_info);
     }
@@ -555,10 +556,10 @@ MagickExport const TypeInfo **GetTypeInfoList(const char *pattern,
   const TypeInfo
     **fonts;
 
-  const TypeInfo
+  register const TypeInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -629,7 +630,7 @@ extern "C" {
 
 static int TypeCompare(const void *x,const void *y)
 {
-  const char
+  register const char
     **p,
     **q;
 
@@ -648,10 +649,10 @@ MagickExport char **GetTypeList(const char *pattern,size_t *number_fonts,
   char
     **fonts;
 
-  const TypeInfo
+  register const TypeInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -753,7 +754,7 @@ MagickExport MagickBooleanType LoadFontConfigFonts(SplayTreeInfo *type_cache,
     width,
     weight;
 
-  ssize_t
+  register ssize_t
     i;
 
   TypeInfo
@@ -947,7 +948,7 @@ MagickExport MagickBooleanType ListTypeInfo(FILE *file,ExceptionInfo *exception)
   const TypeInfo
     **type_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t

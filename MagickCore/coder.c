@@ -17,7 +17,7 @@
 %                                 May 2001                                    %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -112,9 +112,12 @@ static MagickBooleanType
 %
 %  The format of the AcquireCoderCache coder is:
 %
-%      SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
+%      SplayTreeInfo *AcquireCoderCache(const char *filename,
+%        ExceptionInfo *exception)
 %
 %  A description of each parameter follows:
+%
+%    o filename: the font file name.
 %
 %    o exception: return any errors or warnings in this structure.
 %
@@ -122,7 +125,7 @@ static MagickBooleanType
 
 static void *DestroyCoderNode(void *coder_info)
 {
-  CoderInfo
+  register CoderInfo
     *p;
 
   p=(CoderInfo *) coder_info;
@@ -143,7 +146,7 @@ static SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
   MagickStatusType
     status;
 
-  ssize_t
+  register ssize_t
     i;
 
   SplayTreeInfo
@@ -160,7 +163,7 @@ static SplayTreeInfo *AcquireCoderCache(ExceptionInfo *exception)
     CoderInfo
       *coder_info;
 
-    const CoderMapInfo
+    register const CoderMapInfo
       *p;
 
     p=CoderMap+i;
@@ -322,10 +325,10 @@ MagickExport const CoderInfo **GetCoderInfoList(const char *pattern,
   const CoderInfo
     **coder_map;
 
-  const CoderInfo
+  register const CoderInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -392,7 +395,7 @@ MagickExport const CoderInfo **GetCoderInfoList(const char *pattern,
 
 static int CoderCompare(const void *x,const void *y)
 {
-  const char
+  register const char
     **p,
     **q;
 
@@ -407,10 +410,10 @@ MagickExport char **GetCoderList(const char *pattern,
   char
     **coder_map;
 
-  const CoderInfo
+  register const CoderInfo
     *p;
 
-  ssize_t
+  register ssize_t
     i;
 
   /*
@@ -517,7 +520,7 @@ MagickExport MagickBooleanType ListCoderInfo(FILE *file,
   const CoderInfo
     **coder_info;
 
-  ssize_t
+  register ssize_t
     i;
 
   size_t

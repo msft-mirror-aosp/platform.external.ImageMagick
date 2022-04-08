@@ -23,7 +23,7 @@
 %                               December 2002                                 %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -157,7 +157,7 @@ MagickExport MagickBooleanType AddValueToSplayTree(SplayTreeInfo *splay_tree,
   int
     compare;
 
-  NodeInfo
+  register NodeInfo
     *node;
 
   LockSemaphoreInfo(splay_tree->semaphore);
@@ -247,7 +247,7 @@ MagickExport MagickBooleanType AddValueToSplayTree(SplayTreeInfo *splay_tree,
 static NodeInfo *LinkSplayTreeNodes(NodeInfo **nodes,const size_t low,
   const size_t high)
 {
-  NodeInfo
+  register NodeInfo
     *node;
 
   size_t
@@ -268,7 +268,7 @@ static NodeInfo *LinkSplayTreeNodes(NodeInfo **nodes,const size_t low,
 
 static inline int SplayTreeToNodeArray(NodeInfo *node,const void *nodes)
 {
-  const NodeInfo
+  register const NodeInfo
     ***p;
 
   p=(const NodeInfo ***) nodes;
@@ -332,7 +332,7 @@ static void BalanceSplayTree(SplayTreeInfo *splay_tree)
 
 static inline void *GetFirstSplayTreeNode(SplayTreeInfo *splay_tree)
 {
-  NodeInfo
+  register NodeInfo
     *node;
 
   node=splay_tree->root;
@@ -346,7 +346,7 @@ static inline void *GetFirstSplayTreeNode(SplayTreeInfo *splay_tree)
 MagickExport SplayTreeInfo *CloneSplayTree(SplayTreeInfo *splay_tree,
   void *(*clone_key)(void *),void *(*clone_value)(void *))
 {
-  NodeInfo
+  register NodeInfo
     *next,
     *node;
 
@@ -486,7 +486,7 @@ MagickExport int CompareSplayTreeStringInfo(const void *target,
 MagickExport MagickBooleanType DeleteNodeByValueFromSplayTree(
   SplayTreeInfo *splay_tree,const void *value)
 {
-  NodeInfo
+  register NodeInfo
     *next,
     *node;
 
@@ -517,7 +517,7 @@ MagickExport MagickBooleanType DeleteNodeByValueFromSplayTree(
         int
           compare;
 
-        NodeInfo
+        register NodeInfo
           *left,
           *right;
 
@@ -606,7 +606,7 @@ MagickExport MagickBooleanType DeleteNodeFromSplayTree(
   int
     compare;
 
-  NodeInfo
+  register NodeInfo
     *left,
     *right;
 
@@ -684,7 +684,7 @@ MagickExport SplayTreeInfo *DestroySplayTree(SplayTreeInfo *splay_tree)
   NodeInfo
     *node;
 
-  NodeInfo
+  register NodeInfo
     *active,
     *pend;
 
@@ -768,7 +768,7 @@ MagickExport SplayTreeInfo *DestroySplayTree(SplayTreeInfo *splay_tree)
 */
 MagickExport const void *GetNextKeyInSplayTree(SplayTreeInfo *splay_tree)
 {
-  NodeInfo
+  register NodeInfo
     *node;
 
   void
@@ -822,7 +822,7 @@ MagickExport const void *GetNextKeyInSplayTree(SplayTreeInfo *splay_tree)
 */
 MagickExport const void *GetNextValueInSplayTree(SplayTreeInfo *splay_tree)
 {
-  NodeInfo
+  register NodeInfo
     *node;
 
   void
@@ -1030,10 +1030,10 @@ static int IterateOverSplayTree(SplayTreeInfo *splay_tree,
   NodeInfo
     **nodes;
 
-  ssize_t
+  register ssize_t
     i;
 
-  NodeInfo
+  register NodeInfo
     *node;
 
   TransitionType
@@ -1190,7 +1190,7 @@ MagickExport SplayTreeInfo *NewSplayTree(
 MagickExport void *RemoveNodeByValueFromSplayTree(SplayTreeInfo *splay_tree,
   const void *value)
 {
-  NodeInfo
+  register NodeInfo
     *next,
     *node;
 
@@ -1222,7 +1222,7 @@ MagickExport void *RemoveNodeByValueFromSplayTree(SplayTreeInfo *splay_tree,
         int
           compare;
 
-        NodeInfo
+        register NodeInfo
           *left,
           *right;
 
@@ -1302,7 +1302,7 @@ MagickExport void *RemoveNodeFromSplayTree(SplayTreeInfo *splay_tree,
   int
     compare;
 
-  NodeInfo
+  register NodeInfo
     *left,
     *right;
 
@@ -1382,7 +1382,7 @@ MagickExport void ResetSplayTree(SplayTreeInfo *splay_tree)
   NodeInfo
     *node;
 
-  NodeInfo
+  register NodeInfo
     *active,
     *pend;
 
@@ -1521,7 +1521,7 @@ static NodeInfo *Splay(SplayTreeInfo *splay_tree,const size_t depth,
   NodeInfo
     **next;
 
-  NodeInfo
+  register NodeInfo
     *n,
     *p;
 

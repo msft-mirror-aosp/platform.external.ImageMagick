@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -171,16 +171,16 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
   Quantum
     index;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     i;
 
-  size_t
+  register size_t
     pixel;
 
   size_t
@@ -497,7 +497,7 @@ static Image *ReadXWDImage(const ImageInfo *image_info,ExceptionInfo *exception)
       case DirectClass:
       default:
       {
-        size_t
+        register size_t
           color;
 
         size_t
@@ -759,13 +759,13 @@ static MagickBooleanType WriteXWDImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -861,7 +861,7 @@ static MagickBooleanType WriteXWDImage(const ImageInfo *image_info,Image *image,
   (void) WriteBlob(image,1,(const unsigned char *) "\0");
   if (image->storage_class == PseudoClass)
     {
-      ssize_t
+      register ssize_t
         i;
 
       XColor
@@ -934,7 +934,7 @@ static MagickBooleanType WriteXWDImage(const ImageInfo *image_info,Image *image,
       {
         for (x=0; x < (ssize_t) image->columns; x++)
         {
-          *q++=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
+          *q++=(unsigned char) GetPixelIndex(image,p);
           p+=GetPixelChannels(image);
         }
       }

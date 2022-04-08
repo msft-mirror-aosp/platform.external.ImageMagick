@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -223,16 +223,16 @@ static Image *ReadVIFFImage(const ImageInfo *image_info,
   MagickSizeType
     number_pixels;
 
-  ssize_t
+  register ssize_t
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *p;
 
   size_t
@@ -950,16 +950,16 @@ static MagickBooleanType WriteVIFFImage(const ImageInfo *image_info,
   MemoryInfo
     *pixel_info;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
-  ssize_t
+  register ssize_t
     i;
 
-  unsigned char
+  register unsigned char
     *q;
 
   size_t
@@ -997,7 +997,9 @@ static MagickBooleanType WriteVIFFImage(const ImageInfo *image_info,
       Initialize VIFF image structure.
     */
     (void) TransformImageColorspace(image,sRGBColorspace,exception);
-    viff_info.identifier=(char) -85;
+DisableMSCWarning(4310)
+    viff_info.identifier=(char) 0xab;
+RestoreMSCWarning
     viff_info.file_type=1;
     viff_info.release=1;
     viff_info.version=3;
@@ -1175,7 +1177,7 @@ static MagickBooleanType WriteVIFFImage(const ImageInfo *image_info,
               break;
             for (x=0; x < (ssize_t) image->columns; x++)
             {
-              *q++=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
+              *q++=(unsigned char) GetPixelIndex(image,p);
               p+=GetPixelChannels(image);
             }
             if (image->previous == (Image *) NULL)
@@ -1190,7 +1192,11 @@ static MagickBooleanType WriteVIFFImage(const ImageInfo *image_info,
       else
         if (image->colors <= 2)
           {
-            unsigned char
+            ssize_t
+              x,
+              y;
+
+            register unsigned char
               bit,
               byte;
 

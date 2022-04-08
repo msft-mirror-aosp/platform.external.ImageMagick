@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -179,10 +179,10 @@ static Image *ReadPCLImage(const ImageInfo *image_info,ExceptionInfo *exception)
     bounding_box,
     page;
 
-  char
+  register char
     *p;
 
-  ssize_t
+  register ssize_t
     c;
 
   SegmentInfo
@@ -331,8 +331,6 @@ static Image *ReadPCLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   options=AcquireString("");
   (void) FormatLocaleString(density,MagickPathExtent,"%gx%g",
     image->resolution.x,image->resolution.y);
-  if (image_info->ping != MagickFalse)
-    (void) FormatLocaleString(density,MagickPathExtent,"2.0x2.0");
   page.width=(size_t) floor(page.width*image->resolution.x/delta.x+0.5);
   page.height=(size_t) floor(page.height*image->resolution.y/delta.y+0.5);
   (void) FormatLocaleString(options,MagickPathExtent,"-g%.20gx%.20g ",(double)
@@ -386,13 +384,6 @@ static Image *ReadPCLImage(const ImageInfo *image_info,ExceptionInfo *exception)
   {
     (void) CopyMagickString(image->filename,filename,MagickPathExtent);
     image->page=page;
-    if (image_info->ping != MagickFalse)
-      {
-        image->magick_columns*=image->resolution.x/2.0;
-        image->magick_rows*=image->resolution.y/2.0;
-        image->columns*=image->resolution.x/2.0;
-        image->rows*=image->resolution.y/2.0;
-      }
     next_image=SyncNextImageInList(image);
     if (next_image != (Image *) NULL)
       image=next_image;
@@ -500,11 +491,11 @@ static size_t PCLDeltaCompressImage(const size_t length,
     j,
     replacement;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   q=compress_pixels;
@@ -568,10 +559,10 @@ static size_t PCLPackbitsCompressImage(const size_t length,
   int
     count;
 
-  ssize_t
+  register ssize_t
     x;
 
-  unsigned char
+  register unsigned char
     *q;
 
   ssize_t
@@ -681,11 +672,11 @@ static MagickBooleanType WritePCLImage(const ImageInfo *image_info,Image *image,
   MagickOffsetType
     scene;
 
-  const Quantum *p;
+  register const Quantum *p;
 
-  ssize_t i, x;
+  register ssize_t i, x;
 
-  unsigned char *q;
+  register unsigned char *q;
 
   size_t
     density,
@@ -872,7 +863,7 @@ static MagickBooleanType WritePCLImage(const ImageInfo *image_info,Image *image,
       {
         case 1:
         {
-          unsigned char
+          register unsigned char
             bit,
             byte;
 
@@ -906,7 +897,7 @@ static MagickBooleanType WritePCLImage(const ImageInfo *image_info,Image *image,
           */
           for (x=0; x < (ssize_t) image->columns; x++)
           {
-            *q++=(unsigned char) ((ssize_t) GetPixelIndex(image,p));
+            *q++=(unsigned char) GetPixelIndex(image,p);
             p+=GetPixelChannels(image);
           }
           break;

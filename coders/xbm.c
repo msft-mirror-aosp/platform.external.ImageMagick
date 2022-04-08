@@ -17,7 +17,7 @@
 %                                 July 1992                                   %
 %                                                                             %
 %                                                                             %
-%  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization      %
+%  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization      %
 %  dedicated to making software imaging solutions freely available.           %
 %                                                                             %
 %  You may not use this file except in compliance with the License.  You may  %
@@ -187,14 +187,14 @@ static Image *ReadXBMImage(const ImageInfo *image_info,ExceptionInfo *exception)
   MagickBooleanType
     status;
 
-  ssize_t
+  register ssize_t
     i,
     x;
 
-  Quantum
+  register Quantum
     *q;
 
-  unsigned char
+  register unsigned char
     *p;
 
   short int
@@ -510,10 +510,10 @@ static MagickBooleanType WriteXBMImage(const ImageInfo *image_info,Image *image,
   MagickBooleanType
     status;
 
-  const Quantum
+  register const Quantum
     *p;
 
-  ssize_t
+  register ssize_t
     x;
 
   size_t
@@ -573,7 +573,7 @@ static MagickBooleanType WriteXBMImage(const ImageInfo *image_info,Image *image,
     for (x=0; x < (ssize_t) image->columns; x++)
     {
       byte>>=1;
-      if (GetPixelLuma(image,p) < (QuantumRange/2))
+      if (GetPixelLuma(image,p) > (QuantumRange/2))
         byte|=0x80;
       bit++;
       if (bit == 8)

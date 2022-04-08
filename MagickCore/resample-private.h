@@ -1,5 +1,5 @@
 /*
-  Copyright 1999-2021 ImageMagick Studio LLC, a non-profit organization
+  Copyright 1999-2020 ImageMagick Studio LLC, a non-profit organization
   dedicated to making software imaging solutions freely available.
 
   You may not use this file except in compliance with the License.  You may
@@ -27,7 +27,7 @@ extern "C" {
 static inline ResampleFilter **DestroyResampleFilterThreadSet(
   ResampleFilter **filter)
 {
-  ssize_t
+  register ssize_t
     i;
 
   assert(filter != (ResampleFilter **) NULL);
@@ -42,7 +42,7 @@ static inline ResampleFilter **AcquireResampleFilterThreadSet(
   const Image *image,const VirtualPixelMethod method,
   const MagickBooleanType interpolate,ExceptionInfo *exception)
 {
-  ssize_t
+  register ssize_t
     i;
 
   ResampleFilter
